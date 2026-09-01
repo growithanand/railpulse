@@ -1,0 +1,60 @@
+# Python bytecode and tooling
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual environments and packaging artifacts
+.venv/
+venv/
+env/
+build/
+dist/
+*.egg-info/
+*.whl
+
+# Secrets and machine-local configuration
+.env
+.env.*
+!.env.example
+configs/local.*
+*.pem
+*.key
+
+# Data: keep only the placement documentation
+data/*
+!data/README.md
+datasets/
+
+# Spark, Delta Lake, and streaming state
+spark-warehouse/
+metastore_db/
+derby.log
+checkpoints/
+**/_delta_log/
+
+# Databricks local state
+.databricks/
+
+# ML and analytics artifacts
+/artifacts/
+/mlruns/
+/models/
+
+# Logs and temporary output
+*.log
+logs/
+tmp/
+temp/
+
+# Notebook, IDE, and operating-system state
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

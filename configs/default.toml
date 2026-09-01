@@ -1,0 +1,17 @@
+[project]
+name = "railpulse"
+environment = "local"
+dataset_version = "unverified"
+
+[paths]
+raw_data = "data/raw"
+processed_data = "data/processed"
+delta = "data/delta"
+checkpoints = "data/checkpoints"
+artifacts = "artifacts"
+
+[schemas]
+catalog = "railpulse"
+bronze = "bronze"
+silver = "silver"
+gold = "gold"
