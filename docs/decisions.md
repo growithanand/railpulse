@@ -33,7 +33,7 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 
 ## ADR-004 — Defer Spark and Delta version selection
 
-- **Status:** Provisional
+- **Status:** Superseded by ADR-009
 - **Decision:** Do not pin PySpark, Delta Lake, or Databricks runtime dependencies in Phase 1.
 - **Why:** The inspected machine has Python 3.13.5 and Java 23.0.2 but no Spark or Databricks CLI.
   Versions must be chosen against verified local and target-runtime compatibility, not guessed.
@@ -74,3 +74,26 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   nominal 10-second cadence.
 - **Why:** The separate MetroPT dataset described in Scientific Data contains 2022 data, 20 variables
   including GPS, and 1 Hz acquisition. Mixing their documentation would corrupt this contract.
+
+## ADR-009 — Use Spark 4.2 with Delta Lake 4.4 for local Bronze work
+
+- **Status:** Accepted
+- **Decision:** Pin PySpark 4.2.0 and `delta-spark` 4.4.0. Verify local integration in Ubuntu WSL
+  with Python 3.12 and Eclipse Temurin JDK 21.
+- **Why:** Delta 4.4 is built and tested for Spark 4.2, Spark 4.2 supports Python 3.10+ and Java
+  17/21/25, and JDK 21 is an LTS runtime. The installed Windows JDK 23 is outside that Java set, and
+  native Windows Hadoop also requires an additional `winutils.exe` helper.
+- **Limitation:** Databricks runtime and deployment compatibility remain unverified until a workspace
+  is available.
+
+## ADR-010 — Use source-derived keys and path-backed local Bronze tables
+
+- **Status:** Accepted
+- **Decision:** Derive `record_id` from the logical table, input SHA-256, and stable source key
+  (`source_index_raw` for telemetry; `source_row_raw` for failures). Use Delta `MERGE` for reruns and
+  reject duplicate source-derived keys within a batch. Store generated local tables under
+  `data/delta/bronze/` while retaining `bronze.*` as their logical names.
+- **Why:** The verified files provide unique stable keys. This permits deterministic idempotency
+  without inventing nondeterministic row numbers, while explicit duplicate rejection prevents
+  silent loss. Path-backed tables work without a local Hive metastore and map cleanly to managed
+  table writes in a later Databricks adapter.

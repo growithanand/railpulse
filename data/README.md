@@ -10,7 +10,7 @@ data/
 ├── raw/          Unmodified MetroPT-3 telemetry and separate failure reports
 ├── reference/    Small licensed source metadata safe to version
 ├── processed/    Non-Delta local inspection output, if required
-├── delta/        Local Bronze, Silver, and Gold Delta storage
+├── delta/        Generated local Bronze, Silver, and Gold Delta storage
 └── checkpoints/  Structured Streaming checkpoints
 ```
 
@@ -22,3 +22,7 @@ in `docs/dataset_manifest.json`.
 failure table. It deliberately preserves duplicate report identifiers and ambiguous maintenance
 text. Small deterministic test data belongs in `tests/fixtures/` and must be clearly synthetic or
 derived under an explicitly documented license.
+
+Phase 3 writes path-backed Delta tables below `data/delta/bronze/`. The complete directory remains
+ignored because it is reproducible from verified sources. See `docs/bronze_ingestion.md` for the
+command, schema, and row-reconciliation evidence.

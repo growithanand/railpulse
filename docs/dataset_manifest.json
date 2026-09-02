@@ -115,6 +115,7 @@
   },
   "failure_reference": {
     "path": "data/reference/metropt3_failure_events.csv",
+    "transcription_sha256": "3a9e02204190394c65abf65d24b1553a1764030138162cc4779abf8d8b90fce5",
     "event_count": 4,
     "timezone": null,
     "interval_end_semantics": "not specified by publisher",

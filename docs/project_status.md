@@ -2,12 +2,12 @@
 
 ## Current phase
 
-**Phase 2 — Official dataset verification and data contract (implementation verified)**
+**Phase 3 — Bronze ingestion (implementation verified)**
 
-The official UCI MetroPT-3 archive, CSV, PDF, schema, sensor meanings, timestamp behavior, license,
-and published failure table have been inspected. The manifest, contract, dictionary, failure
-reference, and streaming inspector have passed local verification. Git commit state is reported in
-the session handoff because it changes independently of checked-in project files.
+Explicit source-aligned schemas, checksum enforcement, traceable metadata, deterministic record and
+batch IDs, Delta `MERGE` reruns, corrupt-record retention, and row reconciliation are implemented.
+Both official source inputs have been materialized and reconciled locally. Git commit state is
+reported in the session handoff because it changes independently of checked-in project files.
 
 ## Environment observed on 2026-09-01
 
@@ -21,6 +21,17 @@ the session handoff because it changes independently of checked-in project files
 | Databricks CLI | Not installed |
 | Ruff | Not initially installed |
 | Python build frontend | Not initially installed |
+
+## Phase 3 runtime verified on 2026-09-02
+
+| Component | Verified state |
+| --- | --- |
+| Ubuntu WSL | Ubuntu 24.04.1 LTS |
+| Python | 3.12.3 in ignored `.venv-wsl/` |
+| Java | Eclipse Temurin 21.0.12.1 LTS in ignored `.tools/` |
+| Apache Spark / PySpark | 4.2.0 |
+| Delta Lake | 4.4.0 |
+| Local Spark master | `local[4]` for full ingestion; bounded 3 GiB driver heap |
 
 Repository-local Git identity:
 
@@ -39,11 +50,23 @@ Repository-local Git identity:
 - Complete-file CSV inspection covering 1,516,948 rows and 15 sensors.
 - Source/next-Bronze contracts, sensor dictionary, and separate four-row failure reference.
 - Reusable standard-library inspector and deterministic metadata/contract tests.
+- Separate explicit all-string schemas for telemetry and failure-report Bronze records.
+- Source/file/document checksums, modification/ingestion times, dataset version, and deterministic
+  record/batch identifiers.
+- Path-backed Delta tables with merge-based rerun idempotency and input/target reconciliation.
+- Deterministic Spark integration fixtures for raw-token preservation, corrupt-row retention,
+  duplicate-key rejection, and zero-insert reruns.
+
+Official local Bronze evidence:
+
+| Logical table | Source rows | Target rows | Verified rerun inserts |
+| --- | ---: | ---: | ---: |
+| `bronze.telemetry_raw` | 1,516,948 | 1,516,948 | 0 |
+| `bronze.failure_reports_raw` | 4 | 4 | 0 |
 
 ## Not implemented
 
-- Spark/Delta dependencies and sessions.
-- Bronze, Silver, or Gold tables and transformations.
+- Silver or Gold tables and transformations.
 - SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -52,9 +75,11 @@ has been measured.
 
 ## Known constraints and next phase
 
-The source contains documented contradictions: instance count, stated cadence/date range, duplicate
-failure report number, and a maintenance date that predates its associated failure interval. They
-remain explicit and unresolved. Spark/Delta compatibility still requires a supported toolchain.
+The source contradictions documented in Phase 2 remain unresolved. Bronze deliberately performs no
+type conversion, sensor-range validation, deduplication, timestamp normalization, or source-value
+repair. Native Windows Spark is not the verified runtime because its Hadoop layer requires a
+separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains untested.
 
-The next phase will implement explicit-schema, metadata-rich, idempotent Bronze ingestion for the
-telemetry CSV and separate failure reference without silently cleaning source values.
+The next phase will implement Silver accepted/quarantine tables, normalized failure events, explicit
+rejection reasons, duplicate/gap/range checks, and data-quality metrics without discarding invalid
+records.

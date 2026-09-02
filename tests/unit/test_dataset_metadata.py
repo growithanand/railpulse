@@ -29,6 +29,7 @@ def test_manifest_identifies_the_verified_uci_artifact() -> None:
     assert SHA256_PATTERN.fullmatch(archive["sha256"])
     assert len(archive["members"]) == 2
     assert all(SHA256_PATTERN.fullmatch(member["sha256"]) for member in archive["members"])
+    assert SHA256_PATTERN.fullmatch(manifest["failure_reference"]["transcription_sha256"])
 
 
 def test_manifest_schema_matches_the_inspector_contract() -> None:

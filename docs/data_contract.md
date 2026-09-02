@@ -3,8 +3,8 @@
 ## Status and scope
 
 This contract covers the official **MetroPT-3 Dataset**, UCI dataset ID 791, and the two files in
-the UCI archive retrieved on 2026-09-02. It defines the boundary for future
-`bronze.telemetry_raw` and `bronze.failure_reports_raw` tables. It does not define Silver labels or
+the UCI archive retrieved on 2026-09-02. It defines the implemented
+`bronze.telemetry_raw` and `bronze.failure_reports_raw` boundary. It does not define Silver labels or
 claim that every published statement is internally consistent.
 
 MetroPT-3 is distinct from the newer **MetroPT** dataset. MetroPT-3 contains 2020 compressor data,
@@ -92,13 +92,14 @@ These observations do not make the measurements physically valid. Small negative
 for example, remain legitimate raw observations until Silver range rules distinguish sensor tolerance
 from invalid data.
 
-## Planned Bronze telemetry schema
+## Implemented Bronze telemetry schema
 
-Bronze must preserve input tokens and never silently clean them. The implementation phase will use
-an explicit schema with source values represented as strings:
+Bronze preserves input tokens and never silently cleans them. The implementation uses an explicit
+schema with source values represented as strings:
 
 | Bronze field | Type | Source/meaning |
 | --- | --- | --- |
+| `record_id` | string | SHA-256 of table, input digest, and `source_index_raw` |
 | `source_index_raw` | string | Unnamed first CSV column |
 | `event_timestamp_raw` | string | Original `timestamp` token |
 | `*_raw` for each sensor | string | Original numeric token for the 15 source sensors |
@@ -109,6 +110,10 @@ an explicit schema with source values represented as strings:
 | `ingestion_batch_id` | string | Deterministic batch identifier |
 | `dataset_version` | string | `uci-791-aab991a970e5` |
 | `corrupt_record` | string or null | Full row when the explicit CSV shape cannot be parsed |
+
+The local table is path-backed at `data/delta/bronze/telemetry_raw`; the logical table name remains
+`bronze.telemetry_raw`. A rerun uses Delta `MERGE` on `record_id` and inserts only unseen source
+records. Duplicate record IDs inside one input fail ingestion instead of silently collapsing rows.
 
 Silver, not Bronze, will convert the source index to a long, timestamp text to an explicitly chosen
 timestamp representation, analogue signals to doubles, and digital signals to validated binary
@@ -139,9 +144,12 @@ The four published intervals are:
 | 3 | `#3` | 2020-06-05 10:00 | 2020-06-07 14:30 | Air Leak | Maintenance on 8Jun at 16:00 |
 | 4 | `#4` | 2020-07-15 14:30 | 2020-07-15 19:00 | Air Leak | Maintenance on 16Jul at 00:00 |
 
-Future Bronze ingestion will preserve these raw strings and source-document hash. Silver may add
-normalized fields, but it must retain the raw values and ambiguity flags. Failure data must never be
-used as a scoring-time feature.
+Bronze preserves these strings in `_raw` fields. It records both the ingested transcription digest
+`3a9e02204190394c65abf65d24b1553a1764030138162cc4779abf8d8b90fce5` and the official source-PDF
+digest. Its deterministic record ID uses the transcription digest plus `source_row_raw`. The local
+table is path-backed at `data/delta/bronze/failure_reports_raw`. Silver may add normalized fields,
+but it must retain the raw values and ambiguity flags. Failure data must never be used as a
+scoring-time feature.
 
 ## Known source ambiguities
 
@@ -170,3 +178,10 @@ After manually placing or downloading the official CSV under ignored raw storage
 The command streams through the complete file, prints JSON, and exits nonzero when the structural
 contract fails. A successful structure check does not waive later Silver range, gap, and business
 validation. Add `--full-interval-distribution` when every distinct timestamp interval is needed.
+
+Bronze ingestion then verifies both input digests, writes the separate Delta tables, and prints row
+reconciliation JSON:
+
+```bash
+.venv-wsl/bin/python -m railpulse.ingestion.bronze --master "local[4]"
+```

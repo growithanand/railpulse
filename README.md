@@ -11,9 +11,10 @@ MetroPT-3 compressor telemetry dataset. Its central question is:
 
 ## Current status
 
-The repository scaffold and official MetroPT-3 data contract are implemented and locally verified.
-Bronze ingestion is the next phase; all tables, models, metrics, alerts, dashboards, and Databricks
-resources are still planned. No performance or maintenance-impact claims have been established.
+The repository scaffold, official MetroPT-3 data contract, and Bronze Delta ingestion are
+implemented and locally verified. Silver validation and quarantine are next; all validated/Gold
+tables, models, metrics, alerts, dashboards, and Databricks resources are still planned. No
+performance or maintenance-impact claims have been established.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -48,9 +49,9 @@ Official MetroPT-3 telemetry + separately documented failure reports
                 Databricks SQL decision-support dashboard
 ```
 
-This is a production-pattern demonstration. Approximately 1.5 million one-second observations do
-not inherently require distributed computing; Spark is used to demonstrate scalable, incremental,
-and Databricks-compatible engineering practices.
+This is a production-pattern demonstration. Approximately 1.5 million records at a nominal
+10-second cadence do not inherently require distributed computing; Spark is used to demonstrate
+scalable, incremental, and Databricks-compatible engineering practices.
 
 ## Implemented now
 
@@ -60,35 +61,55 @@ and Databricks-compatible engineering practices.
 - Deterministic package and configuration tests.
 - A checksum-backed official dataset manifest, sensor dictionary, failure-event reference, and
   streaming CSV contract inspector.
+- Explicit all-string Bronze schemas, source/checksum metadata, corrupt-record capture, deterministic
+  identifiers, Delta `MERGE` idempotency, and row reconciliation.
+- Locally materialized `bronze.telemetry_raw` and `bronze.failure_reports_raw` Delta tables; generated
+  table storage remains ignored.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
 - Durable project planning, status, and architecture-decision documentation.
 
-## Planned stack
+## Runtime stack
 
-Python, Apache Spark, PySpark, Spark SQL, Delta Lake, Databricks, MLflow, pytest, Ruff, and GitHub
-Actions will be added where each is justified. Structured Streaming will replay historical files;
-it will not be described as a live train connection.
+Bronze uses Python, PySpark 4.2.0, Apache Spark 4.2.0, Delta Lake 4.4.0, pytest, and Ruff. Later phases
+will add Spark SQL, Databricks resources, MLflow, Structured Streaming, and GitHub Actions where each
+is justified. Streaming will replay historical files; it will not be described as a live train
+connection.
 
-Spark, Delta Lake, and Databricks dependency versions are intentionally not pinned yet. The current
-machine has Python and Java but no Spark or Databricks CLI, so compatibility will be selected after
-the local and target Databricks runtimes are verified.
+The local Spark/Delta integration is verified in Ubuntu WSL with Python 3.12 and Eclipse Temurin JDK
+21. Native Windows Spark is not the verified path because Hadoop requires a separate Windows helper.
+Databricks deployment and runtime compatibility have not been tested.
 
 ## Quick start
 
-Python 3.11 or newer is required for the current package-only phase.
+Python 3.11 or newer is required. Package-only checks can run in a normal virtual environment:
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\python -m pip install --upgrade pip
-.venv\Scripts\python -m pip install -e ".[dev]"
-.venv\Scripts\python -m pytest
+.venv\Scripts\python -m pip install -e ".[dev,spark]"
+.venv\Scripts\python -m pytest -m "not spark"
 .venv\Scripts\python -m ruff check .
 .venv\Scripts\python -m ruff format --check .
 ```
 
-The data pipeline does not exist yet. Do not infer pipeline outputs from the configuration names.
+Spark/Delta integration and ingestion are run inside Ubuntu WSL with a supported JDK 21. From the
+repository mounted in WSL:
+
+```bash
+python3 -m venv .venv-wsl
+.venv-wsl/bin/python -m pip install --upgrade pip
+.venv-wsl/bin/python -m pip install -e ".[dev,spark]"
+export JAVA_HOME=/path/to/a/jdk-21
+export PYSPARK_PYTHON="$PWD/.venv-wsl/bin/python"
+export PYSPARK_SUBMIT_ARGS="--driver-memory 3g --conf spark.driver.extraJavaOptions=-Djdk.lang.Process.launchMechanism=VFORK pyspark-shell"
+.venv-wsl/bin/python -m pytest
+```
+
+The local JDK and virtual environment belong under ignored `.tools/` and `.venv-wsl/` when kept in
+the project. See [Bronze ingestion](docs/bronze_ingestion.md) for source placement, execution, table
+locations, idempotency behavior, and verified counts.
 
 To reproduce the complete-file source inspection after downloading the official CSV into ignored
 raw storage:
@@ -96,6 +117,12 @@ raw storage:
 ```powershell
 .venv\Scripts\python -m railpulse.validation.metropt3 `
   "data\raw\source\metropt3-uci-791\MetroPT3(AirCompressor).csv"
+```
+
+After source inspection, materialize or safely reconcile both Bronze tables:
+
+```bash
+.venv-wsl/bin/python -m railpulse.ingestion.bronze --master "local[4]"
 ```
 
 ## Repository layout
@@ -138,6 +165,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Dataset manifest](docs/dataset_manifest.json)
 - [Data contract](docs/data_contract.md)
 - [Data dictionary](docs/data_dictionary.md)
+- [Bronze ingestion](docs/bronze_ingestion.md)
 
 An evaluation protocol, dashboard instructions, a demo script, and evidence-based résumé bullets
 will be added only when their supporting phases are implemented.

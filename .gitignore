@@ -11,6 +11,8 @@ htmlcov/
 
 # Virtual environments and packaging artifacts
 .venv/
+.venv-wsl/
+.tools/
 venv/
 env/
 build/
@@ -40,6 +42,7 @@ metastore_db/
 derby.log
 checkpoints/
 **/_delta_log/
+.ivy2/
 
 # Databricks local state
 .databricks/

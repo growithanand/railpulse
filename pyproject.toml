@@ -18,6 +18,10 @@ dev = [
     "pytest>=8,<9",
     "ruff>=0.8,<1",
 ]
+spark = [
+    "delta-spark==4.4.0",
+    "pyspark==4.2.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -26,6 +30,9 @@ where = ["src"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-ra --strict-config --strict-markers"
+markers = [
+    "spark: integration tests that start a local Spark session",
+]
 
 [tool.ruff]
 target-version = "py311"
