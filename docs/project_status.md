@@ -2,12 +2,13 @@
 
 ## Current phase
 
-**Phase 3 — Bronze ingestion (implementation verified)**
+**Phase 4 — Silver validation and quarantine (in progress: typed telemetry projection)**
 
-Explicit source-aligned schemas, checksum enforcement, traceable metadata, deterministic record and
-batch IDs, Delta `MERGE` reruns, corrupt-record retention, and row reconciliation are implemented.
-Both official source inputs have been materialized and reconciled locally. Git commit state is
-reported in the session handoff because it changes independently of checked-in project files.
+Bronze ingestion is implemented and verified against both official inputs. The first Silver
+increment adds a reusable typed telemetry projection while preserving every Bronze field. Silver
+table writes, explicit rejection reasons, and accepted/quarantine outputs are not implemented yet.
+Git commit state is reported in the session handoff because it changes independently of checked-in
+project files.
 
 ## Environment observed on 2026-09-01
 
@@ -56,6 +57,8 @@ Repository-local Git identity:
 - Path-backed Delta tables with merge-based rerun idempotency and input/target reconciliation.
 - Deterministic Spark integration fixtures for raw-token preservation, corrupt-row retention,
   duplicate-key rejection, and zero-insert reruns.
+- A non-writing Silver telemetry projection for source-index, timezone-free timestamp, and sensor
+  parsing that keeps invalid raw tokens available for later rejection reasons.
 
 Official local Bronze evidence:
 
@@ -66,7 +69,8 @@ Official local Bronze evidence:
 
 ## Not implemented
 
-- Silver or Gold tables and transformations.
+- Silver table writes, accepted/quarantine splitting, range/domain checks, normalized failure
+  events, data-quality metrics, and all Gold transformations.
 - SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -80,6 +84,6 @@ type conversion, sensor-range validation, deduplication, timestamp normalization
 repair. Native Windows Spark is not the verified runtime because its Hadoop layer requires a
 separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains untested.
 
-The next phase will implement Silver accepted/quarantine tables, normalized failure events, explicit
-rejection reasons, duplicate/gap/range checks, and data-quality metrics without discarding invalid
-records.
+The next small increment will attach explicit telemetry parsing rejection reasons and split accepted
+from quarantined records without writing Delta tables yet. Range, duplicate, gap, and failure-event
+rules will follow in separate reviewed commits.
