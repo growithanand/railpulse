@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.types import ByteType, DoubleType, LongType, TimestampNTZType
+from pyspark.sql.window import Window
 
 from railpulse.ingestion.schemas import CORRUPT_RECORD_FIELD, TELEMETRY_RAW_FIELDS
 
@@ -184,9 +185,39 @@ def validate_digital_sensor_domains(frame: DataFrame) -> DataFrame:
     return validated
 
 
+def validate_duplicate_identifiers(frame: DataFrame) -> DataFrame:
+    """Append reasons to every row sharing a non-null source index or event time."""
+
+    required_columns = {REJECTION_REASONS_FIELD, "source_index", "event_timestamp"}
+    missing_columns = sorted(required_columns - set(frame.columns))
+    if missing_columns:
+        raise SilverTelemetryError(
+            "Typed telemetry is missing duplicate-validation columns: " + ", ".join(missing_columns)
+        )
+
+    duplicate_source_index = F.col("source_index").isNotNull() & (
+        F.count(F.lit(1)).over(Window.partitionBy("source_index")) > 1
+    )
+    duplicate_event_timestamp = F.col("event_timestamp").isNotNull() & (
+        F.count(F.lit(1)).over(Window.partitionBy("event_timestamp")) > 1
+    )
+    duplicate_reasons = F.filter(
+        F.array(
+            F.when(duplicate_source_index, F.lit("duplicate_source_index")),
+            F.when(duplicate_event_timestamp, F.lit("duplicate_event_timestamp")),
+        ),
+        lambda reason: reason.isNotNull(),
+    )
+    return frame.withColumn(
+        REJECTION_REASONS_FIELD,
+        F.concat(F.col(REJECTION_REASONS_FIELD), duplicate_reasons),
+    )
+
+
 def split_telemetry_by_quality(frame: DataFrame) -> TelemetryQualitySplit:
-    """Apply implemented parsing and digital-domain rules, then split the records."""
+    """Apply implemented parsing, domain, and duplicate rules, then split the records."""
 
     parsed = _annotate_telemetry_parsing_quality(frame)
     domain_validated = validate_digital_sensor_domains(parsed)
-    return _split_annotated_telemetry(domain_validated)
+    duplicate_validated = validate_duplicate_identifiers(domain_validated)
+    return _split_annotated_telemetry(duplicate_validated)

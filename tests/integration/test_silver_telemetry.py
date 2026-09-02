@@ -171,11 +171,13 @@ def test_digital_domain_validation_covers_every_sensor_and_preserves_parse_failu
     spark: SparkSession,
 ) -> None:
     frames = [_bronze_frame(spark, record_id="valid")]
-    for raw_name, canonical_name in DIGITAL_SENSOR_COLUMNS:
+    for position, (raw_name, canonical_name) in enumerate(DIGITAL_SENSOR_COLUMNS, start=1):
         frames.append(
             _bronze_frame(
                 spark,
                 record_id=f"invalid-domain-{canonical_name}",
+                source_index_raw=str(position * 10),
+                event_timestamp_raw=f"2020-02-01 00:{position:02d}:00",
                 **{raw_name: "2.0"},
             )
         )
@@ -183,6 +185,8 @@ def test_digital_domain_validation_covers_every_sensor_and_preserves_parse_failu
         _bronze_frame(
             spark,
             record_id="invalid-parse-comp",
+            source_index_raw="90",
+            event_timestamp_raw="2020-02-01 00:09:00",
             comp_raw="NaN",
         )
     )
@@ -218,3 +222,70 @@ def test_digital_domain_validation_requires_parsing_annotations(spark: SparkSess
 
     with pytest.raises(SilverTelemetryError, match="missing digital-validation columns"):
         validate_digital_sensor_domains(typed)
+
+
+@pytest.mark.spark
+def test_duplicate_validation_marks_all_affected_rows_but_ignores_null_keys(
+    spark: SparkSession,
+) -> None:
+    frames = [
+        _bronze_frame(spark, record_id="unique"),
+        _bronze_frame(
+            spark,
+            record_id="source-duplicate-a",
+            source_index_raw="10",
+            event_timestamp_raw="2020-02-01 00:00:10",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="source-duplicate-b",
+            source_index_raw="10",
+            event_timestamp_raw="2020-02-01 00:00:20",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="timestamp-duplicate-a",
+            source_index_raw="20",
+            event_timestamp_raw="2020-02-01 00:00:30",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="timestamp-duplicate-b",
+            source_index_raw="30",
+            event_timestamp_raw="2020-02-01 00:00:30",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="invalid-keys-a",
+            source_index_raw="invalid-a",
+            event_timestamp_raw="invalid-a",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="invalid-keys-b",
+            source_index_raw="invalid-b",
+            event_timestamp_raw="invalid-b",
+        ),
+    ]
+    source = frames[0]
+    for frame in frames[1:]:
+        source = source.unionByName(frame)
+
+    split = split_telemetry_by_quality(source)
+    accepted_ids = {row.record_id for row in split.accepted.collect()}
+    quarantined = {row.record_id: row.rejection_reasons for row in split.quarantined.collect()}
+
+    assert accepted_ids == {"unique"}
+    assert len(accepted_ids) + len(quarantined) == source.count() == 7
+    assert quarantined["source-duplicate-a"] == ["duplicate_source_index"]
+    assert quarantined["source-duplicate-b"] == ["duplicate_source_index"]
+    assert quarantined["timestamp-duplicate-a"] == ["duplicate_event_timestamp"]
+    assert quarantined["timestamp-duplicate-b"] == ["duplicate_event_timestamp"]
+    assert quarantined["invalid-keys-a"] == [
+        "invalid_source_index",
+        "invalid_event_timestamp",
+    ]
+    assert quarantined["invalid-keys-b"] == [
+        "invalid_source_index",
+        "invalid_event_timestamp",
+    ]
