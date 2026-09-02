@@ -2,13 +2,14 @@
 
 ## Current phase
 
-**Phase 4 — Silver validation and quarantine (in progress: telemetry quality metrics)**
+**Phase 4 — Silver validation and quarantine (in progress: failure-event quality)**
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
 index/event-time detection. It now derives adjacent event-time intervals, flags material forward
-gaps, quarantines out-of-order records, and produces reconciled in-memory quality counts. Silver
-table writes and analogue range validation are not implemented yet.
+gaps, quarantines out-of-order records, and produces reconciled in-memory quality counts. Published
+failure events now have a separate typed structural-quality split. Silver table writes and analogue
+range validation are not implemented yet.
 
 ## Environment observed on 2026-09-01
 
@@ -69,6 +70,8 @@ Repository-local Git identity:
   gaps, and out-of-order timestamps without quarantining valid measurements after forward gaps.
 - A deterministic telemetry quality summary reconciles total, accepted, quarantined, and forward-gap
   counts and reports each rejection reason independently.
+- Failure-event validation types source rows and timezone-free interval bounds, preserves report
+  labels and ambiguous text, and rejects malformed, incomplete, duplicated, or reversed records.
 
 Official local Bronze evidence:
 
@@ -79,8 +82,8 @@ Official local Bronze evidence:
 
 ## Not implemented
 
-- Silver table writes, analogue range checks, normalized failure events, persisted quality metrics,
-  and all Gold transformations.
+- Silver table writes, analogue range checks, failure-to-telemetry interval joins, persisted quality
+  metrics, and all Gold transformations.
 - SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -94,6 +97,6 @@ type conversion, sensor-range validation, deduplication, timestamp normalization
 repair. Native Windows Spark is not the verified runtime because its Hadoop layer requires a
 separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains untested.
 
-The next small increment will type and validate the four published failure-event records while
-preserving their ambiguous raw text. Range and table-write work will follow in separate reviewed
-commits.
+The next small increment will verify the failure-event transformation against all four versioned
+reference records and document the resulting evidence. Range and table-write work will follow in
+separate reviewed commits.
