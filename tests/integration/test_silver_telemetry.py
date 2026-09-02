@@ -7,6 +7,7 @@ import pytest
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import (
+    ByteType,
     DoubleType,
     LongType,
     StringType,
@@ -17,11 +18,14 @@ from pyspark.sql.types import (
 
 from railpulse.ingestion.schemas import CORRUPT_RECORD_FIELD, TELEMETRY_RAW_FIELDS
 from railpulse.validation.silver_telemetry import (
+    DIGITAL_SENSOR_COLUMNS,
     REJECTION_REASONS_FIELD,
     SENSOR_COLUMNS,
     SilverTelemetryError,
     parse_telemetry_types,
     split_telemetry_by_parsing_quality,
+    split_telemetry_by_quality,
+    validate_digital_sensor_domains,
 )
 
 
@@ -160,3 +164,57 @@ def test_split_telemetry_requires_bronze_control_columns(spark: SparkSession) ->
 
     with pytest.raises(SilverTelemetryError, match="missing required control columns"):
         split_telemetry_by_parsing_quality(without_corrupt_record)
+
+
+@pytest.mark.spark
+def test_digital_domain_validation_covers_every_sensor_and_preserves_parse_failures(
+    spark: SparkSession,
+) -> None:
+    frames = [_bronze_frame(spark, record_id="valid")]
+    for raw_name, canonical_name in DIGITAL_SENSOR_COLUMNS:
+        frames.append(
+            _bronze_frame(
+                spark,
+                record_id=f"invalid-domain-{canonical_name}",
+                **{raw_name: "2.0"},
+            )
+        )
+    frames.append(
+        _bronze_frame(
+            spark,
+            record_id="invalid-parse-comp",
+            comp_raw="NaN",
+        )
+    )
+    source = frames[0]
+    for frame in frames[1:]:
+        source = source.unionByName(frame)
+
+    split = split_telemetry_by_quality(source)
+    accepted = split.accepted.collect()
+    quarantined = {row.record_id: row for row in split.quarantined.collect()}
+
+    assert len(accepted) == 1
+    assert len(accepted) + len(quarantined) == source.count() == 10
+    assert accepted[0].record_id == "valid"
+    assert all(
+        isinstance(split.accepted.schema[canonical_name].dataType, ByteType)
+        for _, canonical_name in DIGITAL_SENSOR_COLUMNS
+    )
+    for raw_name, canonical_name in DIGITAL_SENSOR_COLUMNS:
+        row = quarantined[f"invalid-domain-{canonical_name}"]
+        assert row[raw_name] == "2.0"
+        assert row[canonical_name] is None
+        assert row.rejection_reasons == [f"invalid_{canonical_name}_domain"]
+
+    parse_failure = quarantined["invalid-parse-comp"]
+    assert parse_failure.comp is None
+    assert parse_failure.rejection_reasons == ["invalid_comp"]
+
+
+@pytest.mark.spark
+def test_digital_domain_validation_requires_parsing_annotations(spark: SparkSession) -> None:
+    typed = parse_telemetry_types(_bronze_frame(spark))
+
+    with pytest.raises(SilverTelemetryError, match="missing digital-validation columns"):
+        validate_digital_sensor_domains(typed)

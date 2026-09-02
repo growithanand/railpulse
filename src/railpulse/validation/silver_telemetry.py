@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as F
-from pyspark.sql.types import DoubleType, LongType, TimestampNTZType
+from pyspark.sql.types import ByteType, DoubleType, LongType, TimestampNTZType
 
 from railpulse.ingestion.schemas import CORRUPT_RECORD_FIELD, TELEMETRY_RAW_FIELDS
 
@@ -43,8 +43,8 @@ class SilverTelemetryError(ValueError):
 
 
 @dataclass(frozen=True)
-class TelemetryParsingSplit:
-    """Lazy accepted and quarantined frames produced by parsing validation."""
+class TelemetryQualitySplit:
+    """Lazy accepted and quarantined frames produced by telemetry validation."""
 
     accepted: DataFrame
     quarantined: DataFrame
@@ -99,13 +99,7 @@ def _invalid_numeric(column_name: str) -> Column:
     return value.isNull() | F.isnan(value) | (F.abs(value) == F.lit(float("inf")))
 
 
-def split_telemetry_by_parsing_quality(frame: DataFrame) -> TelemetryParsingSplit:
-    """Parse Bronze telemetry and split records using explicit parsing reasons.
-
-    This boundary covers structural and type validity only. Digital domains, engineering ranges,
-    duplicate event times, and timestamp gaps are intentionally handled by later validators.
-    """
-
+def _annotate_telemetry_parsing_quality(frame: DataFrame) -> DataFrame:
     required_control_columns = {CORRUPT_RECORD_FIELD, "record_id"}
     missing_control_columns = sorted(required_control_columns - set(frame.columns))
     if missing_control_columns:
@@ -130,8 +124,69 @@ def split_telemetry_by_parsing_quality(frame: DataFrame) -> TelemetryParsingSpli
         REJECTION_REASONS_FIELD,
         F.filter(F.array(*reason_expressions), lambda reason: reason.isNotNull()),
     )
+    return annotated
+
+
+def _split_annotated_telemetry(annotated: DataFrame) -> TelemetryQualitySplit:
     reason_count = F.size(F.col(REJECTION_REASONS_FIELD))
-    return TelemetryParsingSplit(
+    return TelemetryQualitySplit(
         accepted=annotated.where(reason_count == 0),
         quarantined=annotated.where(reason_count > 0),
     )
+
+
+def split_telemetry_by_parsing_quality(frame: DataFrame) -> TelemetryQualitySplit:
+    """Parse Bronze telemetry and split records using explicit parsing reasons.
+
+    This boundary covers structural and type validity only. Digital domains, engineering ranges,
+    duplicate event times, and timestamp gaps are intentionally handled by later validators.
+    """
+
+    return _split_annotated_telemetry(_annotate_telemetry_parsing_quality(frame))
+
+
+def validate_digital_sensor_domains(frame: DataFrame) -> DataFrame:
+    """Append digital-domain reasons and normalize valid values to binary bytes."""
+
+    required_columns = {
+        REJECTION_REASONS_FIELD,
+        *(canonical_name for _, canonical_name in DIGITAL_SENSOR_COLUMNS),
+    }
+    missing_columns = sorted(required_columns - set(frame.columns))
+    if missing_columns:
+        raise SilverTelemetryError(
+            "Typed telemetry is missing digital-validation columns: " + ", ".join(missing_columns)
+        )
+
+    domain_reason_expressions = [
+        F.when(
+            ~_invalid_numeric(canonical_name) & ~F.col(canonical_name).isin(0.0, 1.0),
+            F.lit(f"invalid_{canonical_name}_domain"),
+        )
+        for _, canonical_name in DIGITAL_SENSOR_COLUMNS
+    ]
+    domain_reasons = F.filter(
+        F.array(*domain_reason_expressions),
+        lambda reason: reason.isNotNull(),
+    )
+    validated = frame.withColumn(
+        REJECTION_REASONS_FIELD,
+        F.concat(F.col(REJECTION_REASONS_FIELD), domain_reasons),
+    )
+    for _, canonical_name in DIGITAL_SENSOR_COLUMNS:
+        value = F.col(canonical_name)
+        validated = validated.withColumn(
+            canonical_name,
+            F.when(value.isin(0.0, 1.0), value.cast(ByteType())).otherwise(
+                F.lit(None).cast(ByteType())
+            ),
+        )
+    return validated
+
+
+def split_telemetry_by_quality(frame: DataFrame) -> TelemetryQualitySplit:
+    """Apply implemented parsing and digital-domain rules, then split the records."""
+
+    parsed = _annotate_telemetry_parsing_quality(frame)
+    domain_validated = validate_digital_sensor_domains(parsed)
+    return _split_annotated_telemetry(domain_validated)
