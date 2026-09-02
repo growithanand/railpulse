@@ -1,17 +1,27 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import LongType, StringType, StructField, StructType, TimestampNTZType
 
+from railpulse.ingestion.bronze import (
+    file_sha256,
+    load_dataset_artifacts,
+    read_failure_reports_bronze,
+)
 from railpulse.ingestion.schemas import CORRUPT_RECORD_FIELD, FAILURE_RAW_FIELDS
 from railpulse.validation.silver_failures import (
     SilverFailureError,
     split_failure_events_by_quality,
 )
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+FAILURE_REFERENCE = PROJECT_ROOT / "data" / "reference" / "metropt3_failure_events.csv"
+DATASET_MANIFEST = PROJECT_ROOT / "docs" / "dataset_manifest.json"
 
 
 def _failure_frame(spark: SparkSession, **overrides: Any) -> DataFrame:
@@ -35,6 +45,45 @@ def _failure_frame(spark: SparkSession, **overrides: Any) -> DataFrame:
         ]
     )
     return spark.createDataFrame([values], schema=schema)
+
+
+@pytest.mark.spark
+def test_versioned_failure_reference_reconciles_through_bronze_and_silver(
+    spark: SparkSession,
+) -> None:
+    artifacts = load_dataset_artifacts(DATASET_MANIFEST)
+    source_sha256 = file_sha256(FAILURE_REFERENCE)
+    assert source_sha256 == artifacts.failure_transcription_sha256
+
+    bronze = read_failure_reports_bronze(
+        spark,
+        FAILURE_REFERENCE,
+        source_sha256=source_sha256,
+        source_document_sha256=artifacts.failure_source_document_sha256,
+        dataset_version=artifacts.dataset_version,
+        ingested_at=datetime(2026, 9, 2, 8, 30, tzinfo=UTC),
+    )
+    split = split_failure_events_by_quality(bronze)
+    rows = split.accepted.orderBy("source_row").collect()
+
+    assert split.all_records.count() == 4
+    assert len(rows) == 4
+    assert split.quarantined.count() == 0
+    assert [row.source_row for row in rows] == [1, 2, 3, 4]
+    assert [row.source_report_number_raw for row in rows] == ["#1", "#1", "#3", "#4"]
+    assert [(row.failure_start, row.failure_end) for row in rows] == [
+        (datetime(2020, 4, 18, 0, 0), datetime(2020, 4, 18, 23, 59)),
+        (datetime(2020, 5, 29, 23, 30), datetime(2020, 5, 30, 6, 0)),
+        (datetime(2020, 6, 5, 10, 0), datetime(2020, 6, 7, 14, 30)),
+        (datetime(2020, 7, 15, 14, 30), datetime(2020, 7, 15, 19, 0)),
+    ]
+    assert rows[1].report_raw == "Maintenance on 30Apr at 12:00"
+    assert "unresolved source ambiguity" in rows[1].source_note_raw
+    assert {row.source_sha256 for row in rows} == {source_sha256}
+    assert {row.source_document_sha256 for row in rows} == {
+        artifacts.failure_source_document_sha256
+    }
+    assert {row.dataset_version for row in rows} == {artifacts.dataset_version}
 
 
 @pytest.mark.spark
