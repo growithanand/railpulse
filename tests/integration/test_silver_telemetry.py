@@ -19,9 +19,11 @@ from pyspark.sql.types import (
 from railpulse.ingestion.schemas import CORRUPT_RECORD_FIELD, TELEMETRY_RAW_FIELDS
 from railpulse.validation.silver_telemetry import (
     DIGITAL_SENSOR_COLUMNS,
+    MATERIAL_GAP_SECONDS,
     REJECTION_REASONS_FIELD,
     SENSOR_COLUMNS,
     SilverTelemetryError,
+    annotate_timestamp_sequence,
     parse_telemetry_types,
     split_telemetry_by_parsing_quality,
     split_telemetry_by_quality,
@@ -289,3 +291,112 @@ def test_duplicate_validation_marks_all_affected_rows_but_ignores_null_keys(
         "invalid_source_index",
         "invalid_event_timestamp",
     ]
+
+
+@pytest.mark.spark
+def test_timestamp_sequence_flags_gaps_and_quarantines_only_out_of_order_records(
+    spark: SparkSession,
+) -> None:
+    assert MATERIAL_GAP_SECONDS == 20
+    frames = [
+        _bronze_frame(spark, record_id="first"),
+        _bronze_frame(
+            spark,
+            record_id="nominal",
+            source_index_raw="10",
+            event_timestamp_raw="2020-02-01 00:00:10",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="jitter",
+            source_index_raw="20",
+            event_timestamp_raw="2020-02-01 00:00:21",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="gap",
+            source_index_raw="30",
+            event_timestamp_raw="2020-02-01 00:00:41",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="out-of-order",
+            source_index_raw="40",
+            event_timestamp_raw="2020-02-01 00:00:35",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="recovered",
+            source_index_raw="50",
+            event_timestamp_raw="2020-02-01 00:00:50",
+        ),
+    ]
+    source = frames[0]
+    for frame in frames[1:]:
+        source = source.unionByName(frame)
+
+    split = split_telemetry_by_quality(source)
+    accepted = {row.record_id: row for row in split.accepted.collect()}
+    quarantined = {row.record_id: row for row in split.quarantined.collect()}
+
+    assert len(accepted) + len(quarantined) == source.count() == 6
+    assert set(accepted) == {"first", "nominal", "jitter", "gap", "recovered"}
+    assert quarantined["out-of-order"].rejection_reasons == ["out_of_order_event_timestamp"]
+    assert accepted["first"].previous_event_timestamp is None
+    assert accepted["first"].interval_seconds is None
+    assert accepted["first"].is_forward_gap is False
+    assert accepted["nominal"].interval_seconds == 10
+    assert accepted["jitter"].interval_seconds == 11
+    assert accepted["jitter"].is_forward_gap is False
+    assert accepted["gap"].interval_seconds == 20
+    assert accepted["gap"].is_forward_gap is True
+    assert quarantined["out-of-order"].interval_seconds == -6
+    assert quarantined["out-of-order"].is_forward_gap is False
+    assert accepted["recovered"].interval_seconds == 15
+
+
+@pytest.mark.spark
+def test_timestamp_sequence_does_not_bridge_duplicate_source_records(
+    spark: SparkSession,
+) -> None:
+    frames = [
+        _bronze_frame(spark, record_id="first"),
+        _bronze_frame(
+            spark,
+            record_id="duplicate-a",
+            source_index_raw="10",
+            event_timestamp_raw="2020-02-01 00:00:10",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="duplicate-b",
+            source_index_raw="10",
+            event_timestamp_raw="2020-02-01 00:00:11",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="after-duplicates",
+            source_index_raw="20",
+            event_timestamp_raw="2020-02-01 00:00:20",
+        ),
+    ]
+    source = frames[0]
+    for frame in frames[1:]:
+        source = source.unionByName(frame)
+
+    split = split_telemetry_by_quality(source)
+    accepted = {row.record_id: row for row in split.accepted.collect()}
+
+    assert accepted["after-duplicates"].previous_source_index is None
+    assert accepted["after-duplicates"].previous_event_timestamp is None
+    assert accepted["after-duplicates"].interval_seconds is None
+    assert accepted["after-duplicates"].is_forward_gap is False
+
+
+@pytest.mark.spark
+def test_timestamp_sequence_rejects_conflicting_metadata_columns(spark: SparkSession) -> None:
+    parsed = split_telemetry_by_parsing_quality(_bronze_frame(spark)).accepted
+    conflicting = parsed.withColumn("interval_seconds", F.lit(10))
+
+    with pytest.raises(SilverTelemetryError, match="already contains sequence metadata columns"):
+        annotate_timestamp_sequence(conflicting)

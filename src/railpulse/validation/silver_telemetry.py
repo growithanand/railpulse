@@ -10,6 +10,7 @@ from pyspark.sql.types import ByteType, DoubleType, LongType, TimestampNTZType
 from pyspark.sql.window import Window
 
 from railpulse.ingestion.schemas import CORRUPT_RECORD_FIELD, TELEMETRY_RAW_FIELDS
+from railpulse.validation.metropt3 import EXPECTED_INDEX_STEP, EXPECTED_INTERVAL_SECONDS
 
 TIMESTAMP_PATTERN = "yyyy-MM-dd HH:mm:ss"
 TIMESTAMP_SHAPE = r"^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$"
@@ -37,6 +38,13 @@ DIGITAL_SENSOR_COLUMNS = (
 
 SENSOR_COLUMNS = (*ANALOG_SENSOR_COLUMNS, *DIGITAL_SENSOR_COLUMNS)
 REJECTION_REASONS_FIELD = "rejection_reasons"
+MATERIAL_GAP_SECONDS = EXPECTED_INTERVAL_SECONDS * 2
+SEQUENCE_METADATA_COLUMNS = (
+    "previous_source_index",
+    "previous_event_timestamp",
+    "interval_seconds",
+    "is_forward_gap",
+)
 
 
 class SilverTelemetryError(ValueError):
@@ -214,10 +222,85 @@ def validate_duplicate_identifiers(frame: DataFrame) -> DataFrame:
     )
 
 
+def annotate_timestamp_sequence(frame: DataFrame) -> DataFrame:
+    """Add adjacent event-time intervals, forward-gap flags, and ordering reasons."""
+
+    required_columns = {REJECTION_REASONS_FIELD, "source_index", "event_timestamp"}
+    missing_columns = sorted(required_columns - set(frame.columns))
+    if missing_columns:
+        raise SilverTelemetryError(
+            "Typed telemetry is missing sequence-validation columns: " + ", ".join(missing_columns)
+        )
+    conflicting_columns = sorted(set(SEQUENCE_METADATA_COLUMNS).intersection(frame.columns))
+    if conflicting_columns:
+        raise SilverTelemetryError(
+            "Typed telemetry already contains sequence metadata columns: "
+            + ", ".join(conflicting_columns)
+        )
+
+    has_duplicate_identifier = F.array_contains(
+        F.col(REJECTION_REASONS_FIELD), "duplicate_source_index"
+    ) | F.array_contains(F.col(REJECTION_REASONS_FIELD), "duplicate_event_timestamp")
+    is_sequence_eligible = (
+        F.col("source_index").isNotNull()
+        & F.col("event_timestamp").isNotNull()
+        & ~has_duplicate_identifier
+    )
+    sequence_ready = frame.withColumn("_sequence_eligible", is_sequence_eligible)
+    predecessors = (
+        sequence_ready.where(F.col("_sequence_eligible"))
+        .select(
+            (F.col("source_index") + EXPECTED_INDEX_STEP).alias("_next_source_index"),
+            F.col("source_index").alias("previous_source_index"),
+            F.col("event_timestamp").alias("previous_event_timestamp"),
+        )
+        .alias("previous")
+    )
+    current = sequence_ready.alias("current")
+    annotated = current.join(
+        predecessors,
+        F.col("current._sequence_eligible")
+        & (F.col("current.source_index") == F.col("previous._next_source_index")),
+        how="left",
+    ).select(
+        *(F.col(f"current.{column_name}").alias(column_name) for column_name in frame.columns),
+        F.col("previous.previous_source_index"),
+        F.col("previous.previous_event_timestamp"),
+    )
+    annotated = annotated.withColumn(
+        "interval_seconds",
+        F.when(
+            F.col("previous_event_timestamp").isNotNull(),
+            F.timestamp_diff(
+                "SECOND",
+                F.col("previous_event_timestamp"),
+                F.col("event_timestamp"),
+            ),
+        ).cast(LongType()),
+    ).withColumn(
+        "is_forward_gap",
+        F.coalesce(F.col("interval_seconds") >= MATERIAL_GAP_SECONDS, F.lit(False)),
+    )
+    ordering_reasons = F.filter(
+        F.array(
+            F.when(
+                F.col("interval_seconds") < 0,
+                F.lit("out_of_order_event_timestamp"),
+            )
+        ),
+        lambda reason: reason.isNotNull(),
+    )
+    return annotated.withColumn(
+        REJECTION_REASONS_FIELD,
+        F.concat(F.col(REJECTION_REASONS_FIELD), ordering_reasons),
+    )
+
+
 def split_telemetry_by_quality(frame: DataFrame) -> TelemetryQualitySplit:
-    """Apply implemented parsing, domain, and duplicate rules, then split the records."""
+    """Apply implemented parsing, domain, duplicate, and sequence rules, then split records."""
 
     parsed = _annotate_telemetry_parsing_quality(frame)
     domain_validated = validate_digital_sensor_domains(parsed)
     duplicate_validated = validate_duplicate_identifiers(domain_validated)
-    return _split_annotated_telemetry(duplicate_validated)
+    sequence_annotated = annotate_timestamp_sequence(duplicate_validated)
+    return _split_annotated_telemetry(sequence_annotated)

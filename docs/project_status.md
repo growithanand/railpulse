@@ -2,12 +2,13 @@
 
 ## Current phase
 
-**Phase 4 — Silver validation and quarantine (in progress: duplicate identifiers)**
+**Phase 4 — Silver validation and quarantine (in progress: timestamp sequence quality)**
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
-index/event-time detection. Its in-memory quality split retains every rejected record with explicit
-reasons. Silver table writes and analogue range/sequence validation are not implemented yet.
+index/event-time detection. It now derives adjacent event-time intervals, flags material forward
+gaps, and quarantines out-of-order records. Silver table writes and analogue range validation are not
+implemented yet.
 
 ## Environment observed on 2026-09-01
 
@@ -64,6 +65,8 @@ Repository-local Git identity:
   integers while invalid raw values and explicit reasons remain available for quarantine.
 - Window-based duplicate detection marks every row sharing a non-null source index or event
   timestamp while leaving null parsing results to their existing parsing reasons.
+- Source-index-ordered sequence metadata distinguishes nominal/jittered intervals, material forward
+  gaps, and out-of-order timestamps without quarantining valid measurements after forward gaps.
 
 Official local Bronze evidence:
 
@@ -74,8 +77,8 @@ Official local Bronze evidence:
 
 ## Not implemented
 
-- Silver table writes, analogue range checks, ordering/gap validation, normalized failure events,
-  data-quality metrics, and all Gold transformations.
+- Silver table writes, analogue range checks, normalized failure events, data-quality metrics, and
+  all Gold transformations.
 - SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -89,6 +92,6 @@ type conversion, sensor-range validation, deduplication, timestamp normalization
 repair. Native Windows Spark is not the verified runtime because its Hadoop layer requires a
 separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains untested.
 
-The next small increment will derive inter-record timestamp intervals and distinguish out-of-order
-records from forward gaps without treating every gap as an invalid measurement. Range,
-failure-event, metrics, and table-write work will follow in separate reviewed commits.
+The next small increment will aggregate deterministic Silver quality counts, including forward-gap
+observations, without writing tables. Range, failure-event, and table-write work will follow in
+separate reviewed commits.
