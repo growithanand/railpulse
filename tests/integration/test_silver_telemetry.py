@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 import pytest
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import (
     DoubleType,
@@ -14,15 +15,17 @@ from pyspark.sql.types import (
     TimestampNTZType,
 )
 
-from railpulse.ingestion.schemas import TELEMETRY_RAW_FIELDS
+from railpulse.ingestion.schemas import CORRUPT_RECORD_FIELD, TELEMETRY_RAW_FIELDS
 from railpulse.validation.silver_telemetry import (
+    REJECTION_REASONS_FIELD,
     SENSOR_COLUMNS,
     SilverTelemetryError,
     parse_telemetry_types,
+    split_telemetry_by_parsing_quality,
 )
 
 
-def _bronze_frame(spark: SparkSession, **overrides: str):
+def _bronze_frame(spark: SparkSession, **overrides: Any) -> DataFrame:
     values = {
         "source_index_raw": "0",
         "event_timestamp_raw": "2020-02-01 00:00:00",
@@ -42,12 +45,13 @@ def _bronze_frame(spark: SparkSession, **overrides: str):
         "oil_level_raw": "1.0",
         "caudal_impulses_raw": "0.0",
         "record_id": "record-1",
+        CORRUPT_RECORD_FIELD: None,
     }
     values.update(overrides)
     schema = StructType(
         [
             StructField(name, StringType(), nullable=True)
-            for name in (*TELEMETRY_RAW_FIELDS, "record_id")
+            for name in (*TELEMETRY_RAW_FIELDS, "record_id", CORRUPT_RECORD_FIELD)
         ]
     )
     return spark.createDataFrame([values], schema=schema)
@@ -109,3 +113,50 @@ def test_parse_telemetry_types_rejects_missing_or_conflicting_columns(
     conflicting = _bronze_frame(spark).withColumn("source_index", F.lit(0))
     with pytest.raises(SilverTelemetryError, match="already contains canonical columns"):
         parse_telemetry_types(conflicting)
+
+
+@pytest.mark.spark
+def test_split_telemetry_by_parsing_quality_reconciles_and_explains_records(
+    spark: SparkSession,
+) -> None:
+    valid = _bronze_frame(spark, record_id="valid", comp_raw="2.0")
+    invalid = _bronze_frame(
+        spark,
+        record_id="invalid",
+        source_index_raw="not-an-index",
+        event_timestamp_raw="2020-2-01 00:00:00",
+        tp2_raw="not-a-number",
+        tp3_raw="NaN",
+        h1_raw="Infinity",
+    )
+    malformed = _bronze_frame(
+        spark,
+        record_id="malformed",
+        corrupt_record="source,row,with,wrong,shape",
+    )
+    source = valid.unionByName(invalid).unionByName(malformed)
+
+    split = split_telemetry_by_parsing_quality(source)
+    accepted = split.accepted.collect()
+    quarantined = {row.record_id: row.rejection_reasons for row in split.quarantined.collect()}
+
+    assert len(accepted) + len(quarantined) == source.count() == 3
+    assert accepted[0].record_id == "valid"
+    assert accepted[0].comp == 2.0
+    assert accepted[0][REJECTION_REASONS_FIELD] == []
+    assert quarantined["invalid"] == [
+        "invalid_source_index",
+        "invalid_event_timestamp",
+        "invalid_tp2",
+        "invalid_tp3",
+        "invalid_h1",
+    ]
+    assert quarantined["malformed"] == ["malformed_csv"]
+
+
+@pytest.mark.spark
+def test_split_telemetry_requires_bronze_control_columns(spark: SparkSession) -> None:
+    without_corrupt_record = _bronze_frame(spark).drop(CORRUPT_RECORD_FIELD)
+
+    with pytest.raises(SilverTelemetryError, match="missing required control columns"):
+        split_telemetry_by_parsing_quality(without_corrupt_record)

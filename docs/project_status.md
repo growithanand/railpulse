@@ -2,13 +2,13 @@
 
 ## Current phase
 
-**Phase 4 — Silver validation and quarantine (in progress: typed telemetry projection)**
+**Phase 4 — Silver validation and quarantine (in progress: telemetry parsing quality)**
 
-Bronze ingestion is implemented and verified against both official inputs. The first Silver
-increment adds a reusable typed telemetry projection while preserving every Bronze field. Silver
-table writes, explicit rejection reasons, and accepted/quarantine outputs are not implemented yet.
-Git commit state is reported in the session handoff because it changes independently of checked-in
-project files.
+Bronze ingestion is implemented and verified against both official inputs. Silver now has a reusable
+typed telemetry projection plus explicit parsing-quality reasons and an in-memory accepted/quarantine
+split. Silver table writes and domain/range/sequence validation are not implemented yet. Git commit
+state is reported in the session handoff because it changes independently of checked-in project
+files.
 
 ## Environment observed on 2026-09-01
 
@@ -59,6 +59,8 @@ Repository-local Git identity:
   duplicate-key rejection, and zero-insert reruns.
 - A non-writing Silver telemetry projection for source-index, timezone-free timestamp, and sensor
   parsing that keeps invalid raw tokens available for later rejection reasons.
+- Deterministic parsing rejection reasons and a lazy accepted/quarantine split that reconciles every
+  input record without applying later domain or engineering rules.
 
 Official local Bronze evidence:
 
@@ -69,8 +71,8 @@ Official local Bronze evidence:
 
 ## Not implemented
 
-- Silver table writes, accepted/quarantine splitting, range/domain checks, normalized failure
-  events, data-quality metrics, and all Gold transformations.
+- Silver table writes, range/domain checks, duplicate/gap validation, normalized failure events,
+  data-quality metrics, and all Gold transformations.
 - SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -84,6 +86,6 @@ type conversion, sensor-range validation, deduplication, timestamp normalization
 repair. Native Windows Spark is not the verified runtime because its Hadoop layer requires a
 separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains untested.
 
-The next small increment will attach explicit telemetry parsing rejection reasons and split accepted
-from quarantined records without writing Delta tables yet. Range, duplicate, gap, and failure-event
-rules will follow in separate reviewed commits.
+The next small increment will validate digital sensor domains and normalize accepted digital values
+to binary integers. Range, duplicate, gap, failure-event, metrics, and table-write work will follow in
+separate reviewed commits.

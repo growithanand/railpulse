@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from pyspark.sql import DataFrame
+from dataclasses import dataclass
+
+from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.types import DoubleType, LongType, TimestampNTZType
 
-from railpulse.ingestion.schemas import TELEMETRY_RAW_FIELDS
+from railpulse.ingestion.schemas import CORRUPT_RECORD_FIELD, TELEMETRY_RAW_FIELDS
 
 TIMESTAMP_PATTERN = "yyyy-MM-dd HH:mm:ss"
 TIMESTAMP_SHAPE = r"^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$"
@@ -33,13 +35,22 @@ DIGITAL_SENSOR_COLUMNS = (
 )
 
 SENSOR_COLUMNS = (*ANALOG_SENSOR_COLUMNS, *DIGITAL_SENSOR_COLUMNS)
+REJECTION_REASONS_FIELD = "rejection_reasons"
 
 
 class SilverTelemetryError(ValueError):
     """Raised when a frame cannot be projected into the Silver telemetry contract."""
 
 
-def _timestamp_expression():
+@dataclass(frozen=True)
+class TelemetryParsingSplit:
+    """Lazy accepted and quarantined frames produced by parsing validation."""
+
+    accepted: DataFrame
+    quarantined: DataFrame
+
+
+def _timestamp_expression() -> Column:
     raw_timestamp = F.col("event_timestamp_raw")
     parsed_timestamp = raw_timestamp.try_cast(TimestampNTZType())
     has_exact_format = raw_timestamp.rlike(TIMESTAMP_SHAPE) & (
@@ -80,4 +91,47 @@ def parse_telemetry_types(frame: DataFrame) -> DataFrame:
             F.col(raw_name).try_cast(DoubleType()).alias(canonical_name)
             for raw_name, canonical_name in SENSOR_COLUMNS
         ),
+    )
+
+
+def _invalid_numeric(column_name: str) -> Column:
+    value = F.col(column_name)
+    return value.isNull() | F.isnan(value) | (F.abs(value) == F.lit(float("inf")))
+
+
+def split_telemetry_by_parsing_quality(frame: DataFrame) -> TelemetryParsingSplit:
+    """Parse Bronze telemetry and split records using explicit parsing reasons.
+
+    This boundary covers structural and type validity only. Digital domains, engineering ranges,
+    duplicate event times, and timestamp gaps are intentionally handled by later validators.
+    """
+
+    required_control_columns = {CORRUPT_RECORD_FIELD, "record_id"}
+    missing_control_columns = sorted(required_control_columns - set(frame.columns))
+    if missing_control_columns:
+        raise SilverTelemetryError(
+            "Bronze telemetry is missing required control columns: "
+            + ", ".join(missing_control_columns)
+        )
+    if REJECTION_REASONS_FIELD in frame.columns:
+        raise SilverTelemetryError(f"Bronze telemetry already contains {REJECTION_REASONS_FIELD}")
+
+    typed = parse_telemetry_types(frame)
+    reason_expressions = [
+        F.when(F.col(CORRUPT_RECORD_FIELD).isNotNull(), F.lit("malformed_csv")),
+        F.when(F.col("source_index").isNull(), F.lit("invalid_source_index")),
+        F.when(F.col("event_timestamp").isNull(), F.lit("invalid_event_timestamp")),
+        *(
+            F.when(_invalid_numeric(canonical_name), F.lit(f"invalid_{canonical_name}"))
+            for _, canonical_name in SENSOR_COLUMNS
+        ),
+    ]
+    annotated = typed.withColumn(
+        REJECTION_REASONS_FIELD,
+        F.filter(F.array(*reason_expressions), lambda reason: reason.isNotNull()),
+    )
+    reason_count = F.size(F.col(REJECTION_REASONS_FIELD))
+    return TelemetryParsingSplit(
+        accepted=annotated.where(reason_count == 0),
+        quarantined=annotated.where(reason_count > 0),
     )
