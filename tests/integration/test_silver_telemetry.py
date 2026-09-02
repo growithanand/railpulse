@@ -18,6 +18,8 @@ from pyspark.sql.types import (
 
 from railpulse.ingestion.schemas import CORRUPT_RECORD_FIELD, TELEMETRY_RAW_FIELDS
 from railpulse.validation.silver_telemetry import (
+    ANALOG_SENSOR_BOUNDS,
+    ANALOG_SENSOR_COLUMNS,
     DIGITAL_SENSOR_COLUMNS,
     MATERIAL_GAP_SECONDS,
     REJECTION_REASONS_FIELD,
@@ -28,6 +30,7 @@ from railpulse.validation.silver_telemetry import (
     parse_telemetry_types,
     split_telemetry_by_parsing_quality,
     split_telemetry_by_quality,
+    validate_analog_sensor_ranges,
     validate_digital_sensor_domains,
 )
 
@@ -167,6 +170,76 @@ def test_split_telemetry_requires_bronze_control_columns(spark: SparkSession) ->
 
     with pytest.raises(SilverTelemetryError, match="missing required control columns"):
         split_telemetry_by_parsing_quality(without_corrupt_record)
+
+
+@pytest.mark.spark
+def test_analog_range_validation_covers_bounds_outliers_and_parse_failures(
+    spark: SparkSession,
+) -> None:
+    def identified_frame(position: int, record_id: str, **overrides: Any) -> DataFrame:
+        return _bronze_frame(
+            spark,
+            record_id=record_id,
+            source_index_raw=str(position * 10),
+            event_timestamp_raw=f"2020-02-01 00:{position:02d}:00",
+            **overrides,
+        )
+
+    lower_values = {
+        raw_name: str(ANALOG_SENSOR_BOUNDS[canonical_name][0])
+        for raw_name, canonical_name in ANALOG_SENSOR_COLUMNS
+    }
+    upper_values = {
+        raw_name: str(ANALOG_SENSOR_BOUNDS[canonical_name][1])
+        for raw_name, canonical_name in ANALOG_SENSOR_COLUMNS
+    }
+    frames = [
+        identified_frame(0, "lower-bounds", **lower_values),
+        identified_frame(1, "upper-bounds", **upper_values),
+    ]
+    for position, (raw_name, canonical_name) in enumerate(ANALOG_SENSOR_COLUMNS, start=1):
+        lower_bound, upper_bound = ANALOG_SENSOR_BOUNDS[canonical_name]
+        frames.extend(
+            [
+                identified_frame(
+                    position * 2,
+                    f"below-{canonical_name}",
+                    **{raw_name: str(lower_bound - 0.001)},
+                ),
+                identified_frame(
+                    position * 2 + 1,
+                    f"above-{canonical_name}",
+                    **{raw_name: str(upper_bound + 0.001)},
+                ),
+            ]
+        )
+    frames.append(identified_frame(16, "invalid-parse-tp2", tp2_raw="not-a-number"))
+    source = frames[0]
+    for frame in frames[1:]:
+        source = source.unionByName(frame)
+
+    split = split_telemetry_by_quality(source)
+    rows = {row.record_id: row for row in split.all_records.collect()}
+
+    assert {row.record_id for row in split.accepted.collect()} == {"lower-bounds", "upper-bounds"}
+    assert rows["lower-bounds"].rejection_reasons == []
+    assert rows["upper-bounds"].rejection_reasons == []
+    for raw_name, canonical_name in ANALOG_SENSOR_COLUMNS:
+        for direction in ("below", "above"):
+            row = rows[f"{direction}-{canonical_name}"]
+            assert row.rejection_reasons == [f"out_of_range_{canonical_name}"]
+            assert row[raw_name] is not None
+            assert row[canonical_name] is not None
+    assert rows["invalid-parse-tp2"].rejection_reasons == ["invalid_tp2"]
+    assert rows["invalid-parse-tp2"].tp2 is None
+
+
+@pytest.mark.spark
+def test_analog_range_validation_requires_parsing_annotations(spark: SparkSession) -> None:
+    typed = parse_telemetry_types(_bronze_frame(spark))
+
+    with pytest.raises(SilverTelemetryError, match="missing analogue-validation columns"):
+        validate_analog_sensor_ranges(typed)
 
 
 @pytest.mark.spark

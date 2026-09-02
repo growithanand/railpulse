@@ -8,9 +8,11 @@ Bronze ingestion is implemented and verified against both official inputs. Silve
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
 index/event-time detection. It now derives adjacent event-time intervals, flags material forward
 gaps, quarantines out-of-order records, and produces reconciled in-memory quality counts. Published
-failure events now have a separate typed structural-quality split. Silver table writes and analogue
-range validation are not implemented yet. The versioned four-event failure transcription has been
-reconciled through the Bronze reader and Silver validator.
+failure events now have a separate typed structural-quality split. Silver table writes are not
+implemented yet. The versioned four-event failure transcription has been reconciled through the
+Bronze reader and Silver validator. Analogue values outside the verified complete-file dataset
+envelope are now quarantined as possible contract drift without being treated as equipment health
+limits.
 
 ## Environment observed on 2026-09-01
 
@@ -65,6 +67,8 @@ Repository-local Git identity:
   input record without applying later domain or engineering rules.
 - Digital-domain validation for all eight binary sensors; accepted values are normalized to byte
   integers while invalid raw values and explicit reasons remain available for quarantine.
+- Dataset-envelope validation for all seven analogue sensors, with inclusive observed bounds and
+  deterministic per-sensor reasons while preserving raw and parsed outlier values.
 - Window-based duplicate detection marks every row sharing a non-null source index or event
   timestamp while leaving null parsing results to their existing parsing reasons.
 - Source-index-ordered sequence metadata distinguishes nominal/jittered intervals, material forward
@@ -92,8 +96,8 @@ document identities, and the unresolved maintenance-date note on source row 2.
 
 ## Not implemented
 
-- Silver table writes, analogue range checks, failure-to-telemetry interval joins, persisted quality
-  metrics, and all Gold transformations.
+- Silver table writes, failure-to-telemetry interval joins, persisted quality metrics, and all Gold
+  transformations.
 - SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -107,5 +111,5 @@ type conversion, sensor-range validation, deduplication, timestamp normalization
 repair. Native Windows Spark is not the verified runtime because its Hadoop layer requires a
 separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains untested.
 
-The next small increment will define and enforce telemetry analogue-range rejection reasons using
-the verified dataset bounds. Silver table writes will follow in a separate reviewed commit.
+The next small increment will persist accepted telemetry and quarantined records to separate,
+idempotent Silver Delta tables. Failure-event persistence will follow separately.

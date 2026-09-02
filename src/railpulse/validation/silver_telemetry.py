@@ -26,6 +26,19 @@ ANALOG_SENSOR_COLUMNS = (
     ("motor_current_raw", "motor_current"),
 )
 
+# Complete-file observed extrema recorded in docs/dataset_manifest.json, normalized to the source's
+# three-decimal precision. These are dataset-envelope checks for possible contract drift, not
+# manufacturer operating or safety limits.
+ANALOG_SENSOR_BOUNDS = {
+    "tp2": (-0.032, 10.676),
+    "tp3": (0.73, 10.302),
+    "h1": (-0.036, 10.288),
+    "dv_pressure": (-0.032, 9.844),
+    "reservoirs": (0.712, 10.3),
+    "oil_temperature": (15.4, 89.05),
+    "motor_current": (0.02, 9.295),
+}
+
 DIGITAL_SENSOR_COLUMNS = (
     ("comp_raw", "comp"),
     ("dv_eletric_raw", "dv_eletric"),
@@ -207,6 +220,37 @@ def validate_digital_sensor_domains(frame: DataFrame) -> DataFrame:
     return validated
 
 
+def validate_analog_sensor_ranges(frame: DataFrame) -> DataFrame:
+    """Append dataset-envelope reasons while preserving parsed analogue values."""
+
+    required_columns = {REJECTION_REASONS_FIELD, *ANALOG_SENSOR_BOUNDS}
+    missing_columns = sorted(required_columns - set(frame.columns))
+    if missing_columns:
+        raise SilverTelemetryError(
+            "Typed telemetry is missing analogue-validation columns: " + ", ".join(missing_columns)
+        )
+
+    range_reason_expressions = [
+        F.when(
+            ~_invalid_numeric(canonical_name)
+            & (
+                (F.col(canonical_name) < F.lit(lower_bound))
+                | (F.col(canonical_name) > F.lit(upper_bound))
+            ),
+            F.lit(f"out_of_range_{canonical_name}"),
+        )
+        for canonical_name, (lower_bound, upper_bound) in ANALOG_SENSOR_BOUNDS.items()
+    ]
+    range_reasons = F.filter(
+        F.array(*range_reason_expressions),
+        lambda reason: reason.isNotNull(),
+    )
+    return frame.withColumn(
+        REJECTION_REASONS_FIELD,
+        F.concat(F.col(REJECTION_REASONS_FIELD), range_reasons),
+    )
+
+
 def validate_duplicate_identifiers(frame: DataFrame) -> DataFrame:
     """Append reasons to every row sharing a non-null source index or event time."""
 
@@ -311,10 +355,11 @@ def annotate_timestamp_sequence(frame: DataFrame) -> DataFrame:
 
 
 def split_telemetry_by_quality(frame: DataFrame) -> TelemetryQualitySplit:
-    """Apply implemented parsing, domain, duplicate, and sequence rules, then split records."""
+    """Apply implemented parsing, range, domain, duplicate, and sequence rules, then split."""
 
     parsed = _annotate_telemetry_parsing_quality(frame)
-    domain_validated = validate_digital_sensor_domains(parsed)
+    range_validated = validate_analog_sensor_ranges(parsed)
+    domain_validated = validate_digital_sensor_domains(range_validated)
     duplicate_validated = validate_duplicate_identifiers(domain_validated)
     sequence_annotated = annotate_timestamp_sequence(duplicate_validated)
     return _split_annotated_telemetry(sequence_annotated)
