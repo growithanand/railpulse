@@ -24,6 +24,7 @@ from railpulse.validation.silver_telemetry import (
     SENSOR_COLUMNS,
     SilverTelemetryError,
     annotate_timestamp_sequence,
+    collect_telemetry_quality_metrics,
     parse_telemetry_types,
     split_telemetry_by_parsing_quality,
     split_telemetry_by_quality,
@@ -400,3 +401,73 @@ def test_timestamp_sequence_rejects_conflicting_metadata_columns(spark: SparkSes
 
     with pytest.raises(SilverTelemetryError, match="already contains sequence metadata columns"):
         annotate_timestamp_sequence(conflicting)
+
+
+@pytest.mark.spark
+def test_quality_metrics_reconcile_rows_gaps_and_rejection_reasons(
+    spark: SparkSession,
+) -> None:
+    frames = [
+        _bronze_frame(spark, record_id="first"),
+        _bronze_frame(
+            spark,
+            record_id="nominal",
+            source_index_raw="10",
+            event_timestamp_raw="2020-02-01 00:00:10",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="gap",
+            source_index_raw="20",
+            event_timestamp_raw="2020-02-01 00:00:30",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="out-of-order",
+            source_index_raw="30",
+            event_timestamp_raw="2020-02-01 00:00:25",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="invalid-domain",
+            source_index_raw="40",
+            event_timestamp_raw="2020-02-01 00:00:40",
+            comp_raw="2.0",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="duplicate-a",
+            source_index_raw="50",
+            event_timestamp_raw="2020-02-01 00:00:50",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="duplicate-b",
+            source_index_raw="50",
+            event_timestamp_raw="2020-02-01 00:00:51",
+        ),
+        _bronze_frame(
+            spark,
+            record_id="invalid-keys",
+            source_index_raw="invalid",
+            event_timestamp_raw="invalid",
+        ),
+    ]
+    source = frames[0]
+    for frame in frames[1:]:
+        source = source.unionByName(frame)
+
+    metrics = collect_telemetry_quality_metrics(split_telemetry_by_quality(source))
+
+    assert metrics.total_record_count == 8
+    assert metrics.accepted_record_count == 3
+    assert metrics.quarantined_record_count == 5
+    assert metrics.forward_gap_count == 1
+    assert metrics.rejection_reason_counts == {
+        "duplicate_source_index": 2,
+        "invalid_comp_domain": 1,
+        "invalid_event_timestamp": 1,
+        "invalid_source_index": 1,
+        "out_of_order_event_timestamp": 1,
+    }
+    assert list(metrics.rejection_reason_counts) == sorted(metrics.rejection_reason_counts)

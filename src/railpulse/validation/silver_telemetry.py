@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from pyspark import StorageLevel
 from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.types import ByteType, DoubleType, LongType, TimestampNTZType
@@ -55,8 +56,20 @@ class SilverTelemetryError(ValueError):
 class TelemetryQualitySplit:
     """Lazy accepted and quarantined frames produced by telemetry validation."""
 
+    all_records: DataFrame
     accepted: DataFrame
     quarantined: DataFrame
+
+
+@dataclass(frozen=True)
+class TelemetryQualityMetrics:
+    """Deterministic count summary for one validated telemetry frame."""
+
+    total_record_count: int
+    accepted_record_count: int
+    quarantined_record_count: int
+    forward_gap_count: int
+    rejection_reason_counts: dict[str, int]
 
 
 def _timestamp_expression() -> Column:
@@ -139,6 +152,7 @@ def _annotate_telemetry_parsing_quality(frame: DataFrame) -> DataFrame:
 def _split_annotated_telemetry(annotated: DataFrame) -> TelemetryQualitySplit:
     reason_count = F.size(F.col(REJECTION_REASONS_FIELD))
     return TelemetryQualitySplit(
+        all_records=annotated,
         accepted=annotated.where(reason_count == 0),
         quarantined=annotated.where(reason_count > 0),
     )
@@ -304,3 +318,59 @@ def split_telemetry_by_quality(frame: DataFrame) -> TelemetryQualitySplit:
     duplicate_validated = validate_duplicate_identifiers(domain_validated)
     sequence_annotated = annotate_timestamp_sequence(duplicate_validated)
     return _split_annotated_telemetry(sequence_annotated)
+
+
+def _count_when(condition: Column) -> Column:
+    return F.coalesce(
+        F.sum(F.when(condition, F.lit(1)).otherwise(F.lit(0))),
+        F.lit(0),
+    ).cast(LongType())
+
+
+def collect_telemetry_quality_metrics(
+    split: TelemetryQualitySplit,
+) -> TelemetryQualityMetrics:
+    """Materialize reconciled row and rejection-reason counts for a quality split."""
+
+    required_columns = {REJECTION_REASONS_FIELD, "is_forward_gap"}
+    missing_columns = sorted(required_columns - set(split.all_records.columns))
+    if missing_columns:
+        raise SilverTelemetryError(
+            "Validated telemetry is missing quality-metric columns: " + ", ".join(missing_columns)
+        )
+
+    quality = split.all_records.select(*sorted(required_columns)).persist(StorageLevel.DISK_ONLY)
+    try:
+        reason_count = F.size(F.col(REJECTION_REASONS_FIELD))
+        summary = quality.agg(
+            F.count(F.lit(1)).cast(LongType()).alias("total_record_count"),
+            _count_when(reason_count == 0).alias("accepted_record_count"),
+            _count_when(reason_count > 0).alias("quarantined_record_count"),
+            _count_when(F.col("is_forward_gap")).alias("forward_gap_count"),
+        ).first()
+        reason_rows = (
+            quality.select(F.explode(F.col(REJECTION_REASONS_FIELD)).alias("reason"))
+            .groupBy("reason")
+            .count()
+            .orderBy("reason")
+            .collect()
+        )
+    finally:
+        quality.unpersist()
+
+    total_count = int(summary.total_record_count)
+    accepted_count = int(summary.accepted_record_count)
+    quarantined_count = int(summary.quarantined_record_count)
+    if accepted_count + quarantined_count != total_count:
+        raise SilverTelemetryError(
+            "Telemetry quality metrics do not reconcile: "
+            f"total={total_count}, accepted={accepted_count}, quarantined={quarantined_count}"
+        )
+
+    return TelemetryQualityMetrics(
+        total_record_count=total_count,
+        accepted_record_count=accepted_count,
+        quarantined_record_count=quarantined_count,
+        forward_gap_count=int(summary.forward_gap_count),
+        rejection_reason_counts={row.reason: int(row["count"]) for row in reason_rows},
+    )
