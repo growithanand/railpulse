@@ -14,8 +14,9 @@ MetroPT-3 compressor telemetry dataset. Its central question is:
 The repository scaffold, official MetroPT-3 data contract, Bronze Delta ingestion, and Silver
 telemetry validation are implemented and locally verified. Accepted and quarantined telemetry can
 also be persisted to separate idempotent Silver Delta tables, as can accepted and quarantined failure
-events. Persisted quality metrics, all Gold tables, models, alerts, dashboards, and Databricks
-resources are still planned. No performance or maintenance-impact claims have been established.
+events. Telemetry quality summaries also have a versioned, idempotent Silver output. All Gold
+tables, models, alerts, dashboards, and Databricks resources are still planned. No performance or
+maintenance-impact claims have been established.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -70,6 +71,7 @@ scalable, incremental, and Databricks-compatible engineering practices.
   quality reasons, plus separate accepted and quarantine Delta outputs.
 - Typed Silver failure events with structural rejection reasons and separate accepted and quarantine
   Delta outputs.
+- Versioned telemetry quality summaries with reconciled row, gap, and rejection-reason counts.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.

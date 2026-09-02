@@ -17,12 +17,17 @@ from railpulse.validation.silver_failures import split_failure_events_by_quality
 from railpulse.validation.silver_storage import (
     FAILURE_ACCEPTED_TABLE,
     FAILURE_QUARANTINE_TABLE,
+    QUALITY_BATCH_ID_FIELD,
     TELEMETRY_ACCEPTED_TABLE,
+    TELEMETRY_QUALITY_TABLE,
     TELEMETRY_QUARANTINE_TABLE,
+    TELEMETRY_VALIDATION_VERSION,
     SilverTelemetryPersistenceError,
     persist_failure_quality_split,
+    persist_telemetry_quality_metrics,
     persist_telemetry_quality_split,
     silver_table_path,
+    telemetry_quality_batch_id,
 )
 from railpulse.validation.silver_telemetry import (
     TelemetryQualitySplit,
@@ -194,6 +199,52 @@ def test_telemetry_silver_persistence_rejects_duplicate_record_ids_before_writes
 
     assert not silver_table_path(config, TELEMETRY_ACCEPTED_TABLE).exists()
     assert not silver_table_path(config, TELEMETRY_QUARANTINE_TABLE).exists()
+
+
+@pytest.mark.spark
+def test_telemetry_quality_metrics_have_stable_identity_and_idempotent_storage(
+    spark: SparkSession,
+    tmp_path: Path,
+) -> None:
+    config = _test_config(tmp_path)
+    split = _validated_fixture(spark)
+
+    first = persist_telemetry_quality_metrics(split, config)
+    second = persist_telemetry_quality_metrics(split, config)
+    quality = spark.read.format("delta").load(
+        str(silver_table_path(config, TELEMETRY_QUALITY_TABLE))
+    )
+    row = quality.first()
+
+    assert first.quality_batch_id == second.quality_batch_id == row[QUALITY_BATCH_ID_FIELD]
+    assert first.validation_version == row.validation_version == TELEMETRY_VALIDATION_VERSION
+    assert first.metrics.total_record_count == 3
+    assert first.metrics.accepted_record_count == 2
+    assert first.metrics.quarantined_record_count == 1
+    assert first.metrics.forward_gap_count == 0
+    assert first.metrics.rejection_reason_counts == {"out_of_range_tp2": 1}
+    assert (first.write.source_record_count, first.write.inserted_record_count) == (1, 1)
+    assert (second.write.inserted_record_count, second.write.target_record_count_after) == (0, 1)
+    assert quality.count() == 1
+    assert row.dataset_version == "fixture-v1"
+    assert row.source_sha256 == file_sha256(TELEMETRY_FIXTURE)
+    assert row.ingestion_batch_id
+    assert row.total_record_count == 3
+    assert row.accepted_record_count == 2
+    assert row.quarantined_record_count == 1
+    assert row.forward_gap_count == 0
+    assert row.rejection_reason_counts == {"out_of_range_tp2": 1}
+    assert row[QUALITY_BATCH_ID_FIELD] == telemetry_quality_batch_id(
+        dataset_version=row.dataset_version,
+        source_sha256=row.source_sha256,
+        ingestion_batch_id=row.ingestion_batch_id,
+    )
+    assert row[QUALITY_BATCH_ID_FIELD] != telemetry_quality_batch_id(
+        dataset_version=row.dataset_version,
+        source_sha256=row.source_sha256,
+        ingestion_batch_id=row.ingestion_batch_id,
+        validation_version="telemetry-validation-v2",
+    )
 
 
 @pytest.mark.spark

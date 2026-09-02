@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -9,19 +10,26 @@ from delta.tables import DeltaTable
 from pyspark import StorageLevel
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
+from pyspark.sql.types import LongType, MapType, StringType, StructField, StructType
 
 from railpulse.config import RailPulseConfig
 from railpulse.ingestion.bronze import RECORD_ID_FIELD
 from railpulse.validation.silver_failures import FailureQualitySplit
 from railpulse.validation.silver_telemetry import (
     REJECTION_REASONS_FIELD,
+    TelemetryQualityMetrics,
     TelemetryQualitySplit,
+    collect_telemetry_quality_metrics,
 )
 
 TELEMETRY_ACCEPTED_TABLE = "telemetry_accepted"
 TELEMETRY_QUARANTINE_TABLE = "telemetry_quarantine"
 FAILURE_ACCEPTED_TABLE = "failure_events_accepted"
 FAILURE_QUARANTINE_TABLE = "failure_events_quarantine"
+TELEMETRY_QUALITY_TABLE = "telemetry_quality_metrics"
+TELEMETRY_VALIDATION_VERSION = "telemetry-validation-v1"
+QUALITY_BATCH_ID_FIELD = "quality_batch_id"
+TELEMETRY_LINEAGE_COLUMNS = ("dataset_version", "source_sha256", "ingestion_batch_id")
 
 
 class SilverPersistenceError(RuntimeError):
@@ -66,10 +74,41 @@ class FailurePersistenceResult:
     quarantined: SilverTableWriteResult
 
 
+@dataclass(frozen=True)
+class TelemetryQualityPersistenceResult:
+    """Persisted telemetry quality metrics and their stable identity."""
+
+    quality_batch_id: str
+    validation_version: str
+    metrics: TelemetryQualityMetrics
+    write: SilverTableWriteResult
+
+
 def silver_table_path(config: RailPulseConfig, table_name: str) -> Path:
     """Resolve a local path corresponding to a logical Silver table."""
 
     return config.paths.delta / config.schemas.silver / table_name
+
+
+def telemetry_quality_batch_id(
+    *,
+    dataset_version: str,
+    source_sha256: str,
+    ingestion_batch_id: str,
+    validation_version: str = TELEMETRY_VALIDATION_VERSION,
+) -> str:
+    """Return a stable identity for one source batch and validation contract."""
+
+    material = "|".join(
+        (
+            TELEMETRY_QUALITY_TABLE,
+            validation_version,
+            dataset_version,
+            source_sha256.lower(),
+            ingestion_batch_id,
+        )
+    )
+    return hashlib.sha256(material.encode()).hexdigest()
 
 
 def _assert_validated_records_are_safe(
@@ -126,6 +165,7 @@ def _merge_silver_records(
     *,
     table_name: str,
     error_type: type[SilverPersistenceError],
+    key_field: str = RECORD_ID_FIELD,
 ) -> SilverTableWriteResult:
     target_path.parent.mkdir(parents=True, exist_ok=True)
     target_path_string = str(target_path)
@@ -147,7 +187,7 @@ def _merge_silver_records(
                     .alias("target")
                     .merge(
                         cached.alias("source"),
-                        f"target.{RECORD_ID_FIELD} = source.{RECORD_ID_FIELD}",
+                        f"target.{key_field} = source.{key_field}",
                     )
                     .whenNotMatchedInsertAll()
                     .execute()
@@ -159,8 +199,8 @@ def _merge_silver_records(
         after_count = target.count()
         inserted_count = after_count - before_count
         unmatched_count = (
-            cached.select(RECORD_ID_FIELD)
-            .join(target.select(RECORD_ID_FIELD), on=RECORD_ID_FIELD, how="left_anti")
+            cached.select(key_field)
+            .join(target.select(key_field), on=key_field, how="left_anti")
             .limit(1)
             .count()
         )
@@ -269,4 +309,91 @@ def persist_failure_quality_split(
         total_record_count=total_count,
         accepted=accepted_result,
         quarantined=quarantined_result,
+    )
+
+
+def _single_telemetry_lineage(frame: DataFrame) -> tuple[str, str, str]:
+    missing_columns = sorted(set(TELEMETRY_LINEAGE_COLUMNS) - set(frame.columns))
+    if missing_columns:
+        raise SilverTelemetryPersistenceError(
+            "Validated telemetry is missing quality-lineage columns: " + ", ".join(missing_columns)
+        )
+
+    lineage_rows = frame.select(*TELEMETRY_LINEAGE_COLUMNS).distinct().limit(2).collect()
+    if len(lineage_rows) != 1:
+        raise SilverTelemetryPersistenceError(
+            "Telemetry quality metrics require exactly one source lineage"
+        )
+    lineage = tuple(lineage_rows[0][column] for column in TELEMETRY_LINEAGE_COLUMNS)
+    if any(not isinstance(value, str) or not value.strip() for value in lineage):
+        raise SilverTelemetryPersistenceError(
+            "Telemetry quality metrics require complete source lineage"
+        )
+    return lineage
+
+
+def _telemetry_quality_schema() -> StructType:
+    return StructType(
+        [
+            StructField(QUALITY_BATCH_ID_FIELD, StringType(), nullable=False),
+            StructField("validation_version", StringType(), nullable=False),
+            StructField("dataset_version", StringType(), nullable=False),
+            StructField("source_sha256", StringType(), nullable=False),
+            StructField("ingestion_batch_id", StringType(), nullable=False),
+            StructField("total_record_count", LongType(), nullable=False),
+            StructField("accepted_record_count", LongType(), nullable=False),
+            StructField("quarantined_record_count", LongType(), nullable=False),
+            StructField("forward_gap_count", LongType(), nullable=False),
+            StructField(
+                "rejection_reason_counts",
+                MapType(StringType(), LongType(), valueContainsNull=False),
+                nullable=False,
+            ),
+        ]
+    )
+
+
+def persist_telemetry_quality_metrics(
+    split: TelemetryQualitySplit,
+    config: RailPulseConfig,
+) -> TelemetryQualityPersistenceResult:
+    """Collect and persist one deterministic telemetry quality summary."""
+
+    dataset_version, source_sha256, ingestion_batch_id = _single_telemetry_lineage(
+        split.all_records
+    )
+    metrics = collect_telemetry_quality_metrics(split)
+    quality_batch_id = telemetry_quality_batch_id(
+        dataset_version=dataset_version,
+        source_sha256=source_sha256,
+        ingestion_batch_id=ingestion_batch_id,
+    )
+    row = {
+        QUALITY_BATCH_ID_FIELD: quality_batch_id,
+        "validation_version": TELEMETRY_VALIDATION_VERSION,
+        "dataset_version": dataset_version,
+        "source_sha256": source_sha256,
+        "ingestion_batch_id": ingestion_batch_id,
+        "total_record_count": metrics.total_record_count,
+        "accepted_record_count": metrics.accepted_record_count,
+        "quarantined_record_count": metrics.quarantined_record_count,
+        "forward_gap_count": metrics.forward_gap_count,
+        "rejection_reason_counts": metrics.rejection_reason_counts,
+    }
+    summary = split.all_records.sparkSession.createDataFrame(
+        [row],
+        schema=_telemetry_quality_schema(),
+    )
+    write = _merge_silver_records(
+        summary,
+        silver_table_path(config, TELEMETRY_QUALITY_TABLE),
+        table_name=f"{config.schemas.silver}.{TELEMETRY_QUALITY_TABLE}",
+        error_type=SilverTelemetryPersistenceError,
+        key_field=QUALITY_BATCH_ID_FIELD,
+    )
+    return TelemetryQualityPersistenceResult(
+        quality_batch_id=quality_batch_id,
+        validation_version=TELEMETRY_VALIDATION_VERSION,
+        metrics=metrics,
+        write=write,
     )
