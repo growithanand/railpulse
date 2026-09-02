@@ -11,10 +11,11 @@ MetroPT-3 compressor telemetry dataset. Its central question is:
 
 ## Current status
 
-The repository scaffold, official MetroPT-3 data contract, and Bronze Delta ingestion are
-implemented and locally verified. Silver validation and quarantine are next; all validated/Gold
-tables, models, metrics, alerts, dashboards, and Databricks resources are still planned. No
-performance or maintenance-impact claims have been established.
+The repository scaffold, official MetroPT-3 data contract, Bronze Delta ingestion, and Silver
+telemetry validation are implemented and locally verified. Accepted and quarantined telemetry can
+also be persisted to separate idempotent Silver Delta tables. Failure-event Silver persistence,
+persisted quality metrics, all Gold tables, models, alerts, dashboards, and Databricks resources are
+still planned. No performance or maintenance-impact claims have been established.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -65,6 +66,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
   identifiers, Delta `MERGE` idempotency, and row reconciliation.
 - Locally materialized `bronze.telemetry_raw` and `bronze.failure_reports_raw` Delta tables; generated
   table storage remains ignored.
+- Typed Silver telemetry with explicit parsing, domain, range, duplicate, and timestamp-sequence
+  quality reasons, plus separate accepted and quarantine Delta outputs.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -72,10 +75,10 @@ scalable, incremental, and Databricks-compatible engineering practices.
 
 ## Runtime stack
 
-Bronze uses Python, PySpark 4.2.0, Apache Spark 4.2.0, Delta Lake 4.4.0, pytest, and Ruff. Later phases
-will add Spark SQL, Databricks resources, MLflow, Structured Streaming, and GitHub Actions where each
-is justified. Streaming will replay historical files; it will not be described as a live train
-connection.
+Bronze and the current Silver pipeline use Python, PySpark 4.2.0, Apache Spark 4.2.0, Delta Lake
+4.4.0, pytest, and Ruff. Later phases will add Spark SQL, Databricks resources, MLflow, Structured
+Streaming, and GitHub Actions where each is justified. Streaming will replay historical files; it
+will not be described as a live train connection.
 
 The local Spark/Delta integration is verified in Ubuntu WSL with Python 3.12 and Eclipse Temurin JDK
 21. Native Windows Spark is not the verified path because Hadoop requires a separate Windows helper.
