@@ -2,11 +2,12 @@
 
 ## Current phase
 
-**Phase 1 — Repository initialization and project structure (implementation verified)**
+**Phase 2 — Official dataset verification and data contract (implementation verified)**
 
-The repository is initialized on `main`. The initial package, configuration contract, tests, and
-documentation have passed local verification. Git commit state is reported in the session handoff
-because it changes independently of the checked-in project files.
+The official UCI MetroPT-3 archive, CSV, PDF, schema, sensor meanings, timestamp behavior, license,
+and published failure table have been inspected. The manifest, contract, dictionary, failure
+reference, and streaming inspector have passed local verification. Git commit state is reported in
+the session handoff because it changes independently of checked-in project files.
 
 ## Environment observed on 2026-09-01
 
@@ -34,10 +35,13 @@ Repository-local Git identity:
 - Dataset, Delta, Spark, streaming, MLflow, model, secret, and local-state exclusions.
 - Planning, decisions, status, and data-placement documentation.
 - Minimal Databricks Asset Bundle entry point; not CLI-validated or deployed.
+- SHA-256 manifest for the official UCI archive and both members.
+- Complete-file CSV inspection covering 1,516,948 rows and 15 sensors.
+- Source/next-Bronze contracts, sensor dictionary, and separate four-row failure reference.
+- Reusable standard-library inspector and deterministic metadata/contract tests.
 
 ## Not implemented
 
-- Official MetroPT-3 provenance verification and data contract.
 - Spark/Delta dependencies and sessions.
 - Bronze, Silver, or Gold tables and transformations.
 - SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
@@ -48,7 +52,9 @@ has been measured.
 
 ## Known constraints and next phase
 
-Spark/Delta compatibility cannot be validated with the current Python/Java combination until a
-supported toolchain is selected. The next phase will verify the official MetroPT-3 source, license,
-version, checksum, real schema, sensor meanings/units, timestamp range, and published failure and
-maintenance intervals before any ingestion code is designed.
+The source contains documented contradictions: instance count, stated cadence/date range, duplicate
+failure report number, and a maintenance date that predates its associated failure interval. They
+remain explicit and unresolved. Spark/Delta compatibility still requires a supported toolchain.
+
+The next phase will implement explicit-schema, metadata-rich, idempotent Bronze ingestion for the
+telemetry CSV and separate failure reference without silently cleaning source values.

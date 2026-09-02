@@ -29,6 +29,9 @@ configs/local.*
 # Data: keep only the placement documentation
 data/*
 !data/README.md
+!data/reference/
+data/reference/*
+!data/reference/metropt3_failure_events.csv
 datasets/
 
 # Spark, Delta Lake, and streaming state

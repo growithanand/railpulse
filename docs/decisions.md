@@ -46,3 +46,31 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Decision:** Ingest telemetry and published failure/maintenance information into separate Bronze
   inputs and join only under documented point-in-time semantics.
 - **Why:** Failure-report fields are not available at scoring time and can cause direct leakage.
+
+## ADR-006 — Identify source artifacts by SHA-256
+
+- **Status:** Accepted
+- **Decision:** Use `uci-791-aab991a970e5` as the RailPulse dataset version and retain full archive
+  and member hashes in a machine-readable manifest.
+- **Why:** UCI does not publish a semantic artifact version. A content digest makes the exact 2026-09-02
+  retrieval reproducible and detects silent source replacement.
+- **Alternative:** A retrieval date alone cannot distinguish two different artifacts downloaded on
+  the same day or detect later content changes.
+
+## ADR-007 — Treat cadence as nominal 10 seconds with jitter and gaps
+
+- **Status:** Accepted
+- **Decision:** Use event timestamps as the time axis, expect a nominal 10-second interval, and
+  explicitly measure shorter/longer transitions and material gaps.
+- **Why:** The complete CSV has 1,337,521 exact 10-second transitions, but also timestamp jitter and
+  354 material gaps. The perfectly regular source index does not represent elapsed event time.
+- **Alternative:** Assuming exact 0.1 Hz would produce incorrect rolling-window durations and hide
+  missing time intervals.
+
+## ADR-008 — MetroPT-3 is not the later MetroPT dataset
+
+- **Status:** Accepted
+- **Decision:** Scope RailPulse to UCI MetroPT-3 ID 791: 2020 data, 15 sensor signals, no GPS, and a
+  nominal 10-second cadence.
+- **Why:** The separate MetroPT dataset described in Scientific Data contains 2022 data, 20 variables
+  including GPS, and 1 Hz acquisition. Mixing their documentation would corrupt this contract.

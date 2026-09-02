@@ -1,0 +1,133 @@
+{
+  "manifest_version": 1,
+  "dataset": {
+    "name": "MetroPT-3 Dataset",
+    "version_id": "uci-791-aab991a970e5",
+    "publisher_version": null,
+    "uci_dataset_id": 791,
+    "doi": "10.24432/C5VW3R",
+    "landing_url": "https://archive.ics.uci.edu/dataset/791/metropt%2B3%2B",
+    "download_url": "https://archive.ics.uci.edu/static/public/791/metropt%2B3%2Bdataset.zip",
+    "retrieved_on": "2026-09-02",
+    "license": {
+      "name": "Creative Commons Attribution 4.0 International",
+      "spdx_id": "CC-BY-4.0",
+      "url": "https://creativecommons.org/licenses/by/4.0/"
+    },
+    "citation": "Davari, N., Veloso, B., Ribeiro, R., & Gama, J. (2021). MetroPT-3 Dataset [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5VW3R."
+  },
+  "archive": {
+    "local_file_name": "metropt3-uci-791.zip",
+    "size_bytes": 218381995,
+    "sha256": "aab991a970e58210de853bb8078ce0e63abb4d9412fdc5c79792dae3d8e1721a",
+    "members": [
+      {
+        "name": "Data Description_Metro.pdf",
+        "size_bytes": 81208,
+        "sha256": "b00fac0e8899854078309bef4adaa480d82ecf14dc81c5097c3646973e824127",
+        "pages": 3
+      },
+      {
+        "name": "MetroPT3(AirCompressor).csv",
+        "size_bytes": 218300507,
+        "sha256": "db30ccb4ea402e3c8bf2c99db06e288d4f2a772f6928f9dbe26a920d69793e24"
+      }
+    ]
+  },
+  "observed_telemetry": {
+    "row_count": 1516948,
+    "physical_column_count": 17,
+    "sensor_feature_count": 15,
+    "header": [
+      "",
+      "timestamp",
+      "TP2",
+      "TP3",
+      "H1",
+      "DV_pressure",
+      "Reservoirs",
+      "Oil_temperature",
+      "Motor_current",
+      "COMP",
+      "DV_eletric",
+      "Towers",
+      "MPG",
+      "LPS",
+      "Pressure_switch",
+      "Oil_level",
+      "Caudal_impulses"
+    ],
+    "source_index": {
+      "minimum": 0,
+      "maximum": 15169470,
+      "expected_step": 10,
+      "unexpected_step_count": 0
+    },
+    "timestamp": {
+      "format": "%Y-%m-%d %H:%M:%S",
+      "timezone": null,
+      "minimum": "2020-02-01 00:00:00",
+      "maximum": "2020-09-01 03:59:50",
+      "nominal_interval_seconds": 10,
+      "exact_10_second_interval_count": 1337521,
+      "short_interval_count": 128279,
+      "long_interval_count": 51147,
+      "material_gap_count": 354,
+      "estimated_missing_nominal_interval_count": 326972,
+      "maximum_gap_seconds": 172918,
+      "duplicate_count": 0,
+      "out_of_order_count": 0,
+      "near_nominal_interval_counts": {
+        "8": 2,
+        "9": 128277,
+        "10": 1337521,
+        "11": 4471,
+        "12": 38321,
+        "13": 7988
+      }
+    },
+    "quality": {
+      "malformed_row_count": 0,
+      "missing_cell_count": 0,
+      "timestamp_parse_error_count": 0,
+      "numeric_parse_error_count": 0,
+      "non_finite_numeric_count": 0,
+      "digital_domains_are_binary": true,
+      "structurally_valid": true
+    },
+    "numeric_ranges": {
+      "TP2": [-0.032, 10.676],
+      "TP3": [0.7300000000000004, 10.302],
+      "H1": [-0.0360000000000013, 10.288],
+      "DV_pressure": [-0.032, 9.844],
+      "Reservoirs": [0.7119999999999997, 10.3],
+      "Oil_temperature": [15.400000000000006, 89.05000000000001],
+      "Motor_current": [0.0199999999999995, 9.295],
+      "COMP": [0.0, 1.0],
+      "DV_eletric": [0.0, 1.0],
+      "Towers": [0.0, 1.0],
+      "MPG": [0.0, 1.0],
+      "LPS": [0.0, 1.0],
+      "Pressure_switch": [0.0, 1.0],
+      "Oil_level": [0.0, 1.0],
+      "Caudal_impulses": [0.0, 1.0]
+    }
+  },
+  "failure_reference": {
+    "path": "data/reference/metropt3_failure_events.csv",
+    "event_count": 4,
+    "timezone": null,
+    "interval_end_semantics": "not specified by publisher",
+    "source": "Data Description_Metro.pdf failure table",
+    "preserves_publisher_ambiguities": true
+  },
+  "known_source_ambiguities": [
+    "The UCI landing page says 1 Hz in one section and 0.1 Hz in another; the CSV has a nominal 10-second cadence with jitter and gaps.",
+    "The PDF reports 15,169,480 instances, while the CSV and UCI landing page contain 1,516,948 rows.",
+    "The CSV extends to 2020-09-01 03:59:50 although the documentation describes February through August 2020.",
+    "The failure table repeats report number #1 for its first two rows.",
+    "The second failure row reports maintenance on 30Apr even though the failure interval begins on 29May.",
+    "No timezone or failure-interval endpoint semantics are published.",
+    "The separate MetroPT dataset described in Scientific Data uses January-June 2022 data, 20 variables including GPS, and 1 Hz acquisition; it is not MetroPT-3."
+  ]
+}

@@ -10,7 +10,7 @@ def test_default_config_has_expected_namespaces() -> None:
 
     assert config.name == "railpulse"
     assert config.environment == "local"
-    assert config.dataset_version == "unverified"
+    assert config.dataset_version == "uci-791-aab991a970e5"
     assert config.schemas.catalog == "railpulse"
     assert (config.schemas.bronze, config.schemas.silver, config.schemas.gold) == (
         "bronze",

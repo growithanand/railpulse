@@ -1,7 +1,7 @@
 [project]
 name = "railpulse"
 environment = "local"
-dataset_version = "unverified"
+dataset_version = "uci-791-aab991a970e5"
 
 [paths]
 raw_data = "data/raw"
