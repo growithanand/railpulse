@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 4 — Silver validation and quarantine (complete)**
+**Phase 5 — Gold compressor cycles (in progress: causal boundary semantics)**
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -14,7 +14,8 @@ record-level rerun idempotency. The versioned four-event failure transcription h
 through the Bronze reader and Silver validator. Analogue values outside the verified complete-file
 dataset envelope are quarantined as possible contract drift without being treated as equipment
 health limits. Telemetry quality summaries now have stable source-and-validation identities and an
-idempotent Delta output.
+idempotent Delta output. Phase 5 now has provisional loaded-cycle boundary rules based on continuous
+`DV_eletric` transitions, with explicit left-censoring at data starts and material gaps.
 
 ## Environment observed on 2026-09-01
 
@@ -85,6 +86,8 @@ Repository-local Git identity:
   source-batch and validation-contract identity, preserving earlier contract versions on rerun.
 - Failure-event validation types source rows and timezone-free interval bounds, preserves report
   labels and ambiguous text, and rejects malformed, incomplete, duplicated, or reversed records.
+- Causal loaded-cycle boundary annotations use only current and predecessor `DV_eletric` states,
+  avoid transitions across forward gaps, and distinguish observed starts from left-censored segments.
 
 Official local Bronze evidence:
 
@@ -104,7 +107,8 @@ document identities, and the unresolved maintenance-date note on source row 2.
 
 ## Not implemented
 
-- Failure-to-telemetry interval joins and all Gold transformations.
+- Cycle identifiers, cycle-level aggregations, failure-to-telemetry interval joins, and all later
+  Gold transformations.
 - SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -120,5 +124,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will begin Phase 5 by defining and testing compressor-cycle boundary
-semantics from past and current telemetry states only. Failure-to-telemetry joins will follow later.
+The next small increment will assign deterministic identifiers to loaded-cycle segments while
+retaining their observed or left-censored start status. Cycle aggregation will follow separately.
