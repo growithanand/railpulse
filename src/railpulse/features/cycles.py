@@ -4,14 +4,21 @@ from __future__ import annotations
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
+from pyspark.sql.window import Window
 
 LOADED_SIGNAL_COLUMN = "dv_eletric"
+LOADED_CYCLE_ID_VERSION = "loaded-cycle-v1"
 CYCLE_BOUNDARY_COLUMNS = (
     "previous_dv_eletric",
     "is_loaded_operation",
     "is_cycle_start",
     "is_cycle_stop",
     "is_left_censored_cycle",
+)
+CYCLE_SEGMENT_COLUMNS = (
+    "loaded_cycle_id",
+    "loaded_cycle_start_record_id",
+    "loaded_cycle_start_type",
 )
 
 
@@ -77,5 +84,72 @@ def annotate_loaded_cycle_boundaries(frame: DataFrame) -> DataFrame:
         .withColumn(
             "is_left_censored_cycle",
             is_loaded & ~has_continuous_predecessor,
+        )
+    )
+
+
+def assign_loaded_cycle_segments(frame: DataFrame) -> DataFrame:
+    """Assign stable identifiers to loaded rows and their exclusive stop boundaries.
+
+    Segment identity is anchored to the first visible loaded record. Ordered propagation only uses
+    the current row and preceding source rows, so later observations cannot change an earlier ID.
+    """
+
+    required_columns = {
+        "record_id",
+        "source_index",
+        "is_loaded_operation",
+        "is_cycle_start",
+        "is_cycle_stop",
+        "is_left_censored_cycle",
+    }
+    missing_columns = sorted(required_columns - set(frame.columns))
+    if missing_columns:
+        raise CycleBoundaryError(
+            "Cycle-boundary telemetry is missing segment columns: " + ", ".join(missing_columns)
+        )
+    conflicting_columns = sorted(set(CYCLE_SEGMENT_COLUMNS).intersection(frame.columns))
+    if conflicting_columns:
+        raise CycleBoundaryError(
+            "Telemetry already contains cycle-segment columns: " + ", ".join(conflicting_columns)
+        )
+
+    causal_window = Window.orderBy(F.col("source_index")).rowsBetween(
+        Window.unboundedPreceding,
+        Window.currentRow,
+    )
+    is_segment_start = F.col("is_cycle_start") | F.col("is_left_censored_cycle")
+    start_record_id = F.last(
+        F.when(is_segment_start, F.col("record_id")),
+        ignorenulls=True,
+    ).over(causal_window)
+    start_type = F.last(
+        F.when(F.col("is_cycle_start"), F.lit("observed")).when(
+            F.col("is_left_censored_cycle"),
+            F.lit("left_censored"),
+        ),
+        ignorenulls=True,
+    ).over(causal_window)
+    belongs_to_segment = F.col("is_loaded_operation") | F.col("is_cycle_stop")
+    has_segment_anchor = belongs_to_segment & start_record_id.isNotNull()
+
+    return (
+        frame.withColumn(
+            "loaded_cycle_id",
+            F.when(
+                has_segment_anchor,
+                F.sha2(
+                    F.concat_ws("|", F.lit(LOADED_CYCLE_ID_VERSION), start_record_id),
+                    256,
+                ),
+            ),
+        )
+        .withColumn(
+            "loaded_cycle_start_record_id",
+            F.when(has_segment_anchor, start_record_id),
+        )
+        .withColumn(
+            "loaded_cycle_start_type",
+            F.when(has_segment_anchor, start_type),
         )
     )

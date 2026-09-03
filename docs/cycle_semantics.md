@@ -24,9 +24,22 @@ A predecessor is continuous only when it can be matched by `previous_source_inde
 row is not marked `is_forward_gap`. No start or stop transition is inferred across a material gap.
 An active row after a gap begins a left-censored segment rather than an observed cycle.
 
+## Segment identity
+
+Every loaded segment is anchored to its first visible active record. An observed `0 → 1` start has
+start type `observed`; an active record at the data boundary or after a material gap has start type
+`left_censored`. The anchor record identifier and the `loaded-cycle-v1` contract label produce a
+deterministic SHA-256 `loaded_cycle_id`.
+
+The identifier and start metadata appear on every loaded row in the segment and on its observed
+stop-boundary row. Carrying the identifier onto that inactive boundary preserves the exclusive stop
+timestamp for later aggregation. Other inactive rows have null segment fields. The ordered
+propagation uses only the current and preceding source rows, so appending future telemetry cannot
+change identifiers already assigned.
+
 ## Deferred decisions
 
-This increment does not assign cycle identifiers, aggregate durations, infer a right-censored final
+This increment does not aggregate segment rows, calculate durations, infer a right-censored final
 cycle, or combine `COMP`, `MPG`, pressure, and motor-current behavior. Those steps require separate
-tests and empirical inspection. In particular, approximate current levels and undocumented control
-relationships must not be promoted to hard operating-state rules without evidence.
+tests and empirical inspection. In particular, approximate current levels and undocumented
+control relationships must not be promoted to hard operating-state rules without evidence.

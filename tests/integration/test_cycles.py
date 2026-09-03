@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+
 import pytest
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
@@ -13,7 +15,11 @@ from pyspark.sql.types import (
     StructType,
 )
 
-from railpulse.features.cycles import CycleBoundaryError, annotate_loaded_cycle_boundaries
+from railpulse.features.cycles import (
+    CycleBoundaryError,
+    annotate_loaded_cycle_boundaries,
+    assign_loaded_cycle_segments,
+)
 
 BOUNDARY_FIELDS = (
     "record_id",
@@ -23,6 +29,16 @@ BOUNDARY_FIELDS = (
     "is_cycle_stop",
     "is_left_censored_cycle",
 )
+SEGMENT_FIELDS = (
+    "record_id",
+    "loaded_cycle_id",
+    "loaded_cycle_start_record_id",
+    "loaded_cycle_start_type",
+)
+
+
+def _expected_cycle_id(start_record_id: str) -> str:
+    return hashlib.sha256(f"loaded-cycle-v1|{start_record_id}".encode()).hexdigest()
 
 
 def _cycle_frame(spark: SparkSession) -> DataFrame:
@@ -103,3 +119,51 @@ def test_loaded_cycle_boundaries_reject_missing_or_conflicting_columns(
     conflicting = source.withColumn("is_cycle_start", F.lit(False))
     with pytest.raises(CycleBoundaryError, match="already contains cycle-boundary columns"):
         annotate_loaded_cycle_boundaries(conflicting)
+
+
+@pytest.mark.spark
+def test_loaded_cycle_segments_have_stable_ids_and_preserve_start_type(
+    spark: SparkSession,
+) -> None:
+    boundaries = annotate_loaded_cycle_boundaries(_cycle_frame(spark))
+    segmented = assign_loaded_cycle_segments(boundaries)
+    rows = {row.record_id: row for row in segmented.collect()}
+
+    initial_cycle_id = _expected_cycle_id("initial-active")
+    assert rows["initial-active"].loaded_cycle_id == initial_cycle_id
+    assert rows["continuing-active"].loaded_cycle_id == initial_cycle_id
+    assert rows["observed-stop"].loaded_cycle_id == initial_cycle_id
+    assert rows["observed-stop"].loaded_cycle_start_record_id == "initial-active"
+    assert rows["observed-stop"].loaded_cycle_start_type == "left_censored"
+    assert rows["continuing-inactive"].loaded_cycle_id is None
+
+    assert rows["observed-start"].loaded_cycle_id == _expected_cycle_id("observed-start")
+    assert rows["observed-start"].loaded_cycle_start_type == "observed"
+    gap_cycle_id = _expected_cycle_id("active-after-gap")
+    assert rows["active-after-gap"].loaded_cycle_id == gap_cycle_id
+    assert rows["active-after-gap"].loaded_cycle_start_type == "left_censored"
+    assert rows["stop-after-censored-segment"].loaded_cycle_id == gap_cycle_id
+
+    prefix = boundaries.where(F.col("source_index") <= 40)
+    prefix_rows = assign_loaded_cycle_segments(prefix).select(*SEGMENT_FIELDS).collect()
+    full_prefix_rows = (
+        segmented.where(F.col("source_index") <= 40).select(*SEGMENT_FIELDS).collect()
+    )
+    assert sorted(prefix_rows, key=lambda row: row.record_id) == sorted(
+        full_prefix_rows,
+        key=lambda row: row.record_id,
+    )
+
+
+@pytest.mark.spark
+def test_loaded_cycle_segments_reject_missing_or_conflicting_columns(
+    spark: SparkSession,
+) -> None:
+    boundaries = annotate_loaded_cycle_boundaries(_cycle_frame(spark))
+
+    with pytest.raises(CycleBoundaryError, match="missing segment columns"):
+        assign_loaded_cycle_segments(boundaries.drop("is_cycle_stop"))
+
+    conflicting = boundaries.withColumn("loaded_cycle_id", F.lit("existing"))
+    with pytest.raises(CycleBoundaryError, match="already contains cycle-segment columns"):
+        assign_loaded_cycle_segments(conflicting)

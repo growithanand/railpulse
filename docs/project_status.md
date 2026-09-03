@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 5 — Gold compressor cycles (in progress: causal boundary semantics)**
+**Phase 5 — Gold compressor cycles (in progress: deterministic segment identity)**
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -15,7 +15,9 @@ through the Bronze reader and Silver validator. Analogue values outside the veri
 dataset envelope are quarantined as possible contract drift without being treated as equipment
 health limits. Telemetry quality summaries now have stable source-and-validation identities and an
 idempotent Delta output. Phase 5 now has provisional loaded-cycle boundary rules based on continuous
-`DV_eletric` transitions, with explicit left-censoring at data starts and material gaps.
+`DV_eletric` transitions, with explicit left-censoring at data starts and material gaps. Loaded rows
+and observed stop boundaries now receive deterministic segment identifiers and retain whether the
+visible segment start was observed or left-censored.
 
 ## Environment observed on 2026-09-01
 
@@ -88,6 +90,8 @@ Repository-local Git identity:
   labels and ambiguous text, and rejects malformed, incomplete, duplicated, or reversed records.
 - Causal loaded-cycle boundary annotations use only current and predecessor `DV_eletric` states,
   avoid transitions across forward gaps, and distinguish observed starts from left-censored segments.
+- Stable loaded-cycle identifiers are anchored to the first visible active record, propagate only
+  forward, and carry segment start provenance onto loaded rows and their exclusive stop boundary.
 
 Official local Bronze evidence:
 
@@ -107,8 +111,7 @@ document identities, and the unresolved maintenance-date note on source row 2.
 
 ## Not implemented
 
-- Cycle identifiers, cycle-level aggregations, failure-to-telemetry interval joins, and all later
-  Gold transformations.
+- Cycle-level aggregations, failure-to-telemetry interval joins, and all later Gold transformations.
 - SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -124,5 +127,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will assign deterministic identifiers to loaded-cycle segments while
-retaining their observed or left-censored start status. Cycle aggregation will follow separately.
+The next small increment will aggregate each identified loaded segment into one cycle-level row,
+including its observed stop evidence and explicit right-censoring when no stop is visible.
