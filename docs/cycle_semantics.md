@@ -37,9 +37,25 @@ timestamp for later aggregation. Other inactive rows have null segment fields. T
 propagation uses only the current and preceding source rows, so appending future telemetry cannot
 change identifiers already assigned.
 
+## Cycle-level aggregation
+
+Segment rows are reduced to one record per `loaded_cycle_id`. Each record retains the visible start
+record and timestamp, start type, optional observed stop record and exclusive stop timestamp, and
+the count of loaded observations. `observed_duration_seconds` is calculated from the visible start
+to the exclusive stop only when that stop exists.
+
+For an observed start and stop, this duration represents the complete visible cycle. For a
+left-censored start, it is a lower bound because operation began before continuous observation. If
+no stop is visible, the cycle is marked `is_right_censored = true`, its stop fields remain null, and
+no duration is inferred from the final active sample.
+
+Unlike a stable segment ID, right-censoring describes the current input snapshot. Later telemetry
+can close a previously right-censored cycle. Persisting cycle aggregates therefore requires update
+semantics and remains a separate decision.
+
 ## Deferred decisions
 
-This increment does not aggregate segment rows, calculate durations, infer a right-censored final
-cycle, or combine `COMP`, `MPG`, pressure, and motor-current behavior. Those steps require separate
-tests and empirical inspection. In particular, approximate current levels and undocumented
-control relationships must not be promoted to hard operating-state rules without evidence.
+This increment does not persist Gold cycles, summarize sensor behavior, or combine `COMP`, `MPG`,
+pressure, and motor-current behavior. Those steps require separate tests and empirical inspection.
+In particular, approximate current levels and undocumented control relationships must not be
+promoted to hard operating-state rules without evidence.

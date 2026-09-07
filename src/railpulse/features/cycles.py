@@ -1,9 +1,10 @@
-"""Derive causal loaded-cycle boundary evidence from accepted Silver telemetry."""
+"""Derive loaded-cycle boundaries, segment identity, and cycle-level summaries."""
 
 from __future__ import annotations
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
+from pyspark.sql.types import LongType
 from pyspark.sql.window import Window
 
 LOADED_SIGNAL_COLUMN = "dv_eletric"
@@ -20,10 +21,22 @@ CYCLE_SEGMENT_COLUMNS = (
     "loaded_cycle_start_record_id",
     "loaded_cycle_start_type",
 )
+CYCLE_AGGREGATION_COLUMNS = (
+    "loaded_cycle_start_timestamp",
+    "loaded_cycle_stop_record_id",
+    "loaded_cycle_stop_timestamp",
+    "loaded_observation_count",
+    "is_right_censored",
+    "observed_duration_seconds",
+)
 
 
 class CycleBoundaryError(ValueError):
     """Raised when telemetry cannot satisfy the loaded-cycle input contract."""
+
+
+class CycleAggregationError(ValueError):
+    """Raised when segmented telemetry cannot be aggregated safely."""
 
 
 def annotate_loaded_cycle_boundaries(frame: DataFrame) -> DataFrame:
@@ -152,4 +165,72 @@ def assign_loaded_cycle_segments(frame: DataFrame) -> DataFrame:
             "loaded_cycle_start_type",
             F.when(has_segment_anchor, start_type),
         )
+    )
+
+
+def aggregate_loaded_cycles(frame: DataFrame) -> DataFrame:
+    """Return one row per visible loaded segment without inventing missing boundaries.
+
+    The observed stop timestamp is exclusive. Duration remains null when no stop is present and is
+    only a lower bound when the segment start is left-censored.
+    """
+
+    required_columns = {
+        "record_id",
+        "event_timestamp",
+        "is_loaded_operation",
+        "is_cycle_stop",
+        *CYCLE_SEGMENT_COLUMNS,
+    }
+    missing_columns = sorted(required_columns - set(frame.columns))
+    if missing_columns:
+        raise CycleAggregationError(
+            "Segmented telemetry is missing cycle-aggregation columns: "
+            + ", ".join(missing_columns)
+        )
+    conflicting_columns = sorted(set(CYCLE_AGGREGATION_COLUMNS).intersection(frame.columns))
+    if conflicting_columns:
+        raise CycleAggregationError(
+            "Telemetry already contains cycle-aggregation columns: "
+            + ", ".join(conflicting_columns)
+        )
+
+    start_row = F.col("record_id") == F.col("loaded_cycle_start_record_id")
+    stop_row = F.col("is_cycle_stop")
+    cycles = (
+        frame.where(F.col("loaded_cycle_id").isNotNull())
+        .groupBy("loaded_cycle_id")
+        .agg(
+            F.max("loaded_cycle_start_record_id").alias("loaded_cycle_start_record_id"),
+            F.max("loaded_cycle_start_type").alias("loaded_cycle_start_type"),
+            F.max(F.when(start_row, F.col("event_timestamp"))).alias(
+                "loaded_cycle_start_timestamp"
+            ),
+            F.max(F.when(stop_row, F.col("record_id"))).alias("loaded_cycle_stop_record_id"),
+            F.max(F.when(stop_row, F.col("event_timestamp"))).alias("loaded_cycle_stop_timestamp"),
+            F.sum(F.when(F.col("is_loaded_operation"), F.lit(1)).otherwise(F.lit(0)))
+            .cast(LongType())
+            .alias("loaded_observation_count"),
+        )
+        .withColumn(
+            "is_right_censored",
+            F.col("loaded_cycle_stop_timestamp").isNull(),
+        )
+        .withColumn(
+            "observed_duration_seconds",
+            F.when(
+                ~F.col("is_right_censored"),
+                F.timestamp_diff(
+                    "SECOND",
+                    F.col("loaded_cycle_start_timestamp"),
+                    F.col("loaded_cycle_stop_timestamp"),
+                ),
+            ).cast(LongType()),
+        )
+    )
+    return cycles.select(
+        "loaded_cycle_id",
+        "loaded_cycle_start_record_id",
+        "loaded_cycle_start_type",
+        *CYCLE_AGGREGATION_COLUMNS,
     )

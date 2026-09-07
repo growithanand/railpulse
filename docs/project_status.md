@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 5 — Gold compressor cycles (in progress: deterministic segment identity)**
+**Phase 5 — Gold compressor cycles (in progress: cycle-level aggregation semantics)**
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -17,7 +17,9 @@ health limits. Telemetry quality summaries now have stable source-and-validation
 idempotent Delta output. Phase 5 now has provisional loaded-cycle boundary rules based on continuous
 `DV_eletric` transitions, with explicit left-censoring at data starts and material gaps. Loaded rows
 and observed stop boundaries now receive deterministic segment identifiers and retain whether the
-visible segment start was observed or left-censored.
+visible segment start was observed or left-censored. Identified segments can now be reduced to one
+cycle-level row with visible boundary evidence, loaded-observation counts, honest duration
+semantics, and explicit right-censoring.
 
 ## Environment observed on 2026-09-01
 
@@ -92,6 +94,8 @@ Repository-local Git identity:
   avoid transitions across forward gaps, and distinguish observed starts from left-censored segments.
 - Stable loaded-cycle identifiers are anchored to the first visible active record, propagate only
   forward, and carry segment start provenance onto loaded rows and their exclusive stop boundary.
+- Cycle-level aggregation retains observed and censored boundaries, counts loaded observations,
+  and calculates visible duration only when an exclusive stop timestamp is available.
 
 Official local Bronze evidence:
 
@@ -111,7 +115,8 @@ document identities, and the unresolved maintenance-date note on source row 2.
 
 ## Not implemented
 
-- Cycle-level aggregations, failure-to-telemetry interval joins, and all later Gold transformations.
+- Gold cycle persistence, full-source cycle profiling, failure-to-telemetry interval joins, and all
+  later Gold transformations.
 - SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -127,5 +132,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will aggregate each identified loaded segment into one cycle-level row,
-including its observed stop evidence and explicit right-censoring when no stop is visible.
+The next small increment will run the cycle pipeline against accepted full-source Silver telemetry
+and record a reproducible profile before defining Gold persistence behavior.

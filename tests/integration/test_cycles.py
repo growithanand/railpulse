@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime, timedelta
 
 import pytest
 from pyspark.sql import DataFrame, SparkSession
@@ -13,10 +14,13 @@ from pyspark.sql.types import (
     StringType,
     StructField,
     StructType,
+    TimestampNTZType,
 )
 
 from railpulse.features.cycles import (
+    CycleAggregationError,
     CycleBoundaryError,
+    aggregate_loaded_cycles,
     annotate_loaded_cycle_boundaries,
     assign_loaded_cycle_segments,
 )
@@ -42,10 +46,12 @@ def _expected_cycle_id(start_record_id: str) -> str:
 
 
 def _cycle_frame(spark: SparkSession) -> DataFrame:
+    start = datetime(2020, 2, 1)
     schema = StructType(
         [
             StructField("record_id", StringType(), nullable=False),
             StructField("source_index", LongType(), nullable=False),
+            StructField("event_timestamp", TimestampNTZType(), nullable=False),
             StructField("previous_source_index", LongType(), nullable=True),
             StructField("dv_eletric", ByteType(), nullable=False),
             StructField("is_forward_gap", BooleanType(), nullable=False),
@@ -57,13 +63,21 @@ def _cycle_frame(spark: SparkSession) -> DataFrame:
         ]
     )
     rows = [
-        ("initial-active", 0, None, 1, False, []),
-        ("continuing-active", 10, 0, 1, False, []),
-        ("observed-stop", 20, 10, 0, False, []),
-        ("continuing-inactive", 30, 20, 0, False, []),
-        ("observed-start", 40, 30, 1, False, []),
-        ("active-after-gap", 50, 40, 1, True, []),
-        ("stop-after-censored-segment", 60, 50, 0, False, []),
+        ("initial-active", 0, start, None, 1, False, []),
+        ("continuing-active", 10, start + timedelta(seconds=10), 0, 1, False, []),
+        ("observed-stop", 20, start + timedelta(seconds=20), 10, 0, False, []),
+        ("continuing-inactive", 30, start + timedelta(seconds=30), 20, 0, False, []),
+        ("observed-start", 40, start + timedelta(seconds=40), 30, 1, False, []),
+        ("active-after-gap", 50, start + timedelta(seconds=100), 40, 1, True, []),
+        (
+            "stop-after-censored-segment",
+            60,
+            start + timedelta(seconds=110),
+            50,
+            0,
+            False,
+            [],
+        ),
     ]
     return spark.createDataFrame(rows, schema=schema)
 
@@ -167,3 +181,53 @@ def test_loaded_cycle_segments_reject_missing_or_conflicting_columns(
     conflicting = boundaries.withColumn("loaded_cycle_id", F.lit("existing"))
     with pytest.raises(CycleBoundaryError, match="already contains cycle-segment columns"):
         assign_loaded_cycle_segments(conflicting)
+
+
+@pytest.mark.spark
+def test_loaded_cycle_aggregation_preserves_observed_and_censored_boundaries(
+    spark: SparkSession,
+) -> None:
+    segmented = assign_loaded_cycle_segments(annotate_loaded_cycle_boundaries(_cycle_frame(spark)))
+    cycles = {
+        row.loaded_cycle_start_record_id: row
+        for row in aggregate_loaded_cycles(segmented).collect()
+    }
+
+    initial = cycles["initial-active"]
+    assert initial.loaded_cycle_id == _expected_cycle_id("initial-active")
+    assert initial.loaded_cycle_start_type == "left_censored"
+    assert initial.loaded_cycle_start_timestamp == datetime(2020, 2, 1)
+    assert initial.loaded_cycle_stop_record_id == "observed-stop"
+    assert initial.loaded_cycle_stop_timestamp == datetime(2020, 2, 1, 0, 0, 20)
+    assert initial.loaded_observation_count == 2
+    assert initial.is_right_censored is False
+    assert initial.observed_duration_seconds == 20
+
+    interrupted = cycles["observed-start"]
+    assert interrupted.loaded_cycle_start_type == "observed"
+    assert interrupted.loaded_cycle_stop_record_id is None
+    assert interrupted.loaded_cycle_stop_timestamp is None
+    assert interrupted.loaded_observation_count == 1
+    assert interrupted.is_right_censored is True
+    assert interrupted.observed_duration_seconds is None
+
+    after_gap = cycles["active-after-gap"]
+    assert after_gap.loaded_cycle_start_type == "left_censored"
+    assert after_gap.loaded_cycle_stop_record_id == "stop-after-censored-segment"
+    assert after_gap.loaded_observation_count == 1
+    assert after_gap.is_right_censored is False
+    assert after_gap.observed_duration_seconds == 10
+
+
+@pytest.mark.spark
+def test_loaded_cycle_aggregation_rejects_missing_or_conflicting_columns(
+    spark: SparkSession,
+) -> None:
+    segmented = assign_loaded_cycle_segments(annotate_loaded_cycle_boundaries(_cycle_frame(spark)))
+
+    with pytest.raises(CycleAggregationError, match="missing cycle-aggregation columns"):
+        aggregate_loaded_cycles(segmented.drop("event_timestamp"))
+
+    conflicting = segmented.withColumn("is_right_censored", F.lit(False))
+    with pytest.raises(CycleAggregationError, match="already contains cycle-aggregation columns"):
+        aggregate_loaded_cycles(conflicting)
