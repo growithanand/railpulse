@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 5 — Gold compressor cycles (in progress: verified full-source profile)**
+**Phase 5 — Gold compressor cycles (in progress: tested persistence semantics)**
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -21,6 +21,8 @@ visible segment start was observed or left-censored. Identified segments can now
 cycle-level row with visible boundary evidence, loaded-observation counts, honest duration
 semantics, and explicit right-censoring. The read-only full-source profile now reconciles all
 1,516,948 Bronze records through Silver validation and reports 15,766 provisional loaded segments.
+A tested Gold Delta merge boundary inserts new cycle IDs, monotonically extends or closes existing
+right-censored rows, and rejects attempts to change stable start evidence or reopen closed cycles.
 
 ## Environment observed on 2026-09-01
 
@@ -100,6 +102,8 @@ Repository-local Git identity:
   and calculates visible duration only when an exclusive stop timestamp is available.
 - A reproducible, lineage-bound full-source profile reconciles cycle start/stop classifications and
   records censoring and duration distributions without writing a Gold table.
+- A path-backed `gold.loaded_cycles` merge contract inserts new cycles, updates only open cycle
+  state, preserves stable identifiers and start evidence, and rejects state regression before write.
 
 Official local Bronze evidence:
 
@@ -129,7 +133,8 @@ retained as source behavior requiring later analysis, not removed as an assumed 
 
 ## Not implemented
 
-- Gold cycle persistence, failure-to-telemetry interval joins, and all later Gold transformations.
+- A reproducible full-source Gold cycle build command and materialized full-source Gold evidence.
+- Failure-to-telemetry interval joins and all later Gold transformations.
 - SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -145,5 +150,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will define tested Gold update semantics for closing previously
-right-censored cycles while retaining stable cycle identifiers.
+The next small increment will connect the verified full-source cycle transformation to the Gold
+merge boundary through a reproducible build command.

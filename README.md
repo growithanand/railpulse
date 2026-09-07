@@ -14,10 +14,11 @@ MetroPT-3 compressor telemetry dataset. Its central question is:
 The repository scaffold, official MetroPT-3 data contract, Bronze Delta ingestion, and Silver
 telemetry validation are implemented and locally verified. Accepted and quarantined telemetry can
 also be persisted to separate idempotent Silver Delta tables, as can accepted and quarantined failure
-events. Telemetry quality summaries also have a versioned, idempotent Silver output. All Gold
-tables, models, alerts, dashboards, and Databricks resources are still planned. The first Gold
-transformation can derive and profile provisional loaded-operation cycles in memory, but it is not
-yet persisted. No performance or maintenance-impact claims have been established.
+events. Telemetry quality summaries also have a versioned, idempotent Silver output. The first Gold
+transformation can derive and profile provisional loaded-operation cycles in memory, and a tested
+Delta merge boundary can persist new cycles and monotonically close right-censored ones. The
+full-source Gold build command, all later Gold tables, models, alerts, dashboards, and Databricks
+resources are still planned. No performance or maintenance-impact claims have been established.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -75,6 +76,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
 - Versioned telemetry quality summaries with reconciled row, gap, and rejection-reason counts.
 - Causal loaded-cycle boundaries, deterministic segment identifiers, cycle-level aggregation, and
   a reproducible full-source profile using the documented `DV_eletric` operating signal.
+- Monotonic `gold.loaded_cycles` Delta merge semantics that insert new IDs, close right-censored
+  cycles without changing their IDs, and reject regressive or incompatible snapshots.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.

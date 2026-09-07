@@ -79,8 +79,9 @@ or failure causation.
 - Segment-ID propagation currently uses one globally ordered window because the dataset describes
   one compressor. Spark reports the resulting single-partition execution; a multi-asset pipeline
   will require an explicit equipment partition key.
-- Right-censored aggregates can gain a later stop, so Gold persistence cannot be insert-only.
+- Right-censored aggregates can gain a later stop. The tested Gold merge contract now allows that
+  monotonic update without changing the stable cycle identifier.
 - No pressure, current, temperature, failure, or maintenance interpretation is added here.
 
-The next increment should define tested Gold update semantics for closing previously right-censored
-cycles while keeping stable cycle identifiers.
+The next increment should connect the verified full-source transformation to the tested Gold merge
+boundary through a reproducible build command.

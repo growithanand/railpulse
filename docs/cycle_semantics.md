@@ -50,12 +50,24 @@ no stop is visible, the cycle is marked `is_right_censored = true`, its stop fie
 no duration is inferred from the final active sample.
 
 Unlike a stable segment ID, right-censoring describes the current input snapshot. Later telemetry
-can close a previously right-censored cycle. Persisting cycle aggregates therefore requires update
-semantics and remains a separate decision.
+can close a previously right-censored cycle.
+
+## Gold persistence contract
+
+The path-backed `gold.loaded_cycles` table merges on `loaded_cycle_id`. A new identifier inserts one
+row. An existing right-censored row may gain loaded observations and may later receive its exclusive
+stop boundary and duration. The merge retains the same identifier and start evidence throughout
+that progression. Repeating an equivalent snapshot is a logical no-op.
+
+Updates are monotonic. A source snapshot is rejected before the merge if it would reduce the loaded
+observation count, change the anchor record, start type, or start timestamp, or modify or reopen a
+cycle that is already closed. Source rows must also reconcile their censoring flag with their stop
+fields and duration, and each identifier is checked against the `loaded-cycle-v1` derivation. These
+rules prevent an older or incompatible snapshot from silently replacing stronger cycle evidence.
 
 ## Deferred decisions
 
-This increment does not persist Gold cycles, summarize sensor behavior, or combine `COMP`, `MPG`,
-pressure, and motor-current behavior. Those steps require separate tests and empirical inspection.
-In particular, approximate current levels and undocumented control relationships must not be
-promoted to hard operating-state rules without evidence.
+This persistence boundary does not yet provide a full-source Gold build command, summarize sensor
+behavior, or combine `COMP`, `MPG`, pressure, and motor-current behavior. Those steps require
+separate tests and empirical inspection. In particular, approximate current levels and undocumented
+control relationships must not be promoted to hard operating-state rules without evidence.
