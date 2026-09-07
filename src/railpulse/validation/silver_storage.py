@@ -27,7 +27,7 @@ TELEMETRY_QUARANTINE_TABLE = "telemetry_quarantine"
 FAILURE_ACCEPTED_TABLE = "failure_events_accepted"
 FAILURE_QUARANTINE_TABLE = "failure_events_quarantine"
 TELEMETRY_QUALITY_TABLE = "telemetry_quality_metrics"
-TELEMETRY_VALIDATION_VERSION = "telemetry-validation-v1"
+TELEMETRY_VALIDATION_VERSION = "telemetry-validation-v2"
 QUALITY_BATCH_ID_FIELD = "quality_batch_id"
 TELEMETRY_LINEAGE_COLUMNS = ("dataset_version", "source_sha256", "ingestion_batch_id")
 

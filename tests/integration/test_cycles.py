@@ -17,6 +17,7 @@ from pyspark.sql.types import (
     TimestampNTZType,
 )
 
+from railpulse.features.cycle_profile import CycleProfileError, collect_loaded_cycle_statistics
 from railpulse.features.cycles import (
     CycleAggregationError,
     CycleBoundaryError,
@@ -78,6 +79,10 @@ def _cycle_frame(spark: SparkSession) -> DataFrame:
             False,
             [],
         ),
+        ("continuing-inactive-two", 70, start + timedelta(seconds=120), 60, 0, False, []),
+        ("complete-start", 80, start + timedelta(seconds=130), 70, 1, False, []),
+        ("complete-active", 90, start + timedelta(seconds=140), 80, 1, False, []),
+        ("complete-stop", 100, start + timedelta(seconds=150), 90, 0, False, []),
     ]
     return spark.createDataFrame(rows, schema=schema)
 
@@ -218,6 +223,13 @@ def test_loaded_cycle_aggregation_preserves_observed_and_censored_boundaries(
     assert after_gap.is_right_censored is False
     assert after_gap.observed_duration_seconds == 10
 
+    complete = cycles["complete-start"]
+    assert complete.loaded_cycle_start_type == "observed"
+    assert complete.loaded_cycle_stop_record_id == "complete-stop"
+    assert complete.loaded_observation_count == 2
+    assert complete.is_right_censored is False
+    assert complete.observed_duration_seconds == 20
+
 
 @pytest.mark.spark
 def test_loaded_cycle_aggregation_rejects_missing_or_conflicting_columns(
@@ -231,3 +243,35 @@ def test_loaded_cycle_aggregation_rejects_missing_or_conflicting_columns(
     conflicting = segmented.withColumn("is_right_censored", F.lit(False))
     with pytest.raises(CycleAggregationError, match="already contains cycle-aggregation columns"):
         aggregate_loaded_cycles(conflicting)
+
+
+@pytest.mark.spark
+def test_loaded_cycle_statistics_reconcile_cycle_categories_and_durations(
+    spark: SparkSession,
+) -> None:
+    segmented = assign_loaded_cycle_segments(annotate_loaded_cycle_boundaries(_cycle_frame(spark)))
+    statistics = collect_loaded_cycle_statistics(aggregate_loaded_cycles(segmented))
+
+    assert statistics.cycle_count == 4
+    assert statistics.observed_start_cycle_count == 2
+    assert statistics.left_censored_cycle_count == 2
+    assert statistics.observed_stop_cycle_count == 3
+    assert statistics.right_censored_cycle_count == 1
+    assert statistics.complete_cycle_count == 1
+    assert statistics.loaded_observation_count == 6
+    assert statistics.duration_cycle_count == 3
+    assert statistics.minimum_observed_duration_seconds == 10
+    assert statistics.median_observed_duration_seconds == 20
+    assert statistics.p95_observed_duration_seconds == 20
+    assert statistics.maximum_observed_duration_seconds == 20
+
+
+@pytest.mark.spark
+def test_loaded_cycle_statistics_reject_missing_profile_columns(
+    spark: SparkSession,
+) -> None:
+    segmented = assign_loaded_cycle_segments(annotate_loaded_cycle_boundaries(_cycle_frame(spark)))
+    cycles = aggregate_loaded_cycles(segmented).drop("is_right_censored")
+
+    with pytest.raises(CycleProfileError, match="missing profile columns"):
+        collect_loaded_cycle_statistics(cycles)

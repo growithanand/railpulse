@@ -26,17 +26,18 @@ ANALOG_SENSOR_COLUMNS = (
     ("motor_current_raw", "motor_current"),
 )
 
-# Complete-file observed extrema recorded in docs/dataset_manifest.json, normalized to the source's
-# three-decimal precision. These are dataset-envelope checks for possible contract drift, not
-# manufacturer operating or safety limits.
+# Exact complete-file observed extrema recorded in docs/dataset_manifest.json. Some source tokens
+# contain floating-point representation tails, so rounding these bounds would incorrectly quarantine
+# records from the verified reference artifact. These are dataset-envelope checks for possible
+# contract drift, not manufacturer operating or safety limits.
 ANALOG_SENSOR_BOUNDS = {
     "tp2": (-0.032, 10.676),
     "tp3": (0.73, 10.302),
-    "h1": (-0.036, 10.288),
+    "h1": (-0.0360000000000013, 10.288),
     "dv_pressure": (-0.032, 9.844),
-    "reservoirs": (0.712, 10.3),
-    "oil_temperature": (15.4, 89.05),
-    "motor_current": (0.02, 9.295),
+    "reservoirs": (0.7119999999999997, 10.3),
+    "oil_temperature": (15.4, 89.05000000000001),
+    "motor_current": (0.0199999999999995, 9.295),
 }
 
 DIGITAL_SENSOR_COLUMNS = (

@@ -214,6 +214,16 @@ def test_analog_range_validation_covers_bounds_outliers_and_parse_failures(
             ]
         )
     frames.append(identified_frame(16, "invalid-parse-tp2", tp2_raw="not-a-number"))
+    frames.append(
+        identified_frame(
+            17,
+            "verified-floating-extrema",
+            h1_raw="-0.0360000000000013",
+            reservoirs_raw="0.7119999999999997",
+            oil_temperature_raw="89.05000000000001",
+            motor_current_raw="0.0199999999999995",
+        )
+    )
     source = frames[0]
     for frame in frames[1:]:
         source = source.unionByName(frame)
@@ -221,9 +231,14 @@ def test_analog_range_validation_covers_bounds_outliers_and_parse_failures(
     split = split_telemetry_by_quality(source)
     rows = {row.record_id: row for row in split.all_records.collect()}
 
-    assert {row.record_id for row in split.accepted.collect()} == {"lower-bounds", "upper-bounds"}
+    assert {row.record_id for row in split.accepted.collect()} == {
+        "lower-bounds",
+        "upper-bounds",
+        "verified-floating-extrema",
+    }
     assert rows["lower-bounds"].rejection_reasons == []
     assert rows["upper-bounds"].rejection_reasons == []
+    assert rows["verified-floating-extrema"].rejection_reasons == []
     for raw_name, canonical_name in ANALOG_SENSOR_COLUMNS:
         for direction in ("below", "above"):
             row = rows[f"{direction}-{canonical_name}"]

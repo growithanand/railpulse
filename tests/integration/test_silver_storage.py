@@ -243,7 +243,7 @@ def test_telemetry_quality_metrics_have_stable_identity_and_idempotent_storage(
         dataset_version=row.dataset_version,
         source_sha256=row.source_sha256,
         ingestion_batch_id=row.ingestion_batch_id,
-        validation_version="telemetry-validation-v2",
+        validation_version="telemetry-validation-v3",
     )
 
 

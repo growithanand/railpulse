@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 5 — Gold compressor cycles (in progress: cycle-level aggregation semantics)**
+**Phase 5 — Gold compressor cycles (in progress: verified full-source profile)**
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -19,7 +19,8 @@ idempotent Delta output. Phase 5 now has provisional loaded-cycle boundary rules
 and observed stop boundaries now receive deterministic segment identifiers and retain whether the
 visible segment start was observed or left-censored. Identified segments can now be reduced to one
 cycle-level row with visible boundary evidence, loaded-observation counts, honest duration
-semantics, and explicit right-censoring.
+semantics, and explicit right-censoring. The read-only full-source profile now reconciles all
+1,516,948 Bronze records through Silver validation and reports 15,766 provisional loaded segments.
 
 ## Environment observed on 2026-09-01
 
@@ -75,7 +76,8 @@ Repository-local Git identity:
 - Digital-domain validation for all eight binary sensors; accepted values are normalized to byte
   integers while invalid raw values and explicit reasons remain available for quarantine.
 - Dataset-envelope validation for all seven analogue sensors, with inclusive observed bounds and
-  deterministic per-sensor reasons while preserving raw and parsed outlier values.
+  deterministic per-sensor reasons while preserving raw and parsed outlier values. Version 2 uses
+  exact manifest extrema so floating-point representation tails in the verified source remain valid.
 - Separate `silver.telemetry_accepted` and `silver.telemetry_quarantine` path-backed Delta tables,
   with insert-only `record_id` merges, duplicate-key rejection, and per-output count reconciliation.
 - Separate `silver.failure_events_accepted` and `silver.failure_events_quarantine` tables using the
@@ -96,6 +98,8 @@ Repository-local Git identity:
   forward, and carry segment start provenance onto loaded rows and their exclusive stop boundary.
 - Cycle-level aggregation retains observed and censored boundaries, counts loaded observations,
   and calculates visible duration only when an exclusive stop timestamp is available.
+- A reproducible, lineage-bound full-source profile reconciles cycle start/stop classifications and
+  records censoring and duration distributions without writing a Gold table.
 
 Official local Bronze evidence:
 
@@ -113,10 +117,19 @@ Versioned failure-reference Silver evidence:
 The integration check also verifies every parsed interval boundary, the transcription and source
 document identities, and the unresolved maintenance-date note on source row 2.
 
+Full-source cycle profile evidence:
+
+| Accepted telemetry | Loaded segments | Complete cycles | Left-censored | Right-censored | Median observed duration |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1,516,948 | 15,766 | 15,536 | 182 | 63 | 129 seconds |
+
+The maximum observed duration is 91,907 seconds and overlaps a published failure interval. It is
+retained as source behavior requiring later analysis, not removed as an assumed anomaly. See
+`docs/cycle_profile.md` for source identities, reconciled counts, tail inspection, and limitations.
+
 ## Not implemented
 
-- Gold cycle persistence, full-source cycle profiling, failure-to-telemetry interval joins, and all
-  later Gold transformations.
+- Gold cycle persistence, failure-to-telemetry interval joins, and all later Gold transformations.
 - SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -132,5 +145,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will run the cycle pipeline against accepted full-source Silver telemetry
-and record a reproducible profile before defining Gold persistence behavior.
+The next small increment will define tested Gold update semantics for closing previously
+right-censored cycles while retaining stable cycle identifiers.
