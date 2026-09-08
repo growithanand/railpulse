@@ -217,7 +217,14 @@ def persist_loaded_cycles(
     target_path = gold_table_path(config, LOADED_CYCLES_TABLE)
     target_path.parent.mkdir(parents=True, exist_ok=True)
     target_path_string = str(target_path)
-    source = cycles.select(*GOLD_CYCLE_COLUMNS).persist(StorageLevel.DISK_ONLY)
+    source = (
+        cycles
+        if tuple(cycles.columns) == GOLD_CYCLE_COLUMNS
+        else cycles.select(*GOLD_CYCLE_COLUMNS)
+    )
+    source_cache_owned = not source.is_cached
+    if source_cache_owned:
+        source = source.persist(StorageLevel.DISK_ONLY)
     matched = None
     try:
         source_count = _assert_cycle_rows_are_valid(source, label="Loaded-cycle source")
@@ -305,4 +312,5 @@ def persist_loaded_cycles(
     finally:
         if matched is not None:
             matched.unpersist()
-        source.unpersist()
+        if source_cache_owned:
+            source.unpersist()

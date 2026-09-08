@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 5 — Gold compressor cycles (in progress: tested persistence semantics)**
+**Phase 5 — Gold compressor cycles (in progress: materialized full-source table)**
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -23,6 +23,9 @@ semantics, and explicit right-censoring. The read-only full-source profile now r
 1,516,948 Bronze records through Silver validation and reports 15,766 provisional loaded segments.
 A tested Gold Delta merge boundary inserts new cycle IDs, monotonically extends or closes existing
 right-censored rows, and rejects attempts to change stable start evidence or reopen closed cycles.
+The source-bound `loaded-cycle-build-v1` command now connects that boundary to the complete local
+Bronze source. Its first run inserted 15,766 reconciled rows into `gold.loaded_cycles`; a second run
+inserted or updated none and reported all 15,766 source cycles unchanged.
 
 ## Environment observed on 2026-09-01
 
@@ -104,6 +107,8 @@ Repository-local Git identity:
   records censoring and duration distributions without writing a Gold table.
 - A path-backed `gold.loaded_cycles` merge contract inserts new cycles, updates only open cycle
   state, preserves stable identifiers and start evidence, and rejects state regression before write.
+- A reproducible full-source Gold command profiles and persists the same cycle snapshot, reports
+  source and contract identity, and reconciles logical merge outcomes on first write and rerun.
 
 Official local Bronze evidence:
 
@@ -131,9 +136,15 @@ The maximum observed duration is 91,907 seconds and overlaps a published failure
 retained as source behavior requiring later analysis, not removed as an assumed anomaly. See
 `docs/cycle_profile.md` for source identities, reconciled counts, tail inspection, and limitations.
 
+Full-source Gold write evidence:
+
+| Run | Source cycles | Inserted | Updated | Unchanged | Target rows |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Initial build | 15,766 | 15,766 | 0 | 0 | 15,766 |
+| Verified rerun | 15,766 | 0 | 0 | 15,766 | 15,766 |
+
 ## Not implemented
 
-- A reproducible full-source Gold cycle build command and materialized full-source Gold evidence.
 - Failure-to-telemetry interval joins and all later Gold transformations.
 - SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
@@ -150,5 +161,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will connect the verified full-source cycle transformation to the Gold
-merge boundary through a reproducible build command.
+The next small increment will add an inspectable, tested Gold cycle query for censoring and duration
+tails without interpreting those observations as health or failure labels.

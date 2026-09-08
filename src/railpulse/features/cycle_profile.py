@@ -177,6 +177,32 @@ def _single_source_lineage(frame: DataFrame) -> tuple[str, str, str]:
     return lineage
 
 
+def collect_full_source_cycle_profile(
+    split: TelemetryQualitySplit,
+    cycles: DataFrame,
+    config: RailPulseConfig,
+) -> FullSourceCycleProfile:
+    """Collect one source-bound profile from validated telemetry and derived cycles."""
+
+    telemetry_quality = collect_telemetry_quality_metrics(split)
+    dataset_version, source_sha256, ingestion_batch_id = _single_source_lineage(split.all_records)
+    if dataset_version != config.dataset_version:
+        raise CycleProfileError(
+            "Telemetry dataset version does not match the configured dataset version"
+        )
+
+    return FullSourceCycleProfile(
+        profile_version=CYCLE_PROFILE_VERSION,
+        cycle_id_version=LOADED_CYCLE_ID_VERSION,
+        telemetry_validation_version=TELEMETRY_VALIDATION_VERSION,
+        dataset_version=dataset_version,
+        source_sha256=source_sha256,
+        ingestion_batch_id=ingestion_batch_id,
+        telemetry_quality=telemetry_quality,
+        loaded_cycles=collect_loaded_cycle_statistics(cycles),
+    )
+
+
 def profile_full_source_cycles(
     spark: SparkSession,
     config: RailPulseConfig,
@@ -193,27 +219,10 @@ def profile_full_source_cycles(
             accepted=validated.where(reason_count == 0),
             quarantined=validated.where(reason_count > 0),
         )
-        telemetry_quality = collect_telemetry_quality_metrics(cached_split)
-        dataset_version, source_sha256, ingestion_batch_id = _single_source_lineage(validated)
-        if dataset_version != config.dataset_version:
-            raise CycleProfileError(
-                "Telemetry dataset version does not match the configured dataset version"
-            )
-
         boundaries = annotate_loaded_cycle_boundaries(cached_split.accepted)
         segments = assign_loaded_cycle_segments(boundaries)
         cycles = aggregate_loaded_cycles(segments)
-        loaded_cycles = collect_loaded_cycle_statistics(cycles)
-        return FullSourceCycleProfile(
-            profile_version=CYCLE_PROFILE_VERSION,
-            cycle_id_version=LOADED_CYCLE_ID_VERSION,
-            telemetry_validation_version=TELEMETRY_VALIDATION_VERSION,
-            dataset_version=dataset_version,
-            source_sha256=source_sha256,
-            ingestion_batch_id=ingestion_batch_id,
-            telemetry_quality=telemetry_quality,
-            loaded_cycles=loaded_cycles,
-        )
+        return collect_full_source_cycle_profile(cached_split, cycles, config)
     finally:
         validated.unpersist()
 

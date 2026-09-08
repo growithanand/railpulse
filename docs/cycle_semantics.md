@@ -67,7 +67,8 @@ rules prevent an older or incompatible snapshot from silently replacing stronger
 
 ## Deferred decisions
 
-This persistence boundary does not yet provide a full-source Gold build command, summarize sensor
-behavior, or combine `COMP`, `MPG`, pressure, and motor-current behavior. Those steps require
-separate tests and empirical inspection. In particular, approximate current levels and undocumented
-control relationships must not be promoted to hard operating-state rules without evidence.
+The local full-source command now writes through this boundary. It does not deploy a Databricks
+table, summarize sensor behavior, or combine `COMP`, `MPG`, pressure, and motor-current behavior.
+Those steps require separate tests and empirical inspection. In particular, approximate current
+levels and undocumented control relationships must not be promoted to hard operating-state rules
+without evidence.

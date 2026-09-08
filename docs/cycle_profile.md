@@ -2,10 +2,10 @@
 
 ## Purpose and method
 
-This profile tests the provisional loaded-cycle semantics against the complete verified MetroPT-3
-telemetry artifact before Gold persistence is designed. The command reads the path-backed Bronze
-Delta table, rebuilds `telemetry-validation-v2` in memory, retains accepted Silver records, derives
-cycle boundaries and identifiers, and aggregates them without writing a Gold table.
+This read-only profile tests the provisional loaded-cycle semantics against the complete verified
+MetroPT-3 telemetry artifact independently of Gold persistence. The command reads the path-backed
+Bronze Delta table, rebuilds `telemetry-validation-v2` in memory, retains accepted Silver records,
+derives cycle boundaries and identifiers, and aggregates them without writing a Gold table.
 
 Run from the configured Ubuntu WSL environment:
 
@@ -83,5 +83,5 @@ or failure causation.
   monotonic update without changing the stable cycle identifier.
 - No pressure, current, temperature, failure, or maintenance interpretation is added here.
 
-The next increment should connect the verified full-source transformation to the tested Gold merge
-boundary through a reproducible build command.
+The same reconciled transformation is now connected to Gold through the reproducible command
+documented in [the Gold loaded-cycle build](gold_cycle_build.md).

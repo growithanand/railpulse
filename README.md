@@ -15,10 +15,10 @@ The repository scaffold, official MetroPT-3 data contract, Bronze Delta ingestio
 telemetry validation are implemented and locally verified. Accepted and quarantined telemetry can
 also be persisted to separate idempotent Silver Delta tables, as can accepted and quarantined failure
 events. Telemetry quality summaries also have a versioned, idempotent Silver output. The first Gold
-transformation can derive and profile provisional loaded-operation cycles in memory, and a tested
-Delta merge boundary can persist new cycles and monotonically close right-censored ones. The
-full-source Gold build command, all later Gold tables, models, alerts, dashboards, and Databricks
-resources are still planned. No performance or maintenance-impact claims have been established.
+transformation derives and profiles provisional loaded-operation cycles, and a reproducible build
+command has materialized all 15,766 segments to local Delta with a verified zero-change rerun. All
+later Gold tables, models, alerts, dashboards, and Databricks resources are still planned. No
+performance or maintenance-impact claims have been established.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -78,6 +78,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
   a reproducible full-source profile using the documented `DV_eletric` operating signal.
 - Monotonic `gold.loaded_cycles` Delta merge semantics that insert new IDs, close right-censored
   cycles without changing their IDs, and reject regressive or incompatible snapshots.
+- A source-bound `loaded-cycle-build-v1` command with reconciled full-source first-write and rerun
+  evidence for the local `gold.loaded_cycles` table.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -138,6 +140,12 @@ After source inspection, materialize or safely reconcile both Bronze tables:
 .venv-wsl/bin/python -m railpulse.ingestion.bronze --master "local[4]"
 ```
 
+Then derive, reconcile, and persist the full-source Gold cycle table:
+
+```bash
+.venv-wsl/bin/python -m railpulse.features.cycle_build --master "local[4]"
+```
+
 ## Repository layout
 
 ```text
@@ -180,6 +188,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Data dictionary](docs/data_dictionary.md)
 - [Bronze ingestion](docs/bronze_ingestion.md)
 - [Full-source loaded-cycle profile](docs/cycle_profile.md)
+- [Gold loaded-cycle build](docs/gold_cycle_build.md)
 
 An evaluation protocol, dashboard instructions, a demo script, and evidence-based résumé bullets
 will be added only when their supporting phases are implemented.
