@@ -97,3 +97,15 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   without inventing nondeterministic row numbers, while explicit duplicate rejection prevents
   silent loss. Path-backed tables work without a local Hive metastore and map cleanly to managed
   table writes in a later Databricks adapter.
+
+## ADR-011 — Label future failure onset from an observed cycle stop
+
+- **Status:** Accepted
+- **Decision:** Use an observed loaded-cycle stop as the prediction timestamp and label the earliest
+  accepted failure start in `(prediction_timestamp, prediction_timestamp + horizon]`. Exclude cycle
+  stops inside a published failure interval and preserve incomplete horizons as null targets.
+- **Why:** The cycle stop is a reproducible point at which the cycle's evidence is available. Strict
+  future-onset and observation-censoring rules prevent current failures and unknown outcomes from
+  becoming misleading training labels.
+- **Limitation:** Publisher interval-end inclusion is unspecified. Version 1 conservatively excludes
+  both interval endpoints; later sensitivity analysis must keep that assumption visible.

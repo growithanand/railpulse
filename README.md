@@ -18,8 +18,10 @@ events. Telemetry quality summaries also have a versioned, idempotent Silver out
 transformation derives and profiles provisional loaded-operation cycles, and a reproducible build
 command has materialized all 15,766 segments to local Delta with a verified zero-change rerun. All
 four start/stop censoring combinations and their duration tails are exposed through a tested,
-read-only SQL inspection. All later Gold tables, models, alerts, dashboards, and Databricks
-resources are still planned. No performance or maintenance-impact claims have been established.
+read-only SQL inspection. Phase 6 now has a tested cycle-to-failure horizon contract with explicit
+prediction boundaries, event-interval exclusions, and unknown-label preservation. All later Gold
+tables, models, alerts, dashboards, and Databricks resources are still planned. No performance or
+maintenance-impact claims have been established.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -83,6 +85,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
   evidence for the local `gold.loaded_cycles` table.
 - A tested Spark SQL inspection that reconciles censoring-group counts and descriptive duration
   tails without assigning health or failure meaning.
+- A versioned cycle-to-failure horizon transformation that labels strictly future failure starts at
+  observed cycle stops and preserves in-failure, open-cycle, and incomplete-horizon rows as null.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -199,6 +203,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Full-source loaded-cycle profile](docs/cycle_profile.md)
 - [Gold loaded-cycle build](docs/gold_cycle_build.md)
 - [Gold loaded-cycle inspection](docs/gold_cycle_inspection.md)
+- [Cycle-to-failure horizon contract](docs/failure_horizon_contract.md)
 
 An evaluation protocol, dashboard instructions, a demo script, and evidence-based résumé bullets
 will be added only when their supporting phases are implemented.

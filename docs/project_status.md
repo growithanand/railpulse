@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 5 — Gold compressor cycles (complete locally)**
+**Phase 6 — Temporal features and failure horizons (underway)**
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -28,6 +28,9 @@ Bronze source. Its first run inserted 15,766 reconciled rows into `gold.loaded_c
 inserted or updated none and reported all 15,766 source cycles unchanged.
 A tested, read-only Spark SQL inspection now reconciles all four visible-start/right-censoring
 groups and their descriptive duration tails against the materialized Gold table.
+Phase 6 now has a pure, versioned cycle-to-failure horizon transformation. It uses observed cycle
+stops as prediction boundaries, matches only strictly future failure starts, excludes timestamps
+inside published failure intervals, and preserves incomplete outcomes as null rather than negative.
 
 ## Environment observed on 2026-09-01
 
@@ -113,6 +116,8 @@ Repository-local Git identity:
   source and contract identity, and reconciles logical merge outcomes on first write and rerun.
 - A checked-in Gold SQL query and read-only runner reconcile start/stop censoring groups, loaded
   observations, and duration-tail statistics without creating health or failure labels.
+- A versioned two-hour cycle-to-failure horizon contract uses observed cycle stops, deterministic
+  event matching, explicit in-failure exclusions, and observation-aware null labels.
 
 Official local Bronze evidence:
 
@@ -158,7 +163,8 @@ Verified Gold inspection evidence:
 
 ## Not implemented
 
-- Failure-to-telemetry interval joins and all later Gold transformations.
+- Full-source failure-horizon materialization, label-distribution inspection, and later Gold
+  transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -174,5 +180,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will begin Phase 6 by defining a causal cycle-to-failure horizon contract
-and testing its boundary conditions before adding temporal sensor features.
+The next small increment will apply the failure-horizon contract to the complete local Gold and
+Silver inputs and inspect the resulting status and event counts without persisting a new table.
