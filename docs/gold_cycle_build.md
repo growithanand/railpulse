@@ -65,6 +65,9 @@ Both runs reproduced the profile totals: 1,516,948 accepted telemetry records, 1
 segments, 15,536 complete observed-start-and-stop cycles, 182 left-censored starts, and 63
 right-censored segments. No row was quarantined under the current validation contract.
 
+The materialized table can be examined without another Bronze-to-Gold rebuild using the checked-in
+query and runner documented in [the Gold loaded-cycle inspection](gold_cycle_inspection.md).
+
 ## Limitations
 
 - The build currently recomputes the complete validated snapshot from Bronze; it is not a streaming

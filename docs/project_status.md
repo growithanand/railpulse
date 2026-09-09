@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Phase 5 — Gold compressor cycles (in progress: materialized full-source table)**
+**Phase 5 — Gold compressor cycles (complete locally)**
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -26,6 +26,8 @@ right-censored rows, and rejects attempts to change stable start evidence or reo
 The source-bound `loaded-cycle-build-v1` command now connects that boundary to the complete local
 Bronze source. Its first run inserted 15,766 reconciled rows into `gold.loaded_cycles`; a second run
 inserted or updated none and reported all 15,766 source cycles unchanged.
+A tested, read-only Spark SQL inspection now reconciles all four visible-start/right-censoring
+groups and their descriptive duration tails against the materialized Gold table.
 
 ## Environment observed on 2026-09-01
 
@@ -109,6 +111,8 @@ Repository-local Git identity:
   state, preserves stable identifiers and start evidence, and rejects state regression before write.
 - A reproducible full-source Gold command profiles and persists the same cycle snapshot, reports
   source and contract identity, and reconciles logical merge outcomes on first write and rerun.
+- A checked-in Gold SQL query and read-only runner reconcile start/stop censoring groups, loaded
+  observations, and duration-tail statistics without creating health or failure labels.
 
 Official local Bronze evidence:
 
@@ -143,10 +147,19 @@ Full-source Gold write evidence:
 | Initial build | 15,766 | 15,766 | 0 | 0 | 15,766 |
 | Verified rerun | 15,766 | 0 | 0 | 15,766 | 15,766 |
 
+Verified Gold inspection evidence:
+
+| Visible start | Right-censored | Cycles | Loaded observations | Median duration | Maximum duration |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Left-censored | No | 167 | 14,338 | 218 seconds | 91,907 seconds |
+| Left-censored | Yes | 15 | 15,172 | — | — |
+| Observed | No | 15,536 | 188,052 | 129 seconds | 42,339 seconds |
+| Observed | Yes | 48 | 26,076 | — | — |
+
 ## Not implemented
 
 - Failure-to-telemetry interval joins and all later Gold transformations.
-- SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
+- Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
 No data-quality, model-performance, failure-detection, warning-lead-time, false-alarm, or cost result
@@ -161,5 +174,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will add an inspectable, tested Gold cycle query for censoring and duration
-tails without interpreting those observations as health or failure labels.
+The next small increment will begin Phase 6 by defining a causal cycle-to-failure horizon contract
+and testing its boundary conditions before adding temporal sensor features.
