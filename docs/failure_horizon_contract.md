@@ -58,7 +58,8 @@ Failure-horizon columns are targets and evaluation metadata, never model feature
 information is permitted only inside label construction; all sensor features must later end at or
 before `prediction_timestamp`. Random row-level splitting remains prohibited.
 
-The full-source join, label-distribution inspection, persisted Gold boundary, past-only sensor
+The full-source join and label-distribution inspection are now documented in the
+[failure-horizon profile](failure_horizon_profile.md). A persisted Gold boundary, past-only sensor
 windows, post-failure recovery exclusions, and interval-endpoint sensitivity analysis remain
 separate reviewed increments. No health, warning-lead-time, or model-performance result is claimed
 by this contract alone.

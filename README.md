@@ -19,8 +19,10 @@ transformation derives and profiles provisional loaded-operation cycles, and a r
 command has materialized all 15,766 segments to local Delta with a verified zero-change rerun. All
 four start/stop censoring combinations and their duration tails are exposed through a tested,
 read-only SQL inspection. Phase 6 now has a tested cycle-to-failure horizon contract with explicit
-prediction boundaries, event-interval exclusions, and unknown-label preservation. All later Gold
-tables, models, alerts, dashboards, and Databricks resources are still planned. No performance or
+prediction boundaries, event-interval exclusions, and unknown-label preservation. A read-only
+full-source profile applies that contract to all 15,766 cycles and reconciles 22 positive cycle
+labels across three of the four published failure events. All later persisted horizon tables,
+models, alerts, dashboards, and Databricks resources are still planned. No performance or
 maintenance-impact claims have been established.
 
 See [the project status](docs/project_status.md) for verified environment details and
@@ -87,6 +89,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
   tails without assigning health or failure meaning.
 - A versioned cycle-to-failure horizon transformation that labels strictly future failure starts at
   observed cycle stops and preserves in-failure, open-cycle, and incomplete-horizon rows as null.
+- A source-lineage-aware, read-only full-source horizon profile that reconciles cycle statuses and
+  positive-cycle allocation across every accepted failure event.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -159,6 +163,12 @@ Inspect censoring categories and observed-duration tails without modifying Gold 
 .venv-wsl/bin/python -m railpulse.features.cycle_inspection --master "local[2]"
 ```
 
+Apply and inspect the default two-hour failure horizon without persisting another table:
+
+```bash
+.venv-wsl/bin/python -m railpulse.features.failure_horizon_profile --master "local[4]"
+```
+
 ## Repository layout
 
 ```text
@@ -204,6 +214,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Gold loaded-cycle build](docs/gold_cycle_build.md)
 - [Gold loaded-cycle inspection](docs/gold_cycle_inspection.md)
 - [Cycle-to-failure horizon contract](docs/failure_horizon_contract.md)
+- [Full-source failure-horizon profile](docs/failure_horizon_profile.md)
 
 An evaluation protocol, dashboard instructions, a demo script, and evidence-based résumé bullets
 will be added only when their supporting phases are implemented.
