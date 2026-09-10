@@ -22,8 +22,9 @@ read-only SQL inspection. Phase 6 now has a tested cycle-to-failure horizon cont
 prediction boundaries, event-interval exclusions, and unknown-label preservation. A read-only
 full-source profile applies that contract to all 15,766 cycles and reconciles 22 positive cycle
 labels across three of the four published failure events. All later persisted horizon tables,
-models, alerts, dashboards, and Databricks resources are still planned. No performance or
-maintenance-impact claims have been established.
+models, alerts, dashboards, and Databricks resources are still planned. The first past-only feature
+contract now summarizes 15 minutes of motor current at the cycle prediction boundary without using
+future observations. No performance or maintenance-impact claims have been established.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -91,6 +92,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
   observed cycle stops and preserves in-failure, open-cycle, and incomplete-horizon rows as null.
 - A source-lineage-aware, read-only full-source horizon profile that reconciles cycle statuses and
   positive-cycle allocation across every accepted failure event.
+- A tested 15-minute motor-current feature window with strict past-only event-time boundaries,
+  observation-support metadata, and explicit missing-feature statuses.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -215,6 +218,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Gold loaded-cycle inspection](docs/gold_cycle_inspection.md)
 - [Cycle-to-failure horizon contract](docs/failure_horizon_contract.md)
 - [Full-source failure-horizon profile](docs/failure_horizon_profile.md)
+- [Past-only motor-current feature contract](docs/temporal_feature_contract.md)
 
 An evaluation protocol, dashboard instructions, a demo script, and evidence-based résumé bullets
 will be added only when their supporting phases are implemented.

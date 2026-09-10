@@ -109,3 +109,14 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   becoming misleading training labels.
 - **Limitation:** Publisher interval-end inclusion is unspecified. Version 1 conservatively excludes
   both interval endpoints; later sensitivity analysis must keep that assumption visible.
+
+## ADR-012 — Use trailing event-time windows at the prediction boundary
+
+- **Status:** Accepted
+- **Decision:** Build temporal sensor features from trailing event-time windows ending at the cycle
+  prediction timestamp. The first feature summarizes motor current over `(t - 15 minutes, t]`.
+- **Why:** The strict trailing window makes future-row exclusion explicit while retaining the
+  current observation available at scoring time. Event-time ranges remain correct when the nominal
+  10-second cadence has jitter or gaps.
+- **Limitation:** Fifteen minutes is an initial inspectable window, not an optimized predictive
+  horizon. Coverage rules, additional windows, and empirical usefulness remain unverified.

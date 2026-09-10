@@ -34,6 +34,9 @@ inside published failure intervals, and preserves incomplete outcomes as null ra
 A source-lineage-aware, read-only full-source profile now applies that contract to all 15,766 Gold
 cycles. It reconciles 22 positive cycles across three accepted failure events, 15,676 negative
 cycles, and 68 rows with explicit censoring or in-failure statuses.
+The first temporal feature contract now computes minimum, mean, and maximum motor current over the
+strict trailing 15 minutes at each prediction timestamp. It records observation support and has a
+regression test proving that appended future telemetry cannot change existing feature values.
 
 ## Environment observed on 2026-09-01
 
@@ -123,6 +126,8 @@ Repository-local Git identity:
   event matching, explicit in-failure exclusions, and observation-aware null labels.
 - A read-only full-source horizon profile rebuilds accepted Silver views from Bronze, derives the
   label observation end, and reconciles every cycle status and failure-event match count.
+- A past-only 15-minute motor-current window uses event-time range semantics, exposes observed
+  support, and rejects future-row leakage at the tested prediction boundary.
 
 Official local Bronze evidence:
 
@@ -177,7 +182,8 @@ are 0, 4, 5, and 13. These are label-coverage results, not predictions or event-
 
 ## Not implemented
 
-- Persisted failure-horizon data, temporal sensor features, and later Gold transformations.
+- Persisted failure-horizon data, full-source temporal-feature profiling, additional sensor
+  features, and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -193,5 +199,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will define one past-only cycle feature window and test its prediction-time
-cutoff before applying temporal sensor features to the complete source.
+The next small increment will apply the 15-minute motor-current feature to the complete accepted
+telemetry and inspect coverage at eligible cycle prediction timestamps without persisting a table.
