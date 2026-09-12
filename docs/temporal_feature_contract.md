@@ -58,6 +58,7 @@ training. Feature values must never include failure-horizon targets or observati
 prediction timestamp.
 
 The current dataset represents one compressor, so the rolling window is globally ordered. A
-multi-asset version must partition by a stable equipment identifier. Full-source feature profiling,
-additional sensors/windows, persistence, model selection, and performance claims remain separate
-reviewed increments.
+multi-asset version must partition by a stable equipment identifier. The read-only
+[full-source feature profile](temporal_feature_profile.md) now documents availability and observed
+support, but it does not establish a minimum coverage rule. Additional sensors/windows,
+persistence, model selection, and performance claims remain separate reviewed increments.

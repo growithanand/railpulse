@@ -24,7 +24,9 @@ full-source profile applies that contract to all 15,766 cycles and reconciles 22
 labels across three of the four published failure events. All later persisted horizon tables,
 models, alerts, dashboards, and Databricks resources are still planned. The first past-only feature
 contract now summarizes 15 minutes of motor current at the cycle prediction boundary without using
-future observations. No performance or maintenance-impact claims have been established.
+future observations. A read-only full-source profile finds features for all 15,703 cycles with
+observed stops, zero missing telemetry anchors, and 63 cycles without prediction boundaries. No
+performance or maintenance-impact claims have been established.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -94,6 +96,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
   positive-cycle allocation across every accepted failure event.
 - A tested 15-minute motor-current feature window with strict past-only event-time boundaries,
   observation-support metadata, and explicit missing-feature statuses.
+- A source-lineage-aware, read-only full-source motor-current profile that reconciles feature
+  availability and observation-support percentiles without setting a training threshold.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -172,6 +176,12 @@ Apply and inspect the default two-hour failure horizon without persisting anothe
 .venv-wsl/bin/python -m railpulse.features.failure_horizon_profile --master "local[4]"
 ```
 
+Apply and inspect 15-minute motor-current feature coverage without persisting a feature table:
+
+```bash
+.venv-wsl/bin/python -m railpulse.features.temporal_feature_profile --master "local[4]"
+```
+
 ## Repository layout
 
 ```text
@@ -219,6 +229,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Cycle-to-failure horizon contract](docs/failure_horizon_contract.md)
 - [Full-source failure-horizon profile](docs/failure_horizon_profile.md)
 - [Past-only motor-current feature contract](docs/temporal_feature_contract.md)
+- [Full-source motor-current feature profile](docs/temporal_feature_profile.md)
 
 An evaluation protocol, dashboard instructions, a demo script, and evidence-based résumé bullets
 will be added only when their supporting phases are implemented.

@@ -37,6 +37,10 @@ cycles, and 68 rows with explicit censoring or in-failure statuses.
 The first temporal feature contract now computes minimum, mean, and maximum motor current over the
 strict trailing 15 minutes at each prediction timestamp. It records observation support and has a
 regression test proving that appended future telemetry cannot change existing feature values.
+A source-lineage-aware, read-only full-source profile now applies that contract to all 15,766 Gold
+cycles. It reconciles 15,703 available features, the 63 cycles without observed stops, and zero
+missing telemetry anchors. Available windows have a median of 91 observations, while the minimum of
+3 shows that availability alone is not yet a sufficient training-eligibility rule.
 
 ## Environment observed on 2026-09-01
 
@@ -128,6 +132,8 @@ Repository-local Git identity:
   label observation end, and reconciles every cycle status and failure-event match count.
 - A past-only 15-minute motor-current window uses event-time range semantics, exposes observed
   support, and rejects future-row leakage at the tested prediction boundary.
+- A read-only full-source motor-current profile reconciles feature statuses and reports
+  observation-count and observed-span percentiles without writing or selecting a coverage rule.
 
 Official local Bronze evidence:
 
@@ -180,10 +186,24 @@ Verified full-source two-hour horizon evidence:
 The label observation end is `2020-09-01 03:59:50`. Positive-cycle counts by published source row
 are 0, 4, 5, and 13. These are label-coverage results, not predictions or event-recall measurements.
 
+Verified full-source 15-minute motor-current feature evidence:
+
+| Available | Missing prediction boundary | Missing telemetry anchor | Total cycles |
+| ---: | ---: | ---: | ---: |
+| 15,703 | 63 | 0 | 15,766 |
+
+| Support statistic | Observation count | First-to-last span |
+| --- | ---: | ---: |
+| Minimum | 3 | 19 seconds |
+| 5th percentile | 75 | 891 seconds |
+| Median | 91 | 892 seconds |
+| 95th percentile | 91 | 893 seconds |
+| Maximum | 91 | 899 seconds |
+
 ## Not implemented
 
-- Persisted failure-horizon data, full-source temporal-feature profiling, additional sensor
-  features, and later Gold transformations.
+- Persisted failure-horizon and temporal-feature data, feature-coverage eligibility rules,
+  additional sensor features, and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -199,5 +219,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will apply the 15-minute motor-current feature to the complete accepted
-telemetry and inspect coverage at eligible cycle prediction timestamps without persisting a table.
+The next small increment will inspect the low-support motor-current window tail before selecting a
+minimum feature-coverage eligibility rule or persisting a table.
