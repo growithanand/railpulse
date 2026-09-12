@@ -18,7 +18,7 @@ descriptive observation-support statistics.
 
 ## Reconciliation contract
 
-`motor-current-15m-profile-v1` verifies that:
+`motor-current-15m-profile-v2` verifies that:
 
 - accepted telemetry has one complete dataset/source/ingestion lineage;
 - Gold cycles have unique, non-null identifiers and a stop-timestamp field;
@@ -26,7 +26,9 @@ descriptive observation-support statistics.
 - available features have positive observation counts, complete statistics, and contributing
   timestamps strictly inside `(t - 15 minutes, t]`;
 - unavailable features retain zero counts and null statistics with status-consistent boundaries;
-- available counts reconcile between status and support summaries; and
+- available counts reconcile between status and support summaries;
+- the low-support tail is counted around the observed fifth-percentile cutoff and its weakest
+  examples retain deterministic cycle, time-span, and preceding-gap evidence; and
 - the configured and observed dataset versions agree.
 
 ## Verified complete-source result
@@ -59,6 +61,19 @@ Available-window support:
 | 95th percentile | 91 | 893 seconds |
 | Maximum | 91 | 899 seconds |
 
+Low-support observation-count inspection:
+
+| Relationship to observed 5th-percentile count | Cycles |
+| --- | ---: |
+| Below 75 observations | 235 |
+| Exactly 75 observations | 4,582 |
+| At or below 75 observations | 4,817 |
+
+The JSON output retains the ten weakest windows in deterministic order. Across those examples,
+observation counts range from 3 to 7, first-to-last spans range from 19 to 59 seconds, and leading
+unobserved time ranges from 841 to 881 seconds. All ten first contributing observations follow a
+recorded material forward gap; their preceding intervals range from 2,006 to 74,617 seconds.
+
 Source identity:
 
 | Identity | Verified value |
@@ -78,7 +93,14 @@ validation contract.
 The median available window contains 91 observations spanning 892 seconds. The minimum contains
 only three observations spanning 19 seconds, so availability alone is not sufficient evidence of
 feature completeness. These statistics describe observed support; they do not establish a minimum
-training-eligibility rule. The low-support tail must be inspected before such a rule is selected.
+training-eligibility rule.
+
+The approximate 5th-percentile observation count is 75, but only 235 windows fall strictly below
+it because another 4,582 windows tie at the cutoff. Treating all 4,817 windows at or below 75 as
+exactly five percent of the population would therefore be incorrect. The ten weakest examples show
+a direct relationship with long source gaps, but they do not prove that every lower-count window
+has inadequate time coverage. Observation count and observed span must be considered separately
+before an eligibility rule is selected.
 
 The profile does not persist features, summarize motor-current values as health states, test
 predictive usefulness, or measure failure warning performance. The source contains one compressor,

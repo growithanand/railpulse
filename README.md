@@ -25,8 +25,9 @@ labels across three of the four published failure events. All later persisted ho
 models, alerts, dashboards, and Databricks resources are still planned. The first past-only feature
 contract now summarizes 15 minutes of motor current at the cycle prediction boundary without using
 future observations. A read-only full-source profile finds features for all 15,703 cycles with
-observed stops, zero missing telemetry anchors, and 63 cycles without prediction boundaries. No
-performance or maintenance-impact claims have been established.
+observed stops, zero missing telemetry anchors, and 63 cycles without prediction boundaries. Its
+low-support inspection also separates windows below the observed count cutoff from the large group
+tied at that cutoff. No performance or maintenance-impact claims have been established.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -97,7 +98,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
 - A tested 15-minute motor-current feature window with strict past-only event-time boundaries,
   observation-support metadata, and explicit missing-feature statuses.
 - A source-lineage-aware, read-only full-source motor-current profile that reconciles feature
-  availability and observation-support percentiles without setting a training threshold.
+  availability, observation-support percentiles, and deterministic low-support examples without
+  setting a training threshold.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.

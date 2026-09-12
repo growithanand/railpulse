@@ -41,6 +41,9 @@ A source-lineage-aware, read-only full-source profile now applies that contract 
 cycles. It reconciles 15,703 available features, the 63 cycles without observed stops, and zero
 missing telemetry anchors. Available windows have a median of 91 observations, while the minimum of
 3 shows that availability alone is not yet a sufficient training-eligibility rule.
+The version 2 profile now separates 235 windows below the observed 5th-percentile count of 75 from
+4,582 windows tied at that value. Its ten weakest deterministic examples contain 3-7 observations
+over 19-59 seconds, and each begins after a recorded material forward gap.
 
 ## Environment observed on 2026-09-01
 
@@ -133,7 +136,8 @@ Repository-local Git identity:
 - A past-only 15-minute motor-current window uses event-time range semantics, exposes observed
   support, and rejects future-row leakage at the tested prediction boundary.
 - A read-only full-source motor-current profile reconciles feature statuses and reports
-  observation-count and observed-span percentiles without writing or selecting a coverage rule.
+  observation-count and observed-span percentiles, cutoff ties, and deterministic weak-support
+  examples without writing or selecting a coverage rule.
 
 Official local Bronze evidence:
 
@@ -200,6 +204,10 @@ Verified full-source 15-minute motor-current feature evidence:
 | 95th percentile | 91 | 893 seconds |
 | Maximum | 91 | 899 seconds |
 
+The observed 5th-percentile count is 75 observations. There are 235 windows strictly below that
+value, 4,582 exactly equal to it, and 4,817 at or below it. All ten weakest examples begin after a
+material forward gap, but the large tie means count alone is not a defensible eligibility rule.
+
 ## Not implemented
 
 - Persisted failure-horizon and temporal-feature data, feature-coverage eligibility rules,
@@ -219,5 +227,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will inspect the low-support motor-current window tail before selecting a
-minimum feature-coverage eligibility rule or persisting a table.
+The next small increment will inspect the lowest observed-span windows independently before
+selecting a feature-coverage eligibility rule or persisting a table.
