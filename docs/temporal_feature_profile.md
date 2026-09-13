@@ -18,7 +18,7 @@ descriptive observation-support statistics.
 
 ## Reconciliation contract
 
-`motor-current-15m-profile-v2` verifies that:
+`motor-current-15m-profile-v3` verifies that:
 
 - accepted telemetry has one complete dataset/source/ingestion lineage;
 - Gold cycles have unique, non-null identifiers and a stop-timestamp field;
@@ -27,8 +27,9 @@ descriptive observation-support statistics.
   timestamps strictly inside `(t - 15 minutes, t]`;
 - unavailable features retain zero counts and null statistics with status-consistent boundaries;
 - available counts reconcile between status and support summaries;
-- the low-support tail is counted around the observed fifth-percentile cutoff and its weakest
-  examples retain deterministic cycle, time-span, and preceding-gap evidence; and
+- the observation-count and observed-span tails are counted independently around their observed
+  fifth-percentile cutoffs, and their weakest examples retain deterministic cycle, time-span, and
+  preceding-gap evidence; and
 - the configured and observed dataset versions agree.
 
 ## Verified complete-source result
@@ -69,10 +70,19 @@ Low-support observation-count inspection:
 | Exactly 75 observations | 4,582 |
 | At or below 75 observations | 4,817 |
 
-The JSON output retains the ten weakest windows in deterministic order. Across those examples,
-observation counts range from 3 to 7, first-to-last spans range from 19 to 59 seconds, and leading
-unobserved time ranges from 841 to 881 seconds. All ten first contributing observations follow a
-recorded material forward gap; their preceding intervals range from 2,006 to 74,617 seconds.
+Low-support observed-span inspection:
+
+| Relationship to observed 5th-percentile span | Cycles |
+| --- | ---: |
+| Below 891 seconds | 237 |
+| Exactly 891 seconds | 796 |
+| At or below 891 seconds | 1,033 |
+
+The JSON output retains the ten weakest windows for each measure in deterministic order. In this
+source, the ten lowest-count and ten shortest-span examples are the same windows. Their observation
+counts range from 3 to 7, first-to-last spans range from 19 to 59 seconds, and leading unobserved
+time ranges from 841 to 881 seconds. All ten first contributing observations follow a recorded
+material forward gap; their preceding intervals range from 2,006 to 74,617 seconds.
 
 Source identity:
 
@@ -99,8 +109,13 @@ The approximate 5th-percentile observation count is 75, but only 235 windows fal
 it because another 4,582 windows tie at the cutoff. Treating all 4,817 windows at or below 75 as
 exactly five percent of the population would therefore be incorrect. The ten weakest examples show
 a direct relationship with long source gaps, but they do not prove that every lower-count window
-has inadequate time coverage. Observation count and observed span must be considered separately
-before an eligibility rule is selected.
+has inadequate time coverage.
+
+The approximate 5th-percentile observed span is 891 seconds. Its 237 strictly lower windows are
+close in number to the 235 strictly below the count cutoff, but only 796 windows tie at the span
+cutoff, producing a narrower at-or-below tail of 1,033 windows. The exact membership overlap
+between the two strict tails has not yet been reconciled. Observation count and observed span must
+therefore remain separate evidence until a combined eligibility rule is explicitly reviewed.
 
 The profile does not persist features, summarize motor-current values as health states, test
 predictive usefulness, or measure failure warning performance. The source contains one compressor,

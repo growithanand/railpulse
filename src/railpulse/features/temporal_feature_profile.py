@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 from pyspark import StorageLevel
-from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql import DataFrame, Row, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import LongType
 
@@ -36,7 +36,7 @@ from railpulse.validation.silver_telemetry import (
     split_telemetry_by_quality,
 )
 
-MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v2"
+MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v3"
 LOW_SUPPORT_EXAMPLE_LIMIT = 10
 MOTOR_CURRENT_FEATURE_STATUS_ORDER = (
     STATUS_AVAILABLE,
@@ -101,6 +101,18 @@ class MotorCurrentLowSupportTail:
 
 
 @dataclass(frozen=True)
+class MotorCurrentLowSpanTail:
+    """Count and ordered examples at or below the observed fifth-percentile span."""
+
+    p05_observation_span_seconds: int
+    cycle_count_below_p05: int
+    cycle_count_equal_to_p05: int
+    cycle_count_at_or_below_p05: int
+    example_limit: int
+    examples: tuple[MotorCurrentLowSupportWindow, ...]
+
+
+@dataclass(frozen=True)
 class FullSourceMotorCurrentFeatureProfile:
     """Reconciled read-only profile of motor-current feature coverage."""
 
@@ -116,6 +128,7 @@ class FullSourceMotorCurrentFeatureProfile:
     status_counts: tuple[MotorCurrentFeatureStatusCount, ...]
     available_window_support: MotorCurrentWindowSupport
     low_support_tail: MotorCurrentLowSupportTail
+    low_span_tail: MotorCurrentLowSpanTail
 
 
 def _timestamp_text(value: datetime) -> str:
@@ -293,18 +306,15 @@ def _collect_available_support(features: DataFrame) -> MotorCurrentWindowSupport
     )
 
 
-def _collect_low_support_tail(
-    features: DataFrame,
-    telemetry: DataFrame,
-    *,
-    p05_observation_count: int,
-) -> MotorCurrentLowSupportTail:
+def _available_with_tail_context(features: DataFrame, telemetry: DataFrame) -> DataFrame:
+    """Attach reusable span and preceding-gap context to available feature windows."""
+
     first_observation_markers = telemetry.select(
         F.col("event_timestamp").alias("_tail_first_observation_timestamp"),
         F.col("is_forward_gap").alias("first_observation_follows_forward_gap"),
         F.col("interval_seconds").alias("preceding_interval_seconds"),
     )
-    available = (
+    return (
         features.where(F.col("motor_current_15m_status") == STATUS_AVAILABLE)
         .withColumn(
             "observation_span_seconds",
@@ -329,6 +339,9 @@ def _collect_low_support_tail(
             how="left",
         )
     )
+
+
+def _assert_tail_context_is_complete(available: DataFrame) -> None:
     missing_marker = available.where(
         F.col("_tail_first_observation_timestamp").isNull()
         | F.col("first_observation_follows_forward_gap").isNull()
@@ -338,15 +351,38 @@ def _collect_low_support_tail(
             "A motor-current feature start does not match accepted telemetry sequence metadata"
         )
 
-    tail = available.where(
-        F.col("motor_current_15m_observation_count") <= F.lit(p05_observation_count)
-    ).persist(StorageLevel.DISK_ONLY)
+
+def _window_example(row: Row) -> MotorCurrentLowSupportWindow:
+    return MotorCurrentLowSupportWindow(
+        loaded_cycle_id=str(row.loaded_cycle_id),
+        prediction_timestamp=_timestamp_text(row.prediction_timestamp),
+        observation_count=int(row.motor_current_15m_observation_count),
+        first_observation_timestamp=_timestamp_text(
+            row.motor_current_15m_first_observation_timestamp
+        ),
+        observation_span_seconds=int(row.observation_span_seconds),
+        leading_unobserved_seconds=int(row.leading_unobserved_seconds),
+        first_observation_follows_forward_gap=bool(row.first_observation_follows_forward_gap),
+        preceding_interval_seconds=(
+            None if row.preceding_interval_seconds is None else int(row.preceding_interval_seconds)
+        ),
+    )
+
+
+def _collect_tail_counts_and_examples(
+    available: DataFrame,
+    *,
+    metric_column: str,
+    p05_value: int,
+    secondary_order_column: str,
+) -> tuple[int, int, tuple[MotorCurrentLowSupportWindow, ...]]:
+    tail = available.where(F.col(metric_column) <= F.lit(p05_value)).persist(StorageLevel.DISK_ONLY)
     try:
         tail_summary = tail.agg(
             F.count(F.lit(1)).cast(LongType()).alias("tail_count"),
             F.count(
                 F.when(
-                    F.col("motor_current_15m_observation_count") == F.lit(p05_observation_count),
+                    F.col(metric_column) == F.lit(p05_value),
                     F.lit(1),
                 )
             )
@@ -357,12 +393,12 @@ def _collect_low_support_tail(
         equal_to_p05_count = int(tail_summary.equal_to_p05_count)
         if tail_count <= 0:
             raise MotorCurrentFeatureProfileError(
-                "Motor-current low-support tail contains no available windows"
+                "Motor-current fifth-percentile tail contains no available windows"
             )
         rows = (
             tail.orderBy(
-                "motor_current_15m_observation_count",
-                "observation_span_seconds",
+                metric_column,
+                secondary_order_column,
                 "prediction_timestamp",
                 "loaded_cycle_id",
             )
@@ -382,30 +418,50 @@ def _collect_low_support_tail(
     finally:
         tail.unpersist()
 
-    examples = tuple(
-        MotorCurrentLowSupportWindow(
-            loaded_cycle_id=str(row.loaded_cycle_id),
-            prediction_timestamp=_timestamp_text(row.prediction_timestamp),
-            observation_count=int(row.motor_current_15m_observation_count),
-            first_observation_timestamp=_timestamp_text(
-                row.motor_current_15m_first_observation_timestamp
-            ),
-            observation_span_seconds=int(row.observation_span_seconds),
-            leading_unobserved_seconds=int(row.leading_unobserved_seconds),
-            first_observation_follows_forward_gap=bool(row.first_observation_follows_forward_gap),
-            preceding_interval_seconds=(
-                None
-                if row.preceding_interval_seconds is None
-                else int(row.preceding_interval_seconds)
-            ),
-        )
-        for row in rows
+    return (
+        tail_count - equal_to_p05_count,
+        equal_to_p05_count,
+        tuple(_window_example(row) for row in rows),
+    )
+
+
+def _collect_low_support_tail(
+    available: DataFrame,
+    *,
+    p05_observation_count: int,
+) -> MotorCurrentLowSupportTail:
+    below_count, equal_count, examples = _collect_tail_counts_and_examples(
+        available,
+        metric_column="motor_current_15m_observation_count",
+        p05_value=p05_observation_count,
+        secondary_order_column="observation_span_seconds",
     )
     return MotorCurrentLowSupportTail(
         p05_observation_count=p05_observation_count,
-        cycle_count_below_p05=tail_count - equal_to_p05_count,
-        cycle_count_equal_to_p05=equal_to_p05_count,
-        cycle_count_at_or_below_p05=tail_count,
+        cycle_count_below_p05=below_count,
+        cycle_count_equal_to_p05=equal_count,
+        cycle_count_at_or_below_p05=below_count + equal_count,
+        example_limit=LOW_SUPPORT_EXAMPLE_LIMIT,
+        examples=examples,
+    )
+
+
+def _collect_low_span_tail(
+    available: DataFrame,
+    *,
+    p05_observation_span_seconds: int,
+) -> MotorCurrentLowSpanTail:
+    below_count, equal_count, examples = _collect_tail_counts_and_examples(
+        available,
+        metric_column="observation_span_seconds",
+        p05_value=p05_observation_span_seconds,
+        secondary_order_column="motor_current_15m_observation_count",
+    )
+    return MotorCurrentLowSpanTail(
+        p05_observation_span_seconds=p05_observation_span_seconds,
+        cycle_count_below_p05=below_count,
+        cycle_count_equal_to_p05=equal_count,
+        cycle_count_at_or_below_p05=below_count + equal_count,
         example_limit=LOW_SUPPORT_EXAMPLE_LIMIT,
         examples=examples,
     )
@@ -449,11 +505,21 @@ def collect_motor_current_feature_profile(
             raise MotorCurrentFeatureProfileError(
                 "Available motor-current feature counts do not reconcile"
             )
-        low_support_tail = _collect_low_support_tail(
-            features,
-            telemetry,
-            p05_observation_count=support.p05_observation_count,
+        tail_context = _available_with_tail_context(features, telemetry).persist(
+            StorageLevel.DISK_ONLY
         )
+        try:
+            _assert_tail_context_is_complete(tail_context)
+            low_support_tail = _collect_low_support_tail(
+                tail_context,
+                p05_observation_count=support.p05_observation_count,
+            )
+            low_span_tail = _collect_low_span_tail(
+                tail_context,
+                p05_observation_span_seconds=support.p05_observation_span_seconds,
+            )
+        finally:
+            tail_context.unpersist()
 
         status_counts = tuple(
             MotorCurrentFeatureStatusCount(
@@ -475,6 +541,7 @@ def collect_motor_current_feature_profile(
             status_counts=status_counts,
             available_window_support=support,
             low_support_tail=low_support_tail,
+            low_span_tail=low_span_tail,
         )
     finally:
         features.unpersist()

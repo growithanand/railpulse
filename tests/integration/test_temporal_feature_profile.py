@@ -65,19 +65,19 @@ def _telemetry(spark: SparkSession):
                 "batch-id",
             ),
             (
-                datetime(2020, 1, 1, 9, 45, 1),
+                datetime(2020, 1, 1, 9, 59, 40),
                 2.0,
-                1,
-                False,
+                880,
+                True,
                 "fixture-v1",
                 "source-sha",
                 "batch-id",
             ),
             (
-                datetime(2020, 1, 1, 9, 59, 59),
+                datetime(2020, 1, 1, 9, 59, 50),
                 4.0,
-                898,
-                True,
+                10,
+                False,
                 "fixture-v1",
                 "source-sha",
                 "batch-id",
@@ -92,9 +92,9 @@ def _telemetry(spark: SparkSession):
                 "batch-id",
             ),
             (
-                datetime(2020, 1, 1, 10, 5),
+                datetime(2020, 1, 1, 10, 5, 1),
                 8.0,
-                300,
+                301,
                 True,
                 "fixture-v1",
                 "source-sha",
@@ -103,7 +103,7 @@ def _telemetry(spark: SparkSession):
             (
                 datetime(2020, 1, 1, 10, 20),
                 7.0,
-                900,
+                899,
                 True,
                 "fixture-v1",
                 "source-sha",
@@ -122,6 +122,7 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     statuses = {item.status: item.cycle_count for item in profile.status_counts}
     support = profile.available_window_support
     tail = profile.low_support_tail
+    span_tail = profile.low_span_tail
 
     assert profile.profile_version == MOTOR_CURRENT_FEATURE_PROFILE_VERSION
     assert profile.feature_version == MOTOR_CURRENT_FEATURE_VERSION
@@ -138,17 +139,17 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
         "missing_prediction_observation": 1,
     }
     assert support.available_cycle_count == 2
-    assert support.minimum_observation_count == 1
-    assert support.p05_observation_count == 1
-    assert support.median_observation_count == 1
+    assert support.minimum_observation_count == 2
+    assert support.p05_observation_count == 2
+    assert support.median_observation_count == 2
     assert support.p95_observation_count == 3
     assert support.maximum_observation_count == 3
-    assert support.minimum_observation_span_seconds == 0
-    assert support.p05_observation_span_seconds == 0
-    assert support.median_observation_span_seconds == 0
+    assert support.minimum_observation_span_seconds == 20
+    assert support.p05_observation_span_seconds == 20
+    assert support.median_observation_span_seconds == 20
     assert support.p95_observation_span_seconds == 899
     assert support.maximum_observation_span_seconds == 899
-    assert tail.p05_observation_count == 1
+    assert tail.p05_observation_count == 2
     assert tail.cycle_count_below_p05 == 0
     assert tail.cycle_count_equal_to_p05 == 1
     assert tail.cycle_count_at_or_below_p05 == 1
@@ -157,12 +158,28 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     example = tail.examples[0]
     assert example.loaded_cycle_id == "available-one"
     assert example.prediction_timestamp == "2020-01-01 10:20:00"
-    assert example.observation_count == 1
-    assert example.first_observation_timestamp == "2020-01-01 10:20:00"
-    assert example.observation_span_seconds == 0
-    assert example.leading_unobserved_seconds == 900
+    assert example.observation_count == 2
+    assert example.first_observation_timestamp == "2020-01-01 10:05:01"
+    assert example.observation_span_seconds == 899
+    assert example.leading_unobserved_seconds == 1
     assert example.first_observation_follows_forward_gap is True
-    assert example.preceding_interval_seconds == 900
+    assert example.preceding_interval_seconds == 301
+
+    assert span_tail.p05_observation_span_seconds == 20
+    assert span_tail.cycle_count_below_p05 == 0
+    assert span_tail.cycle_count_equal_to_p05 == 1
+    assert span_tail.cycle_count_at_or_below_p05 == 1
+    assert span_tail.example_limit == 10
+    assert len(span_tail.examples) == 1
+    span_example = span_tail.examples[0]
+    assert span_example.loaded_cycle_id == "available-three"
+    assert span_example.prediction_timestamp == "2020-01-01 10:00:00"
+    assert span_example.observation_count == 3
+    assert span_example.first_observation_timestamp == "2020-01-01 09:59:40"
+    assert span_example.observation_span_seconds == 20
+    assert span_example.leading_unobserved_seconds == 880
+    assert span_example.first_observation_follows_forward_gap is True
+    assert span_example.preceding_interval_seconds == 880
 
 
 @pytest.mark.spark
