@@ -27,8 +27,8 @@ contract now summarizes 15 minutes of motor current at the cycle prediction boun
 future observations. A read-only full-source profile finds features for all 15,703 cycles with
 observed stops, zero missing telemetry anchors, and 63 cycles without prediction boundaries. Its
 low-support inspection also treats observation count and observed time span independently. The
-span cutoff has a much smaller tied population than the count cutoff, while the weakest examples
-remain linked to material source gaps. No performance or maintenance-impact claims have been
+strict tails share 182 cycles but also contain 53 count-only and 55 span-only cycles, so the two
+measures are not interchangeable. No performance or maintenance-impact claims have been
 established.
 
 See [the project status](docs/project_status.md) for verified environment details and
@@ -100,8 +100,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
 - A tested 15-minute motor-current feature window with strict past-only event-time boundaries,
   observation-support metadata, and explicit missing-feature statuses.
 - A source-lineage-aware, read-only full-source motor-current profile that reconciles feature
-  availability, observation-support percentiles, independent count and span tails, and
-  deterministic low-support examples without setting a training threshold.
+  availability, observation-support percentiles, independent count and span tails, their strict
+  membership overlap, and deterministic low-support examples without setting a training threshold.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.

@@ -36,7 +36,7 @@ from railpulse.validation.silver_telemetry import (
     split_telemetry_by_quality,
 )
 
-MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v3"
+MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v4"
 LOW_SUPPORT_EXAMPLE_LIMIT = 10
 MOTOR_CURRENT_FEATURE_STATUS_ORDER = (
     STATUS_AVAILABLE,
@@ -113,6 +113,18 @@ class MotorCurrentLowSpanTail:
 
 
 @dataclass(frozen=True)
+class MotorCurrentStrictTailOverlap:
+    """Membership overlap below the observed count and span fifth percentiles."""
+
+    p05_observation_count: int
+    p05_observation_span_seconds: int
+    cycle_count_below_both: int
+    cycle_count_below_count_only: int
+    cycle_count_below_span_only: int
+    cycle_count_below_either: int
+
+
+@dataclass(frozen=True)
 class FullSourceMotorCurrentFeatureProfile:
     """Reconciled read-only profile of motor-current feature coverage."""
 
@@ -129,6 +141,7 @@ class FullSourceMotorCurrentFeatureProfile:
     available_window_support: MotorCurrentWindowSupport
     low_support_tail: MotorCurrentLowSupportTail
     low_span_tail: MotorCurrentLowSpanTail
+    strict_tail_overlap: MotorCurrentStrictTailOverlap
 
 
 def _timestamp_text(value: datetime) -> str:
@@ -467,6 +480,36 @@ def _collect_low_span_tail(
     )
 
 
+def _collect_strict_tail_overlap(
+    available: DataFrame,
+    *,
+    p05_observation_count: int,
+    p05_observation_span_seconds: int,
+) -> MotorCurrentStrictTailOverlap:
+    below_count = F.col("motor_current_15m_observation_count") < F.lit(p05_observation_count)
+    below_span = F.col("observation_span_seconds") < F.lit(p05_observation_span_seconds)
+    summary = available.agg(
+        F.count(F.when(below_count & below_span, F.lit(1))).cast(LongType()).alias("below_both"),
+        F.count(F.when(below_count & ~below_span, F.lit(1)))
+        .cast(LongType())
+        .alias("below_count_only"),
+        F.count(F.when(~below_count & below_span, F.lit(1)))
+        .cast(LongType())
+        .alias("below_span_only"),
+    ).first()
+    below_both = int(summary.below_both)
+    below_count_only = int(summary.below_count_only)
+    below_span_only = int(summary.below_span_only)
+    return MotorCurrentStrictTailOverlap(
+        p05_observation_count=p05_observation_count,
+        p05_observation_span_seconds=p05_observation_span_seconds,
+        cycle_count_below_both=below_both,
+        cycle_count_below_count_only=below_count_only,
+        cycle_count_below_span_only=below_span_only,
+        cycle_count_below_either=below_both + below_count_only + below_span_only,
+    )
+
+
 def collect_motor_current_feature_profile(
     cycles: DataFrame,
     telemetry: DataFrame,
@@ -518,6 +561,27 @@ def collect_motor_current_feature_profile(
                 tail_context,
                 p05_observation_span_seconds=support.p05_observation_span_seconds,
             )
+            strict_tail_overlap = _collect_strict_tail_overlap(
+                tail_context,
+                p05_observation_count=support.p05_observation_count,
+                p05_observation_span_seconds=support.p05_observation_span_seconds,
+            )
+            if (
+                strict_tail_overlap.cycle_count_below_both
+                + strict_tail_overlap.cycle_count_below_count_only
+                != low_support_tail.cycle_count_below_p05
+            ):
+                raise MotorCurrentFeatureProfileError(
+                    "Strict observation-count tail does not reconcile with overlap counts"
+                )
+            if (
+                strict_tail_overlap.cycle_count_below_both
+                + strict_tail_overlap.cycle_count_below_span_only
+                != low_span_tail.cycle_count_below_p05
+            ):
+                raise MotorCurrentFeatureProfileError(
+                    "Strict observed-span tail does not reconcile with overlap counts"
+                )
         finally:
             tail_context.unpersist()
 
@@ -542,6 +606,7 @@ def collect_motor_current_feature_profile(
             available_window_support=support,
             low_support_tail=low_support_tail,
             low_span_tail=low_span_tail,
+            strict_tail_overlap=strict_tail_overlap,
         )
     finally:
         features.unpersist()

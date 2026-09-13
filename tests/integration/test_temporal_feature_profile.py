@@ -17,6 +17,7 @@ from pyspark.sql.types import (
 from railpulse.features.temporal_feature_profile import (
     MOTOR_CURRENT_FEATURE_PROFILE_VERSION,
     MotorCurrentFeatureProfileError,
+    _collect_strict_tail_overlap,
     collect_motor_current_feature_profile,
 )
 from railpulse.features.temporal_features import MOTOR_CURRENT_FEATURE_VERSION
@@ -123,6 +124,7 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     support = profile.available_window_support
     tail = profile.low_support_tail
     span_tail = profile.low_span_tail
+    overlap = profile.strict_tail_overlap
 
     assert profile.profile_version == MOTOR_CURRENT_FEATURE_PROFILE_VERSION
     assert profile.feature_version == MOTOR_CURRENT_FEATURE_VERSION
@@ -180,6 +182,50 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     assert span_example.leading_unobserved_seconds == 880
     assert span_example.first_observation_follows_forward_gap is True
     assert span_example.preceding_interval_seconds == 880
+
+    assert overlap.p05_observation_count == 2
+    assert overlap.p05_observation_span_seconds == 20
+    assert overlap.cycle_count_below_both == 0
+    assert overlap.cycle_count_below_count_only == 0
+    assert overlap.cycle_count_below_span_only == 0
+    assert overlap.cycle_count_below_either == 0
+
+
+@pytest.mark.spark
+def test_strict_tail_overlap_distinguishes_count_and_span_membership(
+    spark: SparkSession,
+) -> None:
+    available = spark.createDataFrame(
+        [
+            (74, 890),
+            (74, 891),
+            (75, 890),
+            (75, 891),
+        ],
+        schema=StructType(
+            [
+                StructField(
+                    "motor_current_15m_observation_count",
+                    LongType(),
+                    nullable=False,
+                ),
+                StructField("observation_span_seconds", LongType(), nullable=False),
+            ]
+        ),
+    )
+
+    overlap = _collect_strict_tail_overlap(
+        available,
+        p05_observation_count=75,
+        p05_observation_span_seconds=891,
+    )
+
+    assert overlap.p05_observation_count == 75
+    assert overlap.p05_observation_span_seconds == 891
+    assert overlap.cycle_count_below_both == 1
+    assert overlap.cycle_count_below_count_only == 1
+    assert overlap.cycle_count_below_span_only == 1
+    assert overlap.cycle_count_below_either == 3
 
 
 @pytest.mark.spark

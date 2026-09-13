@@ -41,11 +41,11 @@ A source-lineage-aware, read-only full-source profile now applies that contract 
 cycles. It reconciles 15,703 available features, the 63 cycles without observed stops, and zero
 missing telemetry anchors. Available windows have a median of 91 observations, while the minimum of
 3 shows that availability alone is not yet a sufficient training-eligibility rule.
-The version 3 profile now inspects count and observed-span tails independently. It separates 235
-windows below the observed 5th-percentile count of 75 from 4,582 windows tied at that value, while
-237 windows fall below the 5th-percentile span of 891 seconds and 796 tie there. Both deterministic
-weakest-example lists contain the same ten windows: 3-7 observations over 19-59 seconds, each
-beginning after a recorded material forward gap.
+The version 4 profile now inspects count and observed-span tails independently and reconciles their
+strict membership overlap. Of 235 windows below the count cutoff and 237 below the span cutoff, 182
+are below both, 53 are count-only, and 55 are span-only. Both deterministic weakest-example lists
+contain the same ten windows: 3-7 observations over 19-59 seconds, each beginning after a recorded
+material forward gap.
 
 ## Environment observed on 2026-09-01
 
@@ -138,8 +138,9 @@ Repository-local Git identity:
 - A past-only 15-minute motor-current window uses event-time range semantics, exposes observed
   support, and rejects future-row leakage at the tested prediction boundary.
 - A read-only full-source motor-current profile reconciles feature statuses and reports
-  observation-count and observed-span percentiles, independently counted cutoff tails, and
-  deterministic weak-support examples without writing or selecting a coverage rule.
+  observation-count and observed-span percentiles, independently counted cutoff tails, strict-tail
+  membership overlap, and deterministic weak-support examples without writing or selecting a
+  coverage rule.
 
 Official local Bronze evidence:
 
@@ -212,8 +213,16 @@ material forward gap, but the large tie means count alone is not a defensible el
 
 The observed 5th-percentile span is 891 seconds. There are 237 windows strictly below that value,
 796 exactly equal to it, and 1,033 at or below it. The ten shortest-span examples are the same ten
-windows as the lowest-count examples, but the exact overlap of the two complete strict tails has
-not yet been reconciled.
+windows as the lowest-count examples.
+
+| Strict-tail relationship | Cycles |
+| --- | ---: |
+| Below both count and span cutoffs | 182 |
+| Below the count cutoff only | 53 |
+| Below the span cutoff only | 55 |
+| Below either cutoff | 290 |
+
+The 108 one-sided memberships show that count and time coverage are related but not interchangeable.
 
 ## Not implemented
 
@@ -234,5 +243,6 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will reconcile membership overlap between the strict count and observed-
-span tails before selecting a combined feature-coverage eligibility rule or persisting a table.
+The next small increment will inspect deterministic examples from the 53 count-only and 55
+span-only windows before selecting a combined feature-coverage eligibility rule or persisting a
+table.

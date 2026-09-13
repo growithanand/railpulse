@@ -18,7 +18,7 @@ descriptive observation-support statistics.
 
 ## Reconciliation contract
 
-`motor-current-15m-profile-v3` verifies that:
+`motor-current-15m-profile-v4` verifies that:
 
 - accepted telemetry has one complete dataset/source/ingestion lineage;
 - Gold cycles have unique, non-null identifiers and a stop-timestamp field;
@@ -29,12 +29,14 @@ descriptive observation-support statistics.
 - available counts reconcile between status and support summaries;
 - the observation-count and observed-span tails are counted independently around their observed
   fifth-percentile cutoffs, and their weakest examples retain deterministic cycle, time-span, and
-  preceding-gap evidence; and
+  preceding-gap evidence;
+- strict membership below the two cutoffs is separated into both, count-only, and span-only groups
+  that reconcile with the independent strict-tail totals; and
 - the configured and observed dataset versions agree.
 
 ## Verified complete-source result
 
-The command was run locally on 2026-09-12.
+The version 4 command was run locally on 2026-09-13.
 
 | Input or contract | Verified value |
 | --- | ---: |
@@ -78,6 +80,15 @@ Low-support observed-span inspection:
 | Exactly 891 seconds | 796 |
 | At or below 891 seconds | 1,033 |
 
+Strict-tail membership overlap:
+
+| Relationship to the two observed cutoffs | Cycles |
+| --- | ---: |
+| Below both 75 observations and 891 seconds | 182 |
+| Below 75 observations only | 53 |
+| Below 891 seconds only | 55 |
+| Below either cutoff | 290 |
+
 The JSON output retains the ten weakest windows for each measure in deterministic order. In this
 source, the ten lowest-count and ten shortest-span examples are the same windows. Their observation
 counts range from 3 to 7, first-to-last spans range from 19 to 59 seconds, and leading unobserved
@@ -113,9 +124,13 @@ has inadequate time coverage.
 
 The approximate 5th-percentile observed span is 891 seconds. Its 237 strictly lower windows are
 close in number to the 235 strictly below the count cutoff, but only 796 windows tie at the span
-cutoff, producing a narrower at-or-below tail of 1,033 windows. The exact membership overlap
-between the two strict tails has not yet been reconciled. Observation count and observed span must
-therefore remain separate evidence until a combined eligibility rule is explicitly reviewed.
+cutoff, producing a narrower at-or-below tail of 1,033 windows.
+
+The strict tails share 182 cycles, while 53 are below only the count cutoff and 55 are below only
+the span cutoff. Their union therefore contains 290 cycles, including 108 whose classification
+depends on which support measure is used. This confirms that observation count and observed span
+are related but not interchangeable. The cutoffs remain descriptive evidence, not a selected
+eligibility rule.
 
 The profile does not persist features, summarize motor-current values as health states, test
 predictive usefulness, or measure failure warning performance. The source contains one compressor,
