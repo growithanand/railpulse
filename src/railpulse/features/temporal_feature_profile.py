@@ -36,7 +36,7 @@ from railpulse.validation.silver_telemetry import (
     split_telemetry_by_quality,
 )
 
-MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v8"
+MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v9"
 LOW_SUPPORT_EXAMPLE_LIMIT = 10
 MOTOR_CURRENT_FEATURE_STATUS_ORDER = (
     STATUS_AVAILABLE,
@@ -200,6 +200,52 @@ class MotorCurrentGapTailDisagreementExamples:
 
 
 @dataclass(frozen=True)
+class MotorCurrentTailOnlyCharacterization:
+    """Complete trigger and support summary for strict-tail-only windows."""
+
+    cycle_count: int
+    cycle_count_below_count_only: int
+    cycle_count_below_span_only: int
+    cycle_count_below_both: int
+    minimum_observation_count: int | None
+    maximum_observation_count: int | None
+    minimum_observation_span_seconds: int | None
+    maximum_observation_span_seconds: int | None
+
+
+@dataclass(frozen=True)
+class MotorCurrentGapOnlyCharacterization:
+    """Complete position, support, and magnitude summary for explicit-gap-only windows."""
+
+    cycle_count: int
+    cycle_count_with_leading_gap_only: int
+    cycle_count_with_internal_gap_only: int
+    cycle_count_with_leading_and_internal_gap: int
+    minimum_observation_count: int | None
+    maximum_observation_count: int | None
+    minimum_observation_span_seconds: int | None
+    maximum_observation_span_seconds: int | None
+    minimum_leading_unobserved_seconds: int | None
+    median_leading_unobserved_seconds: int | None
+    maximum_leading_unobserved_seconds: int | None
+    minimum_leading_gap_interval_seconds: int | None
+    median_leading_gap_interval_seconds: int | None
+    maximum_leading_gap_interval_seconds: int | None
+    internal_forward_gap_count: int
+    minimum_largest_internal_gap_seconds: int | None
+    median_largest_internal_gap_seconds: int | None
+    maximum_largest_internal_gap_seconds: int | None
+
+
+@dataclass(frozen=True)
+class MotorCurrentGapTailDisagreementCharacterization:
+    """Complete summaries for both gap-tail disagreement groups."""
+
+    tail_only: MotorCurrentTailOnlyCharacterization
+    gap_only: MotorCurrentGapOnlyCharacterization
+
+
+@dataclass(frozen=True)
 class FullSourceMotorCurrentFeatureProfile:
     """Reconciled read-only profile of motor-current feature coverage."""
 
@@ -221,6 +267,7 @@ class FullSourceMotorCurrentFeatureProfile:
     count_only_internal_gaps: MotorCurrentCountOnlyInternalGapProfile
     gap_tail_comparison: MotorCurrentGapTailComparison
     gap_tail_disagreement_examples: MotorCurrentGapTailDisagreementExamples
+    gap_tail_disagreement_characterization: MotorCurrentGapTailDisagreementCharacterization
 
 
 def _timestamp_text(value: datetime) -> str:
@@ -808,6 +855,145 @@ def _collect_gap_tail_disagreement_examples(
     )
 
 
+def _optional_int(value: object) -> int | None:
+    return None if value is None else int(value)
+
+
+def _collect_gap_tail_disagreement_characterization(
+    available: DataFrame,
+    *,
+    p05_observation_count: int,
+    p05_observation_span_seconds: int,
+) -> MotorCurrentGapTailDisagreementCharacterization:
+    below_count = F.col("motor_current_15m_observation_count") < F.lit(p05_observation_count)
+    below_span = F.col("observation_span_seconds") < F.lit(p05_observation_span_seconds)
+    in_tail = below_count | below_span
+    has_leading_gap = F.col("first_observation_follows_forward_gap")
+    has_internal_gap = F.col("internal_forward_gap_count") > F.lit(0)
+    intersects_gap = has_leading_gap | has_internal_gap
+
+    tail_only = available.where(in_tail & ~intersects_gap)
+    tail_summary = tail_only.agg(
+        F.count(F.lit(1)).cast(LongType()).alias("cycle_count"),
+        F.count(F.when(below_count & ~below_span, F.lit(1)))
+        .cast(LongType())
+        .alias("below_count_only"),
+        F.count(F.when(~below_count & below_span, F.lit(1)))
+        .cast(LongType())
+        .alias("below_span_only"),
+        F.count(F.when(below_count & below_span, F.lit(1))).cast(LongType()).alias("below_both"),
+        F.min("motor_current_15m_observation_count").alias("minimum_observation_count"),
+        F.max("motor_current_15m_observation_count").alias("maximum_observation_count"),
+        F.min("observation_span_seconds").alias("minimum_observation_span_seconds"),
+        F.max("observation_span_seconds").alias("maximum_observation_span_seconds"),
+    ).first()
+
+    gap_only = available.where(~in_tail & intersects_gap)
+    leading_unobserved_seconds = F.when(
+        has_leading_gap,
+        F.col("leading_unobserved_seconds"),
+    )
+    leading_gap_interval_seconds = F.when(
+        has_leading_gap,
+        F.col("preceding_interval_seconds"),
+    )
+    largest_internal_gap_seconds = F.when(
+        has_internal_gap,
+        F.col("maximum_internal_forward_gap_seconds"),
+    )
+    gap_summary = gap_only.agg(
+        F.count(F.lit(1)).cast(LongType()).alias("cycle_count"),
+        F.count(F.when(has_leading_gap & ~has_internal_gap, F.lit(1)))
+        .cast(LongType())
+        .alias("leading_only"),
+        F.count(F.when(~has_leading_gap & has_internal_gap, F.lit(1)))
+        .cast(LongType())
+        .alias("internal_only"),
+        F.count(F.when(has_leading_gap & has_internal_gap, F.lit(1)))
+        .cast(LongType())
+        .alias("leading_and_internal"),
+        F.min("motor_current_15m_observation_count").alias("minimum_observation_count"),
+        F.max("motor_current_15m_observation_count").alias("maximum_observation_count"),
+        F.min("observation_span_seconds").alias("minimum_observation_span_seconds"),
+        F.max("observation_span_seconds").alias("maximum_observation_span_seconds"),
+        F.min(leading_unobserved_seconds).alias("minimum_leading_unobserved_seconds"),
+        F.percentile_approx(leading_unobserved_seconds, 0.5, 10_000).alias(
+            "median_leading_unobserved_seconds"
+        ),
+        F.max(leading_unobserved_seconds).alias("maximum_leading_unobserved_seconds"),
+        F.min(leading_gap_interval_seconds).alias("minimum_leading_gap_interval_seconds"),
+        F.percentile_approx(leading_gap_interval_seconds, 0.5, 10_000).alias(
+            "median_leading_gap_interval_seconds"
+        ),
+        F.max(leading_gap_interval_seconds).alias("maximum_leading_gap_interval_seconds"),
+        F.sum("internal_forward_gap_count").cast(LongType()).alias("internal_gap_count"),
+        F.min(largest_internal_gap_seconds).alias("minimum_largest_internal_gap_seconds"),
+        F.percentile_approx(largest_internal_gap_seconds, 0.5, 10_000).alias(
+            "median_largest_internal_gap_seconds"
+        ),
+        F.max(largest_internal_gap_seconds).alias("maximum_largest_internal_gap_seconds"),
+    ).first()
+
+    return MotorCurrentGapTailDisagreementCharacterization(
+        tail_only=MotorCurrentTailOnlyCharacterization(
+            cycle_count=int(tail_summary.cycle_count),
+            cycle_count_below_count_only=int(tail_summary.below_count_only),
+            cycle_count_below_span_only=int(tail_summary.below_span_only),
+            cycle_count_below_both=int(tail_summary.below_both),
+            minimum_observation_count=_optional_int(tail_summary.minimum_observation_count),
+            maximum_observation_count=_optional_int(tail_summary.maximum_observation_count),
+            minimum_observation_span_seconds=_optional_int(
+                tail_summary.minimum_observation_span_seconds
+            ),
+            maximum_observation_span_seconds=_optional_int(
+                tail_summary.maximum_observation_span_seconds
+            ),
+        ),
+        gap_only=MotorCurrentGapOnlyCharacterization(
+            cycle_count=int(gap_summary.cycle_count),
+            cycle_count_with_leading_gap_only=int(gap_summary.leading_only),
+            cycle_count_with_internal_gap_only=int(gap_summary.internal_only),
+            cycle_count_with_leading_and_internal_gap=int(gap_summary.leading_and_internal),
+            minimum_observation_count=_optional_int(gap_summary.minimum_observation_count),
+            maximum_observation_count=_optional_int(gap_summary.maximum_observation_count),
+            minimum_observation_span_seconds=_optional_int(
+                gap_summary.minimum_observation_span_seconds
+            ),
+            maximum_observation_span_seconds=_optional_int(
+                gap_summary.maximum_observation_span_seconds
+            ),
+            minimum_leading_unobserved_seconds=_optional_int(
+                gap_summary.minimum_leading_unobserved_seconds
+            ),
+            median_leading_unobserved_seconds=_optional_int(
+                gap_summary.median_leading_unobserved_seconds
+            ),
+            maximum_leading_unobserved_seconds=_optional_int(
+                gap_summary.maximum_leading_unobserved_seconds
+            ),
+            minimum_leading_gap_interval_seconds=_optional_int(
+                gap_summary.minimum_leading_gap_interval_seconds
+            ),
+            median_leading_gap_interval_seconds=_optional_int(
+                gap_summary.median_leading_gap_interval_seconds
+            ),
+            maximum_leading_gap_interval_seconds=_optional_int(
+                gap_summary.maximum_leading_gap_interval_seconds
+            ),
+            internal_forward_gap_count=int(gap_summary.internal_gap_count or 0),
+            minimum_largest_internal_gap_seconds=_optional_int(
+                gap_summary.minimum_largest_internal_gap_seconds
+            ),
+            median_largest_internal_gap_seconds=_optional_int(
+                gap_summary.median_largest_internal_gap_seconds
+            ),
+            maximum_largest_internal_gap_seconds=_optional_int(
+                gap_summary.maximum_largest_internal_gap_seconds
+            ),
+        ),
+    )
+
+
 def collect_motor_current_feature_profile(
     cycles: DataFrame,
     telemetry: DataFrame,
@@ -887,6 +1073,13 @@ def collect_motor_current_feature_profile(
                     gap_context,
                     p05_observation_count=support.p05_observation_count,
                     p05_observation_span_seconds=support.p05_observation_span_seconds,
+                )
+                gap_tail_disagreement_characterization = (
+                    _collect_gap_tail_disagreement_characterization(
+                        gap_context,
+                        p05_observation_count=support.p05_observation_count,
+                        p05_observation_span_seconds=support.p05_observation_span_seconds,
+                    )
                 )
             finally:
                 gap_context.unpersist()
@@ -978,6 +1171,37 @@ def collect_motor_current_feature_profile(
                 raise MotorCurrentFeatureProfileError(
                     "Gap-only gap-tail examples do not reconcile with comparison counts"
                 )
+            tail_only_characterization = gap_tail_disagreement_characterization.tail_only
+            if (
+                tail_only_characterization.cycle_count
+                != gap_tail_comparison.cycle_count_in_tail_only
+            ):
+                raise MotorCurrentFeatureProfileError(
+                    "Tail-only characterization does not reconcile with comparison counts"
+                )
+            if (
+                tail_only_characterization.cycle_count_below_count_only
+                + tail_only_characterization.cycle_count_below_span_only
+                + tail_only_characterization.cycle_count_below_both
+                != tail_only_characterization.cycle_count
+            ):
+                raise MotorCurrentFeatureProfileError(
+                    "Tail-only characterization does not reconcile its trigger partition"
+                )
+            gap_only_characterization = gap_tail_disagreement_characterization.gap_only
+            if gap_only_characterization.cycle_count != gap_tail_comparison.cycle_count_in_gap_only:
+                raise MotorCurrentFeatureProfileError(
+                    "Gap-only characterization does not reconcile with comparison counts"
+                )
+            if (
+                gap_only_characterization.cycle_count_with_leading_gap_only
+                + gap_only_characterization.cycle_count_with_internal_gap_only
+                + gap_only_characterization.cycle_count_with_leading_and_internal_gap
+                != gap_only_characterization.cycle_count
+            ):
+                raise MotorCurrentFeatureProfileError(
+                    "Gap-only characterization does not reconcile its position partition"
+                )
         finally:
             tail_context.unpersist()
 
@@ -1007,6 +1231,7 @@ def collect_motor_current_feature_profile(
             count_only_internal_gaps=count_only_internal_gaps,
             gap_tail_comparison=gap_tail_comparison,
             gap_tail_disagreement_examples=gap_tail_disagreement_examples,
+            gap_tail_disagreement_characterization=gap_tail_disagreement_characterization,
         )
     finally:
         features.unpersist()

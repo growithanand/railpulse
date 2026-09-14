@@ -18,7 +18,7 @@ descriptive observation-support statistics.
 
 ## Reconciliation contract
 
-`motor-current-15m-profile-v8` verifies that:
+`motor-current-15m-profile-v9` verifies that:
 
 - accepted telemetry has one complete dataset/source/ingestion lineage;
 - Gold cycles have unique, non-null identifiers and a stop-timestamp field;
@@ -39,12 +39,14 @@ descriptive observation-support statistics.
 - explicit leading-or-internal gap intersection is compared with the strict percentile-tail union,
   and both partitions reconcile with every available window;
 - bounded examples from both disagreement groups retain deterministic support, leading-gap, and
-  internal-gap evidence and reconcile with their group sizes; and
+  internal-gap evidence and reconcile with their group sizes;
+- complete disagreement groups are partitioned by tail trigger and gap position, with support and
+  gap-magnitude summaries that reconcile with their group sizes; and
 - the configured and observed dataset versions agree.
 
 ## Verified complete-source result
 
-The version 8 command was run locally on 2026-09-14.
+The version 9 command was run locally on 2026-09-14.
 
 | Input or contract | Verified value |
 | --- | ---: |
@@ -145,6 +147,37 @@ intervals are 12-13 seconds, and none contains an internal material gap. Gap-onl
 ordered by the largest leading or internal gap interval. The first two have leading intervals of
 8,008 and 186 seconds; the remaining eight have internal intervals of 161-174 seconds.
 
+Complete tail-only characterization:
+
+| Strict-tail trigger | Windows |
+| --- | ---: |
+| Below count only | 0 |
+| Below span only | 26 |
+| Below both | 0 |
+| **Tail-only total** | **26** |
+
+Across all 26 tail-only windows, observation counts range from 75 to 90 and first-to-last spans
+range from 889 to 890 seconds.
+
+Complete gap-only characterization:
+
+| Explicit-gap position | Windows |
+| --- | ---: |
+| Leading only | 2 |
+| Internal only | 25 |
+| Leading and internal | 0 |
+| **Gap-only total** | **27** |
+
+| Gap-only measure | Minimum | Median | Maximum |
+| --- | ---: | ---: | ---: |
+| Observation count | 75 | — | 91 |
+| First-to-last span | 892 seconds | — | 899 seconds |
+| Leading uncovered time, leading-gap windows | 8 seconds | 8 seconds | 8 seconds |
+| Full preceding interval, leading-gap windows | 186 seconds | 186 seconds | 8,008 seconds |
+| Largest internal interval per internal-gap window | 20 seconds | 104 seconds | 174 seconds |
+
+The 25 internal-only windows contain 25 internal material-gap markers, so each contains exactly one.
+
 The JSON output retains the ten weakest windows for each measure in deterministic order. In this
 source, the ten lowest-count and ten shortest-span examples are the same windows. Their observation
 counts range from 3 to 7, first-to-last spans range from 19 to 59 seconds, and leading unobserved
@@ -210,15 +243,20 @@ strict percentile-tail union and the explicit gap-intersection group. Another 26
 27 are gap-only. The two totals are nearly identical at 290 and 291, but the 53 disagreements prove
 that neither signal can substitute for the other by count alone.
 
-The selected tail-only examples all sit exactly at the count cutoff and miss the span cutoff by
-only one or two seconds. Their nominal preceding intervals and lack of internal gaps indicate that
-small cadence variation can cross a strict population-derived span boundary without a material
-source interruption. The strongest gap-only examples show the converse: two retain 91 observations
-over 892 seconds even though a material gap overlaps the first eight seconds of the window, while
-eight retain 75-76 observations over 895-897 seconds around an internal 161-174 second gap. Explicit
-gap evidence therefore describes source continuity, while the percentile tails describe endpoint
-support and sample count. These bounded examples explain the disagreement but do not yet justify
-choosing either signal as an eligibility contract.
+The complete characterization confirms the tail-only sample pattern. All 26 are below the span
+cutoff only, with 75-90 observations over 889-890 seconds. They therefore miss the 891-second span
+boundary by only one or two seconds, never fall below the count cutoff, and contain no explicit
+material gap. Small cadence variation can cross this strict population-derived boundary without a
+material source interruption.
+
+The gap-only group shows the converse. Two windows have a leading gap but still retain 91
+observations over 892 seconds because only eight seconds of each source interval overlap the feature
+window. The other 25 each contain one internal gap while retaining 75-91 observations over 892-899
+seconds. Their largest internal intervals range from the 20-second material-gap boundary to 174
+seconds, with a median of 104 seconds. Explicit gap evidence therefore describes source continuity,
+while the percentile tails describe endpoint support and sample count. The full-group evidence
+explains the disagreement, but gap-magnitude sensitivity still needs inspection before either
+signal becomes an eligibility contract.
 
 The profile does not persist features, summarize motor-current values as health states, test
 predictive usefulness, select a feature-coverage rule, or measure failure warning performance. The

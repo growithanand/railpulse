@@ -41,12 +41,12 @@ A source-lineage-aware, read-only full-source profile now applies that contract 
 cycles. It reconciles 15,703 available features, the 63 cycles without observed stops, and zero
 missing telemetry anchors. Available windows have a median of 91 observations, while the minimum of
 3 shows that availability alone is not yet a sufficient training-eligibility rule.
-The version 8 profile now inspects count and observed-span tails independently, retains deterministic
+The version 9 profile now inspects count and observed-span tails independently, retains deterministic
 one-sided examples, measures internal material gaps, compares the strict percentile-tail union with
-explicit gap intersection, and retains examples from both disagreement groups. The two groups
-contain 290 and 291 windows respectively, with 264 in both, 26 tail-only, and 27 gap-only. Their
-examples show that marginal endpoint-support cutoffs and material source discontinuities describe
-different properties.
+explicit gap intersection, and characterizes both disagreement groups. All 26 tail-only windows are
+below the span cutoff only. The 27 gap-only windows split into 2 leading-only and 25 internal-only
+gaps. Their complete summaries show that marginal endpoint-support cutoffs and material source
+discontinuities describe different properties.
 
 ## Environment observed on 2026-09-01
 
@@ -142,8 +142,8 @@ Repository-local Git identity:
   observation-count and observed-span percentiles, independently counted cutoff tails, strict-tail
   membership overlap, deterministic weakest and one-sided examples, and count-only internal-gap
   evidence. It compares explicit leading-or-internal gap intersection with the strict percentile-
-  tail union and retains bounded disagreement examples without writing or selecting a coverage
-  rule.
+  tail union and retains bounded examples plus complete trigger, position, and magnitude summaries
+  for both disagreement groups without writing or selecting a coverage rule.
 
 Official local Bronze evidence:
 
@@ -247,8 +247,8 @@ complementary gap positions without selecting an eligibility rule.
 
 The strict tail contains 290 windows and the explicit leading-or-internal gap group contains 291.
 There are 207 windows whose first observation follows a material gap and 89 with a later internal
-gap; these position counts are not mutually exclusive. The 53 membership disagreements still need
-group-wide characterization before either signal can become an eligibility rule.
+gap; these position counts are not mutually exclusive. All 53 membership disagreements now have
+complete trigger, position, support-range, and gap-magnitude summaries.
 
 | Disagreement examples | Observation count | First-to-last span | Leading unobserved time | Gap evidence |
 | --- | ---: | ---: | ---: | --- |
@@ -259,6 +259,26 @@ The selected tail-only windows miss the 891-second span cutoff by only one or tw
 nominal 12-13 second preceding intervals. The strongest gap-only examples include two leading gaps
 whose intervals are 8,008 and 186 seconds and eight internal gaps of 161-174 seconds, even though
 their counts and endpoint spans do not fall below either strict cutoff.
+
+| Complete tail-only trigger | Windows |
+| --- | ---: |
+| Below count only | 0 |
+| Below span only | 26 |
+| Below both | 0 |
+
+All 26 tail-only windows have 75-90 observations over 889-890 seconds. They miss only the
+891-second span cutoff and contain no explicit material gap.
+
+| Complete gap-only position | Windows |
+| --- | ---: |
+| Leading only | 2 |
+| Internal only | 25 |
+| Leading and internal | 0 |
+
+The two leading-only windows each lose eight seconds at the feature-window boundary; their complete
+preceding intervals are 186 and 8,008 seconds. The 25 internal-only windows contain one marker each,
+with largest intervals ranging from 20 to 174 seconds and a median of 104 seconds. Their support
+remains at 75-91 observations over 892-899 seconds.
 
 ## Not implemented
 
@@ -279,6 +299,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will aggregate the complete 26 tail-only and 27 gap-only groups by tail
-trigger, gap position, and interval magnitude before selecting a feature-coverage eligibility rule
-or persisting a table.
+The next small increment will profile how strict-tail capture changes across material-gap magnitudes
+before selecting a feature-coverage eligibility rule or persisting a table.

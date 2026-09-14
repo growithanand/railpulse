@@ -19,6 +19,7 @@ from railpulse.features.temporal_feature_profile import (
     MotorCurrentFeatureProfileError,
     _collect_count_only_internal_gaps,
     _collect_gap_tail_comparison,
+    _collect_gap_tail_disagreement_characterization,
     _collect_gap_tail_disagreement_examples,
     _collect_one_sided_tail_examples,
     _collect_strict_tail_overlap,
@@ -134,6 +135,7 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     internal_gaps = profile.count_only_internal_gaps
     comparison = profile.gap_tail_comparison
     disagreement_examples = profile.gap_tail_disagreement_examples
+    disagreement_characterization = profile.gap_tail_disagreement_characterization
 
     assert profile.profile_version == MOTOR_CURRENT_FEATURE_PROFILE_VERSION
     assert profile.feature_version == MOTOR_CURRENT_FEATURE_VERSION
@@ -225,6 +227,34 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     assert disagreement_examples.gap_only_examples[0].maximum_internal_forward_gap_seconds == 899
     assert disagreement_examples.gap_only_examples[1].internal_forward_gap_count == 0
     assert disagreement_examples.gap_only_examples[1].maximum_internal_forward_gap_seconds is None
+    tail_only = disagreement_characterization.tail_only
+    assert tail_only.cycle_count == 0
+    assert tail_only.cycle_count_below_count_only == 0
+    assert tail_only.cycle_count_below_span_only == 0
+    assert tail_only.cycle_count_below_both == 0
+    assert tail_only.minimum_observation_count is None
+    assert tail_only.maximum_observation_count is None
+    assert tail_only.minimum_observation_span_seconds is None
+    assert tail_only.maximum_observation_span_seconds is None
+    gap_only = disagreement_characterization.gap_only
+    assert gap_only.cycle_count == 2
+    assert gap_only.cycle_count_with_leading_gap_only == 1
+    assert gap_only.cycle_count_with_internal_gap_only == 0
+    assert gap_only.cycle_count_with_leading_and_internal_gap == 1
+    assert gap_only.minimum_observation_count == 2
+    assert gap_only.maximum_observation_count == 3
+    assert gap_only.minimum_observation_span_seconds == 20
+    assert gap_only.maximum_observation_span_seconds == 899
+    assert gap_only.minimum_leading_unobserved_seconds == 1
+    assert gap_only.median_leading_unobserved_seconds == 1
+    assert gap_only.maximum_leading_unobserved_seconds == 880
+    assert gap_only.minimum_leading_gap_interval_seconds == 301
+    assert gap_only.median_leading_gap_interval_seconds == 301
+    assert gap_only.maximum_leading_gap_interval_seconds == 880
+    assert gap_only.internal_forward_gap_count == 1
+    assert gap_only.minimum_largest_internal_gap_seconds == 899
+    assert gap_only.median_largest_internal_gap_seconds == 899
+    assert gap_only.maximum_largest_internal_gap_seconds == 899
 
 
 @pytest.mark.spark
@@ -436,6 +466,41 @@ def test_strict_tail_overlap_and_examples_distinguish_membership(
     assert disagreement_examples.gap_only_examples[0].first_observation_follows_forward_gap is True
     assert disagreement_examples.gap_only_examples[0].preceding_interval_seconds == 1000
     assert disagreement_examples.gap_only_examples[0].internal_forward_gap_count == 0
+
+    disagreement_characterization = _collect_gap_tail_disagreement_characterization(
+        gap_context,
+        p05_observation_count=75,
+        p05_observation_span_seconds=891,
+    )
+
+    tail_only = disagreement_characterization.tail_only
+    assert tail_only.cycle_count == 1
+    assert tail_only.cycle_count_below_count_only == 1
+    assert tail_only.cycle_count_below_span_only == 0
+    assert tail_only.cycle_count_below_both == 0
+    assert tail_only.minimum_observation_count == 74
+    assert tail_only.maximum_observation_count == 74
+    assert tail_only.minimum_observation_span_seconds == 891
+    assert tail_only.maximum_observation_span_seconds == 891
+    gap_only = disagreement_characterization.gap_only
+    assert gap_only.cycle_count == 1
+    assert gap_only.cycle_count_with_leading_gap_only == 1
+    assert gap_only.cycle_count_with_internal_gap_only == 0
+    assert gap_only.cycle_count_with_leading_and_internal_gap == 0
+    assert gap_only.minimum_observation_count == 75
+    assert gap_only.maximum_observation_count == 75
+    assert gap_only.minimum_observation_span_seconds == 891
+    assert gap_only.maximum_observation_span_seconds == 891
+    assert gap_only.minimum_leading_unobserved_seconds == 9
+    assert gap_only.median_leading_unobserved_seconds == 9
+    assert gap_only.maximum_leading_unobserved_seconds == 9
+    assert gap_only.minimum_leading_gap_interval_seconds == 1000
+    assert gap_only.median_leading_gap_interval_seconds == 1000
+    assert gap_only.maximum_leading_gap_interval_seconds == 1000
+    assert gap_only.internal_forward_gap_count == 0
+    assert gap_only.minimum_largest_internal_gap_seconds is None
+    assert gap_only.median_largest_internal_gap_seconds is None
+    assert gap_only.maximum_largest_internal_gap_seconds is None
 
 
 @pytest.mark.spark
