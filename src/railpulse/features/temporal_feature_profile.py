@@ -36,12 +36,22 @@ from railpulse.validation.silver_telemetry import (
     split_telemetry_by_quality,
 )
 
-MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v4"
+MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v5"
 LOW_SUPPORT_EXAMPLE_LIMIT = 10
 MOTOR_CURRENT_FEATURE_STATUS_ORDER = (
     STATUS_AVAILABLE,
     STATUS_MISSING_PREDICTION,
     STATUS_MISSING_PREDICTION_OBSERVATION,
+)
+TAIL_EXAMPLE_COLUMNS = (
+    "loaded_cycle_id",
+    "prediction_timestamp",
+    "motor_current_15m_observation_count",
+    "motor_current_15m_first_observation_timestamp",
+    "observation_span_seconds",
+    "leading_unobserved_seconds",
+    "first_observation_follows_forward_gap",
+    "preceding_interval_seconds",
 )
 
 
@@ -125,6 +135,15 @@ class MotorCurrentStrictTailOverlap:
 
 
 @dataclass(frozen=True)
+class MotorCurrentOneSidedTailExamples:
+    """Deterministic examples that fall below only one support cutoff."""
+
+    example_limit: int
+    count_only_examples: tuple[MotorCurrentLowSupportWindow, ...]
+    span_only_examples: tuple[MotorCurrentLowSupportWindow, ...]
+
+
+@dataclass(frozen=True)
 class FullSourceMotorCurrentFeatureProfile:
     """Reconciled read-only profile of motor-current feature coverage."""
 
@@ -142,6 +161,7 @@ class FullSourceMotorCurrentFeatureProfile:
     low_support_tail: MotorCurrentLowSupportTail
     low_span_tail: MotorCurrentLowSpanTail
     strict_tail_overlap: MotorCurrentStrictTailOverlap
+    one_sided_tail_examples: MotorCurrentOneSidedTailExamples
 
 
 def _timestamp_text(value: datetime) -> str:
@@ -415,16 +435,7 @@ def _collect_tail_counts_and_examples(
                 "prediction_timestamp",
                 "loaded_cycle_id",
             )
-            .select(
-                "loaded_cycle_id",
-                "prediction_timestamp",
-                "motor_current_15m_observation_count",
-                "motor_current_15m_first_observation_timestamp",
-                "observation_span_seconds",
-                "leading_unobserved_seconds",
-                "first_observation_follows_forward_gap",
-                "preceding_interval_seconds",
-            )
+            .select(*TAIL_EXAMPLE_COLUMNS)
             .limit(LOW_SUPPORT_EXAMPLE_LIMIT)
             .collect()
         )
@@ -510,6 +521,45 @@ def _collect_strict_tail_overlap(
     )
 
 
+def _collect_one_sided_tail_examples(
+    available: DataFrame,
+    *,
+    p05_observation_count: int,
+    p05_observation_span_seconds: int,
+) -> MotorCurrentOneSidedTailExamples:
+    below_count = F.col("motor_current_15m_observation_count") < F.lit(p05_observation_count)
+    below_span = F.col("observation_span_seconds") < F.lit(p05_observation_span_seconds)
+    count_only_rows = (
+        available.where(below_count & ~below_span)
+        .orderBy(
+            "motor_current_15m_observation_count",
+            F.col("observation_span_seconds").desc(),
+            "prediction_timestamp",
+            "loaded_cycle_id",
+        )
+        .select(*TAIL_EXAMPLE_COLUMNS)
+        .limit(LOW_SUPPORT_EXAMPLE_LIMIT)
+        .collect()
+    )
+    span_only_rows = (
+        available.where(~below_count & below_span)
+        .orderBy(
+            "observation_span_seconds",
+            F.col("motor_current_15m_observation_count").desc(),
+            "prediction_timestamp",
+            "loaded_cycle_id",
+        )
+        .select(*TAIL_EXAMPLE_COLUMNS)
+        .limit(LOW_SUPPORT_EXAMPLE_LIMIT)
+        .collect()
+    )
+    return MotorCurrentOneSidedTailExamples(
+        example_limit=LOW_SUPPORT_EXAMPLE_LIMIT,
+        count_only_examples=tuple(_window_example(row) for row in count_only_rows),
+        span_only_examples=tuple(_window_example(row) for row in span_only_rows),
+    )
+
+
 def collect_motor_current_feature_profile(
     cycles: DataFrame,
     telemetry: DataFrame,
@@ -566,6 +616,11 @@ def collect_motor_current_feature_profile(
                 p05_observation_count=support.p05_observation_count,
                 p05_observation_span_seconds=support.p05_observation_span_seconds,
             )
+            one_sided_tail_examples = _collect_one_sided_tail_examples(
+                tail_context,
+                p05_observation_count=support.p05_observation_count,
+                p05_observation_span_seconds=support.p05_observation_span_seconds,
+            )
             if (
                 strict_tail_overlap.cycle_count_below_both
                 + strict_tail_overlap.cycle_count_below_count_only
@@ -581,6 +636,20 @@ def collect_motor_current_feature_profile(
             ):
                 raise MotorCurrentFeatureProfileError(
                     "Strict observed-span tail does not reconcile with overlap counts"
+                )
+            if len(one_sided_tail_examples.count_only_examples) != min(
+                strict_tail_overlap.cycle_count_below_count_only,
+                LOW_SUPPORT_EXAMPLE_LIMIT,
+            ):
+                raise MotorCurrentFeatureProfileError(
+                    "Count-only tail examples do not reconcile with overlap counts"
+                )
+            if len(one_sided_tail_examples.span_only_examples) != min(
+                strict_tail_overlap.cycle_count_below_span_only,
+                LOW_SUPPORT_EXAMPLE_LIMIT,
+            ):
+                raise MotorCurrentFeatureProfileError(
+                    "Span-only tail examples do not reconcile with overlap counts"
                 )
         finally:
             tail_context.unpersist()
@@ -607,6 +676,7 @@ def collect_motor_current_feature_profile(
             low_support_tail=low_support_tail,
             low_span_tail=low_span_tail,
             strict_tail_overlap=strict_tail_overlap,
+            one_sided_tail_examples=one_sided_tail_examples,
         )
     finally:
         features.unpersist()

@@ -41,11 +41,11 @@ A source-lineage-aware, read-only full-source profile now applies that contract 
 cycles. It reconciles 15,703 available features, the 63 cycles without observed stops, and zero
 missing telemetry anchors. Available windows have a median of 91 observations, while the minimum of
 3 shows that availability alone is not yet a sufficient training-eligibility rule.
-The version 4 profile now inspects count and observed-span tails independently and reconciles their
-strict membership overlap. Of 235 windows below the count cutoff and 237 below the span cutoff, 182
-are below both, 53 are count-only, and 55 are span-only. Both deterministic weakest-example lists
-contain the same ten windows: 3-7 observations over 19-59 seconds, each beginning after a recorded
-material forward gap.
+The version 5 profile now inspects count and observed-span tails independently, reconciles their
+strict membership overlap, and retains deterministic one-sided examples. The count-only examples
+have 15-49 observations across 892-899 seconds with nearly complete leading coverage. The span-only
+examples have 75-84 observations across 733-822 seconds, and all ten begin after a material forward
+gap that leaves 78-167 leading seconds uncovered.
 
 ## Environment observed on 2026-09-01
 
@@ -139,8 +139,8 @@ Repository-local Git identity:
   support, and rejects future-row leakage at the tested prediction boundary.
 - A read-only full-source motor-current profile reconciles feature statuses and reports
   observation-count and observed-span percentiles, independently counted cutoff tails, strict-tail
-  membership overlap, and deterministic weak-support examples without writing or selecting a
-  coverage rule.
+  membership overlap, and deterministic weakest and one-sided examples without writing or selecting
+  a coverage rule.
 
 Official local Bronze evidence:
 
@@ -224,6 +224,14 @@ windows as the lowest-count examples.
 
 The 108 one-sided memberships show that count and time coverage are related but not interchangeable.
 
+| Deterministic examples | Observation count | First-to-last span | Leading unobserved time | First observation follows gap |
+| --- | ---: | ---: | ---: | ---: |
+| Count-only, 10 of 53 | 15-49 | 892-899 seconds | 1-8 seconds | 0 of 10 |
+| Span-only, 10 of 55 | 75-84 | 733-822 seconds | 78-167 seconds | 10 of 10 |
+
+The count-only examples may contain interruptions inside an otherwise full-span window; that has
+not yet been measured. The span-only examples directly show leading-edge loss after source gaps.
+
 ## Not implemented
 
 - Persisted failure-horizon and temporal-feature data, feature-coverage eligibility rules,
@@ -243,6 +251,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will inspect deterministic examples from the 53 count-only and 55
-span-only windows before selecting a combined feature-coverage eligibility rule or persisting a
-table.
+The next small increment will quantify material forward gaps inside the count-only windows before
+selecting a combined feature-coverage eligibility rule or persisting a table.

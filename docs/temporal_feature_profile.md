@@ -18,7 +18,7 @@ descriptive observation-support statistics.
 
 ## Reconciliation contract
 
-`motor-current-15m-profile-v4` verifies that:
+`motor-current-15m-profile-v5` verifies that:
 
 - accepted telemetry has one complete dataset/source/ingestion lineage;
 - Gold cycles have unique, non-null identifiers and a stop-timestamp field;
@@ -31,12 +31,14 @@ descriptive observation-support statistics.
   fifth-percentile cutoffs, and their weakest examples retain deterministic cycle, time-span, and
   preceding-gap evidence;
 - strict membership below the two cutoffs is separated into both, count-only, and span-only groups
-  that reconcile with the independent strict-tail totals; and
+  that reconcile with the independent strict-tail totals;
+- count-only and span-only examples are limited, deterministically ordered, and reconcile with
+  their group sizes; and
 - the configured and observed dataset versions agree.
 
 ## Verified complete-source result
 
-The version 4 command was run locally on 2026-09-13.
+The version 5 command was run locally on 2026-09-14.
 
 | Input or contract | Verified value |
 | --- | ---: |
@@ -89,11 +91,23 @@ Strict-tail membership overlap:
 | Below 891 seconds only | 55 |
 | Below either cutoff | 290 |
 
+Deterministic one-sided examples:
+
+| Example group | Observation count | First-to-last span | Leading unobserved time | First observation follows gap | Preceding interval |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Count-only, 10 of 53 | 15-49 | 892-899 seconds | 1-8 seconds | 0 of 10 | 9-10 seconds |
+| Span-only, 10 of 55 | 75-84 | 733-822 seconds | 78-167 seconds | 10 of 10 | 367-88,833 seconds |
+
 The JSON output retains the ten weakest windows for each measure in deterministic order. In this
 source, the ten lowest-count and ten shortest-span examples are the same windows. Their observation
 counts range from 3 to 7, first-to-last spans range from 19 to 59 seconds, and leading unobserved
 time ranges from 841 to 881 seconds. All ten first contributing observations follow a recorded
 material forward gap; their preceding intervals range from 2,006 to 74,617 seconds.
+
+It also retains up to ten examples from each one-sided group. Count-only examples are ordered by
+lowest observation count and then longest span. Span-only examples are ordered by shortest span and
+then highest observation count. Prediction timestamp and cycle identifier provide stable final
+tie-breakers.
 
 Source identity:
 
@@ -132,6 +146,16 @@ depends on which support measure is used. This confirms that observation count a
 are related but not interchangeable. The cutoffs remain descriptive evidence, not a selected
 eligibility rule.
 
+The ten count-only examples span almost the complete 15-minute window but contain only 15-49
+observations. Their first observations are preceded by nominal 9-10 second intervals rather than
+material gaps. This rules out leading-edge truncation in those examples, but the current profile
+does not yet distinguish internal gaps from other causes of sparse sampling.
+
+The ten span-only examples contain 75-84 observations over 733-822 seconds. Every first observation
+follows a material gap, leaving 78-167 seconds uncovered at the leading edge. Span therefore
+captures a gap-related coverage loss that observation count alone misses in these examples.
+
 The profile does not persist features, summarize motor-current values as health states, test
-predictive usefulness, or measure failure warning performance. The source contains one compressor,
-so the current unpartitioned event-time window is not yet a multi-asset implementation.
+predictive usefulness, quantify internal gaps inside each feature window, or measure failure warning
+performance. The source contains one compressor, so the current unpartitioned event-time window is
+not yet a multi-asset implementation.

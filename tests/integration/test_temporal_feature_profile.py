@@ -17,6 +17,7 @@ from pyspark.sql.types import (
 from railpulse.features.temporal_feature_profile import (
     MOTOR_CURRENT_FEATURE_PROFILE_VERSION,
     MotorCurrentFeatureProfileError,
+    _collect_one_sided_tail_examples,
     _collect_strict_tail_overlap,
     collect_motor_current_feature_profile,
 )
@@ -125,6 +126,7 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     tail = profile.low_support_tail
     span_tail = profile.low_span_tail
     overlap = profile.strict_tail_overlap
+    one_sided = profile.one_sided_tail_examples
 
     assert profile.profile_version == MOTOR_CURRENT_FEATURE_PROFILE_VERSION
     assert profile.feature_version == MOTOR_CURRENT_FEATURE_VERSION
@@ -189,27 +191,100 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     assert overlap.cycle_count_below_count_only == 0
     assert overlap.cycle_count_below_span_only == 0
     assert overlap.cycle_count_below_either == 0
+    assert one_sided.example_limit == 10
+    assert one_sided.count_only_examples == ()
+    assert one_sided.span_only_examples == ()
 
 
 @pytest.mark.spark
-def test_strict_tail_overlap_distinguishes_count_and_span_membership(
+def test_strict_tail_overlap_and_examples_distinguish_membership(
     spark: SparkSession,
 ) -> None:
     available = spark.createDataFrame(
         [
-            (74, 890),
-            (74, 891),
-            (75, 890),
-            (75, 891),
+            (
+                "both",
+                datetime(2020, 1, 1, 10, 0),
+                74,
+                datetime(2020, 1, 1, 9, 45, 10),
+                890,
+                10,
+                True,
+                1000,
+            ),
+            (
+                "count-only-a",
+                datetime(2020, 1, 1, 10, 20),
+                74,
+                datetime(2020, 1, 1, 10, 5, 9),
+                891,
+                9,
+                False,
+                10,
+            ),
+            (
+                "count-only-b",
+                datetime(2020, 1, 1, 10, 30),
+                73,
+                datetime(2020, 1, 1, 10, 15, 1),
+                899,
+                1,
+                False,
+                10,
+            ),
+            (
+                "span-only-a",
+                datetime(2020, 1, 1, 10, 40),
+                75,
+                datetime(2020, 1, 1, 10, 25, 10),
+                890,
+                10,
+                True,
+                901,
+            ),
+            (
+                "span-only-b",
+                datetime(2020, 1, 1, 10, 50),
+                91,
+                datetime(2020, 1, 1, 10, 35, 11),
+                889,
+                11,
+                True,
+                902,
+            ),
+            (
+                "neither",
+                datetime(2020, 1, 1, 11, 0),
+                75,
+                datetime(2020, 1, 1, 10, 45, 9),
+                891,
+                9,
+                False,
+                10,
+            ),
         ],
         schema=StructType(
             [
+                StructField("loaded_cycle_id", StringType(), nullable=False),
+                StructField("prediction_timestamp", TimestampNTZType(), nullable=False),
                 StructField(
                     "motor_current_15m_observation_count",
                     LongType(),
                     nullable=False,
                 ),
+                StructField(
+                    "motor_current_15m_first_observation_timestamp",
+                    TimestampNTZType(),
+                    nullable=False,
+                ),
                 StructField("observation_span_seconds", LongType(), nullable=False),
+                StructField("leading_unobserved_seconds", LongType(), nullable=False),
+                StructField(
+                    "first_observation_follows_forward_gap",
+                    BooleanType(),
+                    nullable=False,
+                ),
+                StructField("preceding_interval_seconds", LongType(), nullable=True),
             ]
         ),
     )
@@ -223,9 +298,34 @@ def test_strict_tail_overlap_distinguishes_count_and_span_membership(
     assert overlap.p05_observation_count == 75
     assert overlap.p05_observation_span_seconds == 891
     assert overlap.cycle_count_below_both == 1
-    assert overlap.cycle_count_below_count_only == 1
-    assert overlap.cycle_count_below_span_only == 1
-    assert overlap.cycle_count_below_either == 3
+    assert overlap.cycle_count_below_count_only == 2
+    assert overlap.cycle_count_below_span_only == 2
+    assert overlap.cycle_count_below_either == 5
+
+    examples = _collect_one_sided_tail_examples(
+        available,
+        p05_observation_count=75,
+        p05_observation_span_seconds=891,
+    )
+
+    assert examples.example_limit == 10
+    assert [item.loaded_cycle_id for item in examples.count_only_examples] == [
+        "count-only-b",
+        "count-only-a",
+    ]
+    assert examples.count_only_examples[0].observation_count == 73
+    assert examples.count_only_examples[0].observation_span_seconds == 899
+    assert examples.count_only_examples[0].leading_unobserved_seconds == 1
+    assert examples.count_only_examples[0].first_observation_follows_forward_gap is False
+    assert [item.loaded_cycle_id for item in examples.span_only_examples] == [
+        "span-only-b",
+        "span-only-a",
+    ]
+    assert examples.span_only_examples[0].observation_count == 91
+    assert examples.span_only_examples[0].observation_span_seconds == 889
+    assert examples.span_only_examples[0].leading_unobserved_seconds == 11
+    assert examples.span_only_examples[0].first_observation_follows_forward_gap is True
+    assert examples.span_only_examples[0].preceding_interval_seconds == 902
 
 
 @pytest.mark.spark
