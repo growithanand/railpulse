@@ -36,7 +36,7 @@ from railpulse.validation.silver_telemetry import (
     split_telemetry_by_quality,
 )
 
-MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v7"
+MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v8"
 LOW_SUPPORT_EXAMPLE_LIMIT = 10
 MOTOR_CURRENT_FEATURE_STATUS_ORDER = (
     STATUS_AVAILABLE,
@@ -52,6 +52,11 @@ TAIL_EXAMPLE_COLUMNS = (
     "leading_unobserved_seconds",
     "first_observation_follows_forward_gap",
     "preceding_interval_seconds",
+)
+GAP_TAIL_EXAMPLE_COLUMNS = (
+    *TAIL_EXAMPLE_COLUMNS,
+    "internal_forward_gap_count",
+    "maximum_internal_forward_gap_seconds",
 )
 
 
@@ -170,6 +175,31 @@ class MotorCurrentGapTailComparison:
 
 
 @dataclass(frozen=True)
+class MotorCurrentGapTailDisagreementWindow:
+    """One deterministic example where tail and explicit-gap membership disagree."""
+
+    loaded_cycle_id: str
+    prediction_timestamp: str
+    observation_count: int
+    first_observation_timestamp: str
+    observation_span_seconds: int
+    leading_unobserved_seconds: int
+    first_observation_follows_forward_gap: bool
+    preceding_interval_seconds: int | None
+    internal_forward_gap_count: int
+    maximum_internal_forward_gap_seconds: int | None
+
+
+@dataclass(frozen=True)
+class MotorCurrentGapTailDisagreementExamples:
+    """Bounded deterministic examples from both gap-tail disagreement groups."""
+
+    example_limit: int
+    tail_only_examples: tuple[MotorCurrentGapTailDisagreementWindow, ...]
+    gap_only_examples: tuple[MotorCurrentGapTailDisagreementWindow, ...]
+
+
+@dataclass(frozen=True)
 class FullSourceMotorCurrentFeatureProfile:
     """Reconciled read-only profile of motor-current feature coverage."""
 
@@ -190,6 +220,7 @@ class FullSourceMotorCurrentFeatureProfile:
     one_sided_tail_examples: MotorCurrentOneSidedTailExamples
     count_only_internal_gaps: MotorCurrentCountOnlyInternalGapProfile
     gap_tail_comparison: MotorCurrentGapTailComparison
+    gap_tail_disagreement_examples: MotorCurrentGapTailDisagreementExamples
 
 
 def _timestamp_text(value: datetime) -> str:
@@ -700,6 +731,83 @@ def _collect_gap_tail_comparison(
     )
 
 
+def _gap_tail_disagreement_example(row: Row) -> MotorCurrentGapTailDisagreementWindow:
+    return MotorCurrentGapTailDisagreementWindow(
+        loaded_cycle_id=str(row.loaded_cycle_id),
+        prediction_timestamp=_timestamp_text(row.prediction_timestamp),
+        observation_count=int(row.motor_current_15m_observation_count),
+        first_observation_timestamp=_timestamp_text(
+            row.motor_current_15m_first_observation_timestamp
+        ),
+        observation_span_seconds=int(row.observation_span_seconds),
+        leading_unobserved_seconds=int(row.leading_unobserved_seconds),
+        first_observation_follows_forward_gap=bool(row.first_observation_follows_forward_gap),
+        preceding_interval_seconds=(
+            None if row.preceding_interval_seconds is None else int(row.preceding_interval_seconds)
+        ),
+        internal_forward_gap_count=int(row.internal_forward_gap_count),
+        maximum_internal_forward_gap_seconds=(
+            None
+            if row.maximum_internal_forward_gap_seconds is None
+            else int(row.maximum_internal_forward_gap_seconds)
+        ),
+    )
+
+
+def _collect_gap_tail_disagreement_examples(
+    available: DataFrame,
+    *,
+    p05_observation_count: int,
+    p05_observation_span_seconds: int,
+) -> MotorCurrentGapTailDisagreementExamples:
+    in_tail = (F.col("motor_current_15m_observation_count") < F.lit(p05_observation_count)) | (
+        F.col("observation_span_seconds") < F.lit(p05_observation_span_seconds)
+    )
+    has_leading_gap = F.col("first_observation_follows_forward_gap")
+    has_internal_gap = F.col("internal_forward_gap_count") > F.lit(0)
+    intersects_gap = has_leading_gap | has_internal_gap
+
+    tail_only_rows = (
+        available.where(in_tail & ~intersects_gap)
+        .orderBy(
+            "motor_current_15m_observation_count",
+            "observation_span_seconds",
+            "prediction_timestamp",
+            "loaded_cycle_id",
+        )
+        .select(*GAP_TAIL_EXAMPLE_COLUMNS)
+        .limit(LOW_SUPPORT_EXAMPLE_LIMIT)
+        .collect()
+    )
+    leading_gap_seconds = F.when(
+        has_leading_gap,
+        F.coalesce(F.col("preceding_interval_seconds"), F.lit(0)),
+    ).otherwise(F.lit(0))
+    strongest_gap_seconds = F.greatest(
+        leading_gap_seconds,
+        F.coalesce(F.col("maximum_internal_forward_gap_seconds"), F.lit(0)),
+    )
+    gap_only_rows = (
+        available.where(~in_tail & intersects_gap)
+        .orderBy(
+            strongest_gap_seconds.desc(),
+            F.col("internal_forward_gap_count").desc(),
+            "motor_current_15m_observation_count",
+            "observation_span_seconds",
+            "prediction_timestamp",
+            "loaded_cycle_id",
+        )
+        .select(*GAP_TAIL_EXAMPLE_COLUMNS)
+        .limit(LOW_SUPPORT_EXAMPLE_LIMIT)
+        .collect()
+    )
+    return MotorCurrentGapTailDisagreementExamples(
+        example_limit=LOW_SUPPORT_EXAMPLE_LIMIT,
+        tail_only_examples=tuple(_gap_tail_disagreement_example(row) for row in tail_only_rows),
+        gap_only_examples=tuple(_gap_tail_disagreement_example(row) for row in gap_only_rows),
+    )
+
+
 def collect_motor_current_feature_profile(
     cycles: DataFrame,
     telemetry: DataFrame,
@@ -771,6 +879,11 @@ def collect_motor_current_feature_profile(
                     p05_observation_span_seconds=support.p05_observation_span_seconds,
                 )
                 gap_tail_comparison = _collect_gap_tail_comparison(
+                    gap_context,
+                    p05_observation_count=support.p05_observation_count,
+                    p05_observation_span_seconds=support.p05_observation_span_seconds,
+                )
+                gap_tail_disagreement_examples = _collect_gap_tail_disagreement_examples(
                     gap_context,
                     p05_observation_count=support.p05_observation_count,
                     p05_observation_span_seconds=support.p05_observation_span_seconds,
@@ -851,6 +964,20 @@ def collect_motor_current_feature_profile(
                 raise MotorCurrentFeatureProfileError(
                     "Gap-tail comparison does not reconcile all available windows"
                 )
+            if len(gap_tail_disagreement_examples.tail_only_examples) != min(
+                gap_tail_comparison.cycle_count_in_tail_only,
+                LOW_SUPPORT_EXAMPLE_LIMIT,
+            ):
+                raise MotorCurrentFeatureProfileError(
+                    "Tail-only gap-tail examples do not reconcile with comparison counts"
+                )
+            if len(gap_tail_disagreement_examples.gap_only_examples) != min(
+                gap_tail_comparison.cycle_count_in_gap_only,
+                LOW_SUPPORT_EXAMPLE_LIMIT,
+            ):
+                raise MotorCurrentFeatureProfileError(
+                    "Gap-only gap-tail examples do not reconcile with comparison counts"
+                )
         finally:
             tail_context.unpersist()
 
@@ -879,6 +1006,7 @@ def collect_motor_current_feature_profile(
             one_sided_tail_examples=one_sided_tail_examples,
             count_only_internal_gaps=count_only_internal_gaps,
             gap_tail_comparison=gap_tail_comparison,
+            gap_tail_disagreement_examples=gap_tail_disagreement_examples,
         )
     finally:
         features.unpersist()

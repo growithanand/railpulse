@@ -19,6 +19,7 @@ from railpulse.features.temporal_feature_profile import (
     MotorCurrentFeatureProfileError,
     _collect_count_only_internal_gaps,
     _collect_gap_tail_comparison,
+    _collect_gap_tail_disagreement_examples,
     _collect_one_sided_tail_examples,
     _collect_strict_tail_overlap,
     _with_internal_gap_context,
@@ -132,6 +133,7 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     one_sided = profile.one_sided_tail_examples
     internal_gaps = profile.count_only_internal_gaps
     comparison = profile.gap_tail_comparison
+    disagreement_examples = profile.gap_tail_disagreement_examples
 
     assert profile.profile_version == MOTOR_CURRENT_FEATURE_PROFILE_VERSION
     assert profile.feature_version == MOTOR_CURRENT_FEATURE_VERSION
@@ -213,6 +215,16 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     assert comparison.cycle_count_in_neither == 0
     assert comparison.cycle_count_with_leading_forward_gap == 2
     assert comparison.cycle_count_with_internal_forward_gap == 1
+    assert disagreement_examples.example_limit == 10
+    assert disagreement_examples.tail_only_examples == ()
+    assert [item.loaded_cycle_id for item in disagreement_examples.gap_only_examples] == [
+        "available-one",
+        "available-three",
+    ]
+    assert disagreement_examples.gap_only_examples[0].internal_forward_gap_count == 1
+    assert disagreement_examples.gap_only_examples[0].maximum_internal_forward_gap_seconds == 899
+    assert disagreement_examples.gap_only_examples[1].internal_forward_gap_count == 0
+    assert disagreement_examples.gap_only_examples[1].maximum_internal_forward_gap_seconds is None
 
 
 @pytest.mark.spark
@@ -399,6 +411,31 @@ def test_strict_tail_overlap_and_examples_distinguish_membership(
     assert comparison.cycle_count_in_neither == 1
     assert comparison.cycle_count_with_leading_forward_gap == 5
     assert comparison.cycle_count_with_internal_forward_gap == 1
+
+    disagreement_examples = _collect_gap_tail_disagreement_examples(
+        gap_context,
+        p05_observation_count=75,
+        p05_observation_span_seconds=891,
+    )
+
+    assert disagreement_examples.example_limit == 10
+    assert [item.loaded_cycle_id for item in disagreement_examples.tail_only_examples] == [
+        "count-only-a"
+    ]
+    assert disagreement_examples.tail_only_examples[0].observation_count == 74
+    assert disagreement_examples.tail_only_examples[0].observation_span_seconds == 891
+    assert (
+        disagreement_examples.tail_only_examples[0].first_observation_follows_forward_gap is False
+    )
+    assert disagreement_examples.tail_only_examples[0].internal_forward_gap_count == 0
+    assert [item.loaded_cycle_id for item in disagreement_examples.gap_only_examples] == [
+        "gap-only"
+    ]
+    assert disagreement_examples.gap_only_examples[0].observation_count == 75
+    assert disagreement_examples.gap_only_examples[0].observation_span_seconds == 891
+    assert disagreement_examples.gap_only_examples[0].first_observation_follows_forward_gap is True
+    assert disagreement_examples.gap_only_examples[0].preceding_interval_seconds == 1000
+    assert disagreement_examples.gap_only_examples[0].internal_forward_gap_count == 0
 
 
 @pytest.mark.spark

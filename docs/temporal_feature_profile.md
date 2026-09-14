@@ -18,7 +18,7 @@ descriptive observation-support statistics.
 
 ## Reconciliation contract
 
-`motor-current-15m-profile-v7` verifies that:
+`motor-current-15m-profile-v8` verifies that:
 
 - accepted telemetry has one complete dataset/source/ingestion lineage;
 - Gold cycles have unique, non-null identifiers and a stop-timestamp field;
@@ -37,12 +37,14 @@ descriptive observation-support statistics.
 - material forward-gap markers after the first contributing observation are counted across every
   count-only window and reconcile with that group;
 - explicit leading-or-internal gap intersection is compared with the strict percentile-tail union,
-  and both partitions reconcile with every available window; and
+  and both partitions reconcile with every available window;
+- bounded examples from both disagreement groups retain deterministic support, leading-gap, and
+  internal-gap evidence and reconcile with their group sizes; and
 - the configured and observed dataset versions agree.
 
 ## Verified complete-source result
 
-The version 7 command was run locally on 2026-09-14.
+The version 8 command was run locally on 2026-09-14.
 
 | Input or contract | Verified value |
 | --- | ---: |
@@ -131,6 +133,18 @@ Explicit gap intersection versus strict percentile-tail membership:
 
 Leading and internal gap counts are not mutually exclusive.
 
+Deterministic disagreement examples:
+
+| Example group | Observation count | First-to-last span | Leading unobserved time | Leading gap | Internal gap |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Tail-only, 10 of 26 | 75 | 889-890 seconds | 10-11 seconds | 0 of 10 | 0 of 10 |
+| Gap-only, 10 of 27 | 75-91 | 892-897 seconds | 3-8 seconds | 2 of 10 | 8 of 10 |
+
+Tail-only examples are ordered by lowest observation count and then shortest span. Their preceding
+intervals are 12-13 seconds, and none contains an internal material gap. Gap-only examples are
+ordered by the largest leading or internal gap interval. The first two have leading intervals of
+8,008 and 186 seconds; the remaining eight have internal intervals of 161-174 seconds.
+
 The JSON output retains the ten weakest windows for each measure in deterministic order. In this
 source, the ten lowest-count and ten shortest-span examples are the same windows. Their observation
 counts range from 3 to 7, first-to-last spans range from 19 to 59 seconds, and leading unobserved
@@ -194,8 +208,17 @@ Together, these results show that low count identifies gaps inside nearly full-s
 low span identifies missing leading coverage. Across all available windows, 264 belong to both the
 strict percentile-tail union and the explicit gap-intersection group. Another 26 are tail-only and
 27 are gap-only. The two totals are nearly identical at 290 and 291, but the 53 disagreements prove
-that neither signal can substitute for the other by count alone. Their examples have not yet been
-inspected, so both remain diagnostic evidence rather than a selected eligibility contract.
+that neither signal can substitute for the other by count alone.
+
+The selected tail-only examples all sit exactly at the count cutoff and miss the span cutoff by
+only one or two seconds. Their nominal preceding intervals and lack of internal gaps indicate that
+small cadence variation can cross a strict population-derived span boundary without a material
+source interruption. The strongest gap-only examples show the converse: two retain 91 observations
+over 892 seconds even though a material gap overlaps the first eight seconds of the window, while
+eight retain 75-76 observations over 895-897 seconds around an internal 161-174 second gap. Explicit
+gap evidence therefore describes source continuity, while the percentile tails describe endpoint
+support and sample count. These bounded examples explain the disagreement but do not yet justify
+choosing either signal as an eligibility contract.
 
 The profile does not persist features, summarize motor-current values as health states, test
 predictive usefulness, select a feature-coverage rule, or measure failure warning performance. The
