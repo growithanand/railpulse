@@ -18,7 +18,7 @@ descriptive observation-support statistics.
 
 ## Reconciliation contract
 
-`motor-current-15m-profile-v6` verifies that:
+`motor-current-15m-profile-v7` verifies that:
 
 - accepted telemetry has one complete dataset/source/ingestion lineage;
 - Gold cycles have unique, non-null identifiers and a stop-timestamp field;
@@ -35,12 +35,14 @@ descriptive observation-support statistics.
 - count-only and span-only examples are limited, deterministically ordered, and reconcile with
   their group sizes;
 - material forward-gap markers after the first contributing observation are counted across every
-  count-only window and reconcile with that group; and
+  count-only window and reconcile with that group;
+- explicit leading-or-internal gap intersection is compared with the strict percentile-tail union,
+  and both partitions reconcile with every available window; and
 - the configured and observed dataset versions agree.
 
 ## Verified complete-source result
 
-The version 6 command was run locally on 2026-09-14.
+The version 7 command was run locally on 2026-09-14.
 
 | Input or contract | Verified value |
 | --- | ---: |
@@ -110,6 +112,25 @@ Count-only internal-gap reconciliation:
 | Internal material forward-gap markers | 54 |
 | Maximum internal interval | 765 seconds |
 
+Explicit gap intersection versus strict percentile-tail membership:
+
+| Membership | Windows |
+| --- | ---: |
+| Strict tail and explicit gap | 264 |
+| Strict tail only | 26 |
+| Explicit gap only | 27 |
+| Neither | 15,386 |
+| **Available total** | **15,703** |
+
+| Independent total | Windows |
+| --- | ---: |
+| Strict count-or-span tail | 290 |
+| Leading-or-internal material gap | 291 |
+| First observation follows a material gap | 207 |
+| Contains a later internal material gap | 89 |
+
+Leading and internal gap counts are not mutually exclusive.
+
 The JSON output retains the ten weakest windows for each measure in deterministic order. In this
 source, the ten lowest-count and ten shortest-span examples are the same windows. Their observation
 counts range from 3 to 7, first-to-last spans range from 19 to 59 seconds, and leading unobserved
@@ -170,9 +191,11 @@ follows a material gap, leaving 78-167 seconds uncovered at the leading edge. Sp
 captures a gap-related coverage loss that observation count alone misses in these examples.
 
 Together, these results show that low count identifies gaps inside nearly full-span windows while
-low span identifies missing leading coverage. The percentile cutoffs remain descriptive proxies;
-the profile has not yet tested whether explicit gap intersection provides a clearer eligibility
-contract across every available window.
+low span identifies missing leading coverage. Across all available windows, 264 belong to both the
+strict percentile-tail union and the explicit gap-intersection group. Another 26 are tail-only and
+27 are gap-only. The two totals are nearly identical at 290 and 291, but the 53 disagreements prove
+that neither signal can substitute for the other by count alone. Their examples have not yet been
+inspected, so both remain diagnostic evidence rather than a selected eligibility contract.
 
 The profile does not persist features, summarize motor-current values as health states, test
 predictive usefulness, select a feature-coverage rule, or measure failure warning performance. The

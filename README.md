@@ -31,8 +31,9 @@ strict tails share 182 cycles but also contain 53 count-only and 55 span-only cy
 measures are not interchangeable. Deterministic one-sided examples distinguish sparse windows
 with nearly complete time spans from windows whose leading coverage is truncated by source gaps.
 All 53 count-only windows contain an internal material gap after their first observation, confirming
-that count and span expose complementary gap positions. No performance or maintenance-impact claims
-have been established.
+that count and span expose complementary gap positions. An all-window comparison finds 291
+gap-intersecting windows versus 290 in the strict percentile-tail union, but 26 are tail-only and 27
+are gap-only. No performance or maintenance-impact claims have been established.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -105,7 +106,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
 - A source-lineage-aware, read-only full-source motor-current profile that reconciles feature
   availability, observation-support percentiles, independent count and span tails, their strict
   membership overlap, deterministic weakest and one-sided examples, and internal-gap evidence for
-  count-only windows without setting a training threshold.
+  count-only windows. It also compares explicit gap intersection with the percentile-tail union
+  without setting a training threshold.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.

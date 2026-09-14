@@ -41,11 +41,11 @@ A source-lineage-aware, read-only full-source profile now applies that contract 
 cycles. It reconciles 15,703 available features, the 63 cycles without observed stops, and zero
 missing telemetry anchors. Available windows have a median of 91 observations, while the minimum of
 3 shows that availability alone is not yet a sufficient training-eligibility rule.
-The version 6 profile now inspects count and observed-span tails independently, reconciles their
-strict membership overlap, retains deterministic one-sided examples, and measures internal material
-gaps across count-only windows. All 53 count-only windows contain an internal gap after their first
-observation, with 54 markers in total and a maximum interval of 765 seconds. The span-only examples
-instead begin after material gaps that leave 78-167 leading seconds uncovered.
+The version 7 profile now inspects count and observed-span tails independently, retains deterministic
+one-sided examples, measures internal material gaps, and compares the strict percentile-tail union
+with explicit gap intersection. The two groups contain 290 and 291 windows respectively, with 264
+in both, 26 tail-only, and 27 gap-only. Their near-equal totals therefore do not imply equivalent
+membership.
 
 ## Environment observed on 2026-09-01
 
@@ -140,7 +140,8 @@ Repository-local Git identity:
 - A read-only full-source motor-current profile reconciles feature statuses and reports
   observation-count and observed-span percentiles, independently counted cutoff tails, strict-tail
   membership overlap, deterministic weakest and one-sided examples, and count-only internal-gap
-  evidence without writing or selecting a coverage rule.
+  evidence. It compares explicit leading-or-internal gap intersection with the strict percentile-
+  tail union without writing or selecting a coverage rule.
 
 Official local Bronze evidence:
 
@@ -234,6 +235,19 @@ observation. They contain 54 internal gap markers in total, with a maximum inter
 The span-only examples directly show leading-edge loss after source gaps. These results establish
 complementary gap positions without selecting an eligibility rule.
 
+| Gap-intersection versus strict-tail membership | Windows |
+| --- | ---: |
+| In both groups | 264 |
+| Strict tail only | 26 |
+| Explicit gap only | 27 |
+| In neither group | 15,386 |
+| **Available total** | **15,703** |
+
+The strict tail contains 290 windows and the explicit leading-or-internal gap group contains 291.
+There are 207 windows whose first observation follows a material gap and 89 with a later internal
+gap; these position counts are not mutually exclusive. The 53 membership disagreements still need
+inspection before either signal can become an eligibility rule.
+
 ## Not implemented
 
 - Persisted failure-horizon and temporal-feature data, feature-coverage eligibility rules,
@@ -253,6 +267,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will compare explicit material-gap intersection with the 290-window union
-of the strict count and span tails before selecting a feature-coverage eligibility rule or
-persisting a table.
+The next small increment will inspect deterministic examples from the 26 tail-only and 27 gap-only
+windows before selecting a feature-coverage eligibility rule or persisting a table.

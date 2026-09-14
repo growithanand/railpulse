@@ -18,8 +18,10 @@ from railpulse.features.temporal_feature_profile import (
     MOTOR_CURRENT_FEATURE_PROFILE_VERSION,
     MotorCurrentFeatureProfileError,
     _collect_count_only_internal_gaps,
+    _collect_gap_tail_comparison,
     _collect_one_sided_tail_examples,
     _collect_strict_tail_overlap,
+    _with_internal_gap_context,
     collect_motor_current_feature_profile,
 )
 from railpulse.features.temporal_features import MOTOR_CURRENT_FEATURE_VERSION
@@ -129,6 +131,7 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     overlap = profile.strict_tail_overlap
     one_sided = profile.one_sided_tail_examples
     internal_gaps = profile.count_only_internal_gaps
+    comparison = profile.gap_tail_comparison
 
     assert profile.profile_version == MOTOR_CURRENT_FEATURE_PROFILE_VERSION
     assert profile.feature_version == MOTOR_CURRENT_FEATURE_VERSION
@@ -201,6 +204,15 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     assert internal_gaps.cycle_count_without_internal_forward_gap == 0
     assert internal_gaps.internal_forward_gap_count == 0
     assert internal_gaps.maximum_internal_forward_gap_seconds is None
+    assert comparison.available_cycle_count == 2
+    assert comparison.strict_tail_union_cycle_count == 0
+    assert comparison.gap_intersecting_cycle_count == 2
+    assert comparison.cycle_count_in_tail_and_gap == 0
+    assert comparison.cycle_count_in_tail_only == 0
+    assert comparison.cycle_count_in_gap_only == 2
+    assert comparison.cycle_count_in_neither == 0
+    assert comparison.cycle_count_with_leading_forward_gap == 2
+    assert comparison.cycle_count_with_internal_forward_gap == 1
 
 
 @pytest.mark.spark
@@ -260,12 +272,22 @@ def test_strict_tail_overlap_and_examples_distinguish_membership(
                 902,
             ),
             (
-                "neither",
+                "gap-only",
                 datetime(2020, 1, 1, 11, 0),
                 75,
                 datetime(2020, 1, 1, 10, 45, 9),
                 891,
                 9,
+                True,
+                1000,
+            ),
+            (
+                "neither",
+                datetime(2020, 1, 1, 11, 20),
+                91,
+                datetime(2020, 1, 1, 11, 5, 1),
+                899,
+                1,
                 False,
                 10,
             ),
@@ -349,9 +371,9 @@ def test_strict_tail_overlap_and_examples_distinguish_membership(
             ]
         ),
     )
+    gap_context = _with_internal_gap_context(available, gap_telemetry)
     internal_gaps = _collect_count_only_internal_gaps(
-        available,
-        gap_telemetry,
+        gap_context,
         p05_observation_count=75,
         p05_observation_span_seconds=891,
     )
@@ -361,6 +383,22 @@ def test_strict_tail_overlap_and_examples_distinguish_membership(
     assert internal_gaps.cycle_count_without_internal_forward_gap == 1
     assert internal_gaps.internal_forward_gap_count == 2
     assert internal_gaps.maximum_internal_forward_gap_seconds == 400
+
+    comparison = _collect_gap_tail_comparison(
+        gap_context,
+        p05_observation_count=75,
+        p05_observation_span_seconds=891,
+    )
+
+    assert comparison.available_cycle_count == 7
+    assert comparison.strict_tail_union_cycle_count == 5
+    assert comparison.gap_intersecting_cycle_count == 5
+    assert comparison.cycle_count_in_tail_and_gap == 4
+    assert comparison.cycle_count_in_tail_only == 1
+    assert comparison.cycle_count_in_gap_only == 1
+    assert comparison.cycle_count_in_neither == 1
+    assert comparison.cycle_count_with_leading_forward_gap == 5
+    assert comparison.cycle_count_with_internal_forward_gap == 1
 
 
 @pytest.mark.spark
