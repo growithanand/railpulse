@@ -36,7 +36,7 @@ from railpulse.validation.silver_telemetry import (
     split_telemetry_by_quality,
 )
 
-MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v5"
+MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v6"
 LOW_SUPPORT_EXAMPLE_LIMIT = 10
 MOTOR_CURRENT_FEATURE_STATUS_ORDER = (
     STATUS_AVAILABLE,
@@ -144,6 +144,17 @@ class MotorCurrentOneSidedTailExamples:
 
 
 @dataclass(frozen=True)
+class MotorCurrentCountOnlyInternalGapProfile:
+    """Material forward gaps after the first observation in count-only windows."""
+
+    count_only_cycle_count: int
+    cycle_count_with_internal_forward_gap: int
+    cycle_count_without_internal_forward_gap: int
+    internal_forward_gap_count: int
+    maximum_internal_forward_gap_seconds: int | None
+
+
+@dataclass(frozen=True)
 class FullSourceMotorCurrentFeatureProfile:
     """Reconciled read-only profile of motor-current feature coverage."""
 
@@ -162,6 +173,7 @@ class FullSourceMotorCurrentFeatureProfile:
     low_span_tail: MotorCurrentLowSpanTail
     strict_tail_overlap: MotorCurrentStrictTailOverlap
     one_sided_tail_examples: MotorCurrentOneSidedTailExamples
+    count_only_internal_gaps: MotorCurrentCountOnlyInternalGapProfile
 
 
 def _timestamp_text(value: datetime) -> str:
@@ -560,6 +572,74 @@ def _collect_one_sided_tail_examples(
     )
 
 
+def _collect_count_only_internal_gaps(
+    available: DataFrame,
+    telemetry: DataFrame,
+    *,
+    p05_observation_count: int,
+    p05_observation_span_seconds: int,
+) -> MotorCurrentCountOnlyInternalGapProfile:
+    count_only = (
+        available.where(
+            (F.col("motor_current_15m_observation_count") < F.lit(p05_observation_count))
+            & (F.col("observation_span_seconds") >= F.lit(p05_observation_span_seconds))
+        )
+        .select(
+            "loaded_cycle_id",
+            "prediction_timestamp",
+            "motor_current_15m_first_observation_timestamp",
+        )
+        .alias("count_only")
+    )
+    gap_markers = (
+        telemetry.where(F.col("is_forward_gap"))
+        .select(
+            F.col("event_timestamp").alias("internal_gap_timestamp"),
+            F.col("interval_seconds").alias("internal_gap_interval_seconds"),
+        )
+        .alias("gap")
+    )
+    joined = count_only.join(
+        F.broadcast(gap_markers),
+        (
+            F.col("gap.internal_gap_timestamp")
+            > F.col("count_only.motor_current_15m_first_observation_timestamp")
+        )
+        & (F.col("gap.internal_gap_timestamp") <= F.col("count_only.prediction_timestamp")),
+        how="left",
+    ).select(
+        F.col("count_only.loaded_cycle_id").alias("loaded_cycle_id"),
+        F.col("gap.internal_gap_timestamp").alias("internal_gap_timestamp"),
+        F.col("gap.internal_gap_interval_seconds").alias("internal_gap_interval_seconds"),
+    )
+    per_window = joined.groupBy("loaded_cycle_id").agg(
+        F.count("internal_gap_timestamp").cast(LongType()).alias("internal_forward_gap_count"),
+        F.max("internal_gap_interval_seconds").alias("maximum_internal_forward_gap_seconds"),
+    )
+    summary = per_window.agg(
+        F.count(F.lit(1)).cast(LongType()).alias("count_only_cycle_count"),
+        F.count(F.when(F.col("internal_forward_gap_count") > F.lit(0), F.lit(1)))
+        .cast(LongType())
+        .alias("cycles_with_internal_gap"),
+        F.sum("internal_forward_gap_count").cast(LongType()).alias("internal_gap_count"),
+        F.max("maximum_internal_forward_gap_seconds").alias("maximum_internal_gap_seconds"),
+    ).first()
+    count_only_cycle_count = int(summary.count_only_cycle_count)
+    cycles_with_internal_gap = int(summary.cycles_with_internal_gap)
+    maximum_internal_gap_seconds = summary.maximum_internal_gap_seconds
+    return MotorCurrentCountOnlyInternalGapProfile(
+        count_only_cycle_count=count_only_cycle_count,
+        cycle_count_with_internal_forward_gap=cycles_with_internal_gap,
+        cycle_count_without_internal_forward_gap=(
+            count_only_cycle_count - cycles_with_internal_gap
+        ),
+        internal_forward_gap_count=int(summary.internal_gap_count or 0),
+        maximum_internal_forward_gap_seconds=(
+            None if maximum_internal_gap_seconds is None else int(maximum_internal_gap_seconds)
+        ),
+    )
+
+
 def collect_motor_current_feature_profile(
     cycles: DataFrame,
     telemetry: DataFrame,
@@ -621,6 +701,12 @@ def collect_motor_current_feature_profile(
                 p05_observation_count=support.p05_observation_count,
                 p05_observation_span_seconds=support.p05_observation_span_seconds,
             )
+            count_only_internal_gaps = _collect_count_only_internal_gaps(
+                tail_context,
+                telemetry,
+                p05_observation_count=support.p05_observation_count,
+                p05_observation_span_seconds=support.p05_observation_span_seconds,
+            )
             if (
                 strict_tail_overlap.cycle_count_below_both
                 + strict_tail_overlap.cycle_count_below_count_only
@@ -651,6 +737,13 @@ def collect_motor_current_feature_profile(
                 raise MotorCurrentFeatureProfileError(
                     "Span-only tail examples do not reconcile with overlap counts"
                 )
+            if (
+                count_only_internal_gaps.count_only_cycle_count
+                != strict_tail_overlap.cycle_count_below_count_only
+            ):
+                raise MotorCurrentFeatureProfileError(
+                    "Count-only internal-gap profile does not reconcile with overlap counts"
+                )
         finally:
             tail_context.unpersist()
 
@@ -677,6 +770,7 @@ def collect_motor_current_feature_profile(
             low_span_tail=low_span_tail,
             strict_tail_overlap=strict_tail_overlap,
             one_sided_tail_examples=one_sided_tail_examples,
+            count_only_internal_gaps=count_only_internal_gaps,
         )
     finally:
         features.unpersist()

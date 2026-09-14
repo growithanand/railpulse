@@ -18,7 +18,7 @@ descriptive observation-support statistics.
 
 ## Reconciliation contract
 
-`motor-current-15m-profile-v5` verifies that:
+`motor-current-15m-profile-v6` verifies that:
 
 - accepted telemetry has one complete dataset/source/ingestion lineage;
 - Gold cycles have unique, non-null identifiers and a stop-timestamp field;
@@ -33,12 +33,14 @@ descriptive observation-support statistics.
 - strict membership below the two cutoffs is separated into both, count-only, and span-only groups
   that reconcile with the independent strict-tail totals;
 - count-only and span-only examples are limited, deterministically ordered, and reconcile with
-  their group sizes; and
+  their group sizes;
+- material forward-gap markers after the first contributing observation are counted across every
+  count-only window and reconcile with that group; and
 - the configured and observed dataset versions agree.
 
 ## Verified complete-source result
 
-The version 5 command was run locally on 2026-09-14.
+The version 6 command was run locally on 2026-09-14.
 
 | Input or contract | Verified value |
 | --- | ---: |
@@ -98,6 +100,16 @@ Deterministic one-sided examples:
 | Count-only, 10 of 53 | 15-49 | 892-899 seconds | 1-8 seconds | 0 of 10 | 9-10 seconds |
 | Span-only, 10 of 55 | 75-84 | 733-822 seconds | 78-167 seconds | 10 of 10 | 367-88,833 seconds |
 
+Count-only internal-gap reconciliation:
+
+| Measure | Verified value |
+| --- | ---: |
+| Count-only windows | 53 |
+| With an internal material forward gap | 53 |
+| Without an internal material forward gap | 0 |
+| Internal material forward-gap markers | 54 |
+| Maximum internal interval | 765 seconds |
+
 The JSON output retains the ten weakest windows for each measure in deterministic order. In this
 source, the ten lowest-count and ten shortest-span examples are the same windows. Their observation
 counts range from 3 to 7, first-to-last spans range from 19 to 59 seconds, and leading unobserved
@@ -148,14 +160,21 @@ eligibility rule.
 
 The ten count-only examples span almost the complete 15-minute window but contain only 15-49
 observations. Their first observations are preceded by nominal 9-10 second intervals rather than
-material gaps. This rules out leading-edge truncation in those examples, but the current profile
-does not yet distinguish internal gaps from other causes of sparse sampling.
+material gaps. Across the complete count-only group, however, all 53 windows contain at least one
+material forward-gap marker after their first contributing observation. The group contains 54 such
+markers in total, with a maximum interval of 765 seconds. Excluding the first observation from this
+calculation distinguishes internal interruption from leading-edge truncation.
 
 The ten span-only examples contain 75-84 observations over 733-822 seconds. Every first observation
 follows a material gap, leaving 78-167 seconds uncovered at the leading edge. Span therefore
 captures a gap-related coverage loss that observation count alone misses in these examples.
 
+Together, these results show that low count identifies gaps inside nearly full-span windows while
+low span identifies missing leading coverage. The percentile cutoffs remain descriptive proxies;
+the profile has not yet tested whether explicit gap intersection provides a clearer eligibility
+contract across every available window.
+
 The profile does not persist features, summarize motor-current values as health states, test
-predictive usefulness, quantify internal gaps inside each feature window, or measure failure warning
-performance. The source contains one compressor, so the current unpartitioned event-time window is
-not yet a multi-asset implementation.
+predictive usefulness, select a feature-coverage rule, or measure failure warning performance. The
+source contains one compressor, so the current unpartitioned event-time window is not yet a
+multi-asset implementation.

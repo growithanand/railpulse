@@ -17,6 +17,7 @@ from pyspark.sql.types import (
 from railpulse.features.temporal_feature_profile import (
     MOTOR_CURRENT_FEATURE_PROFILE_VERSION,
     MotorCurrentFeatureProfileError,
+    _collect_count_only_internal_gaps,
     _collect_one_sided_tail_examples,
     _collect_strict_tail_overlap,
     collect_motor_current_feature_profile,
@@ -127,6 +128,7 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     span_tail = profile.low_span_tail
     overlap = profile.strict_tail_overlap
     one_sided = profile.one_sided_tail_examples
+    internal_gaps = profile.count_only_internal_gaps
 
     assert profile.profile_version == MOTOR_CURRENT_FEATURE_PROFILE_VERSION
     assert profile.feature_version == MOTOR_CURRENT_FEATURE_VERSION
@@ -194,6 +196,11 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     assert one_sided.example_limit == 10
     assert one_sided.count_only_examples == ()
     assert one_sided.span_only_examples == ()
+    assert internal_gaps.count_only_cycle_count == 0
+    assert internal_gaps.cycle_count_with_internal_forward_gap == 0
+    assert internal_gaps.cycle_count_without_internal_forward_gap == 0
+    assert internal_gaps.internal_forward_gap_count == 0
+    assert internal_gaps.maximum_internal_forward_gap_seconds is None
 
 
 @pytest.mark.spark
@@ -224,13 +231,13 @@ def test_strict_tail_overlap_and_examples_distinguish_membership(
             ),
             (
                 "count-only-b",
-                datetime(2020, 1, 1, 10, 30),
+                datetime(2020, 1, 1, 12, 30),
                 73,
-                datetime(2020, 1, 1, 10, 15, 1),
+                datetime(2020, 1, 1, 12, 15, 1),
                 899,
                 1,
-                False,
-                10,
+                True,
+                500,
             ),
             (
                 "span-only-a",
@@ -316,7 +323,7 @@ def test_strict_tail_overlap_and_examples_distinguish_membership(
     assert examples.count_only_examples[0].observation_count == 73
     assert examples.count_only_examples[0].observation_span_seconds == 899
     assert examples.count_only_examples[0].leading_unobserved_seconds == 1
-    assert examples.count_only_examples[0].first_observation_follows_forward_gap is False
+    assert examples.count_only_examples[0].first_observation_follows_forward_gap is True
     assert [item.loaded_cycle_id for item in examples.span_only_examples] == [
         "span-only-b",
         "span-only-a",
@@ -326,6 +333,34 @@ def test_strict_tail_overlap_and_examples_distinguish_membership(
     assert examples.span_only_examples[0].leading_unobserved_seconds == 11
     assert examples.span_only_examples[0].first_observation_follows_forward_gap is True
     assert examples.span_only_examples[0].preceding_interval_seconds == 902
+
+    gap_telemetry = spark.createDataFrame(
+        [
+            (datetime(2020, 1, 1, 10, 25, 10), True, 901),
+            (datetime(2020, 1, 1, 12, 15, 1), True, 500),
+            (datetime(2020, 1, 1, 12, 20), True, 300),
+            (datetime(2020, 1, 1, 12, 25), True, 400),
+        ],
+        schema=StructType(
+            [
+                StructField("event_timestamp", TimestampNTZType(), nullable=False),
+                StructField("is_forward_gap", BooleanType(), nullable=False),
+                StructField("interval_seconds", LongType(), nullable=False),
+            ]
+        ),
+    )
+    internal_gaps = _collect_count_only_internal_gaps(
+        available,
+        gap_telemetry,
+        p05_observation_count=75,
+        p05_observation_span_seconds=891,
+    )
+
+    assert internal_gaps.count_only_cycle_count == 2
+    assert internal_gaps.cycle_count_with_internal_forward_gap == 1
+    assert internal_gaps.cycle_count_without_internal_forward_gap == 1
+    assert internal_gaps.internal_forward_gap_count == 2
+    assert internal_gaps.maximum_internal_forward_gap_seconds == 400
 
 
 @pytest.mark.spark
