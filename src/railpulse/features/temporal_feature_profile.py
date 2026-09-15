@@ -7,6 +7,7 @@ import json
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime
+from itertools import pairwise
 from pathlib import Path
 
 from pyspark import StorageLevel
@@ -31,13 +32,15 @@ from railpulse.validation.silver_storage import (
     TELEMETRY_VALIDATION_VERSION,
 )
 from railpulse.validation.silver_telemetry import (
+    MATERIAL_GAP_SECONDS,
     REJECTION_REASONS_FIELD,
     TelemetryQualitySplit,
     split_telemetry_by_quality,
 )
 
-MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v9"
+MOTOR_CURRENT_FEATURE_PROFILE_VERSION = "motor-current-15m-profile-v10"
 LOW_SUPPORT_EXAMPLE_LIMIT = 10
+GAP_MAGNITUDE_THRESHOLDS_SECONDS = (1, MATERIAL_GAP_SECONDS, 60, 120, 300, 600)
 MOTOR_CURRENT_FEATURE_STATUS_ORDER = (
     STATUS_AVAILABLE,
     STATUS_MISSING_PREDICTION,
@@ -246,6 +249,23 @@ class MotorCurrentGapTailDisagreementCharacterization:
 
 
 @dataclass(frozen=True)
+class MotorCurrentGapMagnitudeThresholdCapture:
+    """Strict-tail capture at one minimum in-window gap magnitude."""
+
+    minimum_window_gap_seconds: int
+    gap_intersecting_cycle_count: int
+    strict_tail_cycle_count: int
+    non_tail_cycle_count: int
+
+
+@dataclass(frozen=True)
+class MotorCurrentGapMagnitudeSensitivity:
+    """Strict-tail capture as minimum in-window gap magnitude increases."""
+
+    thresholds: tuple[MotorCurrentGapMagnitudeThresholdCapture, ...]
+
+
+@dataclass(frozen=True)
 class FullSourceMotorCurrentFeatureProfile:
     """Reconciled read-only profile of motor-current feature coverage."""
 
@@ -268,6 +288,7 @@ class FullSourceMotorCurrentFeatureProfile:
     gap_tail_comparison: MotorCurrentGapTailComparison
     gap_tail_disagreement_examples: MotorCurrentGapTailDisagreementExamples
     gap_tail_disagreement_characterization: MotorCurrentGapTailDisagreementCharacterization
+    gap_magnitude_sensitivity: MotorCurrentGapMagnitudeSensitivity
 
 
 def _timestamp_text(value: datetime) -> str:
@@ -994,6 +1015,58 @@ def _collect_gap_tail_disagreement_characterization(
     )
 
 
+def _collect_gap_magnitude_sensitivity(
+    available: DataFrame,
+    *,
+    p05_observation_count: int,
+    p05_observation_span_seconds: int,
+) -> MotorCurrentGapMagnitudeSensitivity:
+    in_tail = (F.col("motor_current_15m_observation_count") < F.lit(p05_observation_count)) | (
+        F.col("observation_span_seconds") < F.lit(p05_observation_span_seconds)
+    )
+    leading_window_gap_seconds = F.when(
+        F.col("first_observation_follows_forward_gap"),
+        F.col("leading_unobserved_seconds"),
+    ).otherwise(F.lit(0))
+    internal_window_gap_seconds = F.coalesce(
+        F.col("maximum_internal_forward_gap_seconds"),
+        F.lit(0),
+    )
+    maximum_window_gap_seconds = F.greatest(
+        leading_window_gap_seconds,
+        internal_window_gap_seconds,
+    )
+
+    aggregations = []
+    for threshold in GAP_MAGNITUDE_THRESHOLDS_SECONDS:
+        at_or_above_threshold = maximum_window_gap_seconds >= F.lit(threshold)
+        aggregations.extend(
+            (
+                F.count(F.when(at_or_above_threshold, F.lit(1)))
+                .cast(LongType())
+                .alias(f"gap_count_{threshold}"),
+                F.count(F.when(at_or_above_threshold & in_tail, F.lit(1)))
+                .cast(LongType())
+                .alias(f"tail_count_{threshold}"),
+            )
+        )
+    summary = available.agg(*aggregations).first()
+
+    thresholds = []
+    for threshold in GAP_MAGNITUDE_THRESHOLDS_SECONDS:
+        gap_count = int(summary[f"gap_count_{threshold}"])
+        tail_count = int(summary[f"tail_count_{threshold}"])
+        thresholds.append(
+            MotorCurrentGapMagnitudeThresholdCapture(
+                minimum_window_gap_seconds=threshold,
+                gap_intersecting_cycle_count=gap_count,
+                strict_tail_cycle_count=tail_count,
+                non_tail_cycle_count=gap_count - tail_count,
+            )
+        )
+    return MotorCurrentGapMagnitudeSensitivity(thresholds=tuple(thresholds))
+
+
 def collect_motor_current_feature_profile(
     cycles: DataFrame,
     telemetry: DataFrame,
@@ -1080,6 +1153,11 @@ def collect_motor_current_feature_profile(
                         p05_observation_count=support.p05_observation_count,
                         p05_observation_span_seconds=support.p05_observation_span_seconds,
                     )
+                )
+                gap_magnitude_sensitivity = _collect_gap_magnitude_sensitivity(
+                    gap_context,
+                    p05_observation_count=support.p05_observation_count,
+                    p05_observation_span_seconds=support.p05_observation_span_seconds,
                 )
             finally:
                 gap_context.unpersist()
@@ -1202,6 +1280,42 @@ def collect_motor_current_feature_profile(
                 raise MotorCurrentFeatureProfileError(
                     "Gap-only characterization does not reconcile its position partition"
                 )
+            sensitivity_rows = gap_magnitude_sensitivity.thresholds
+            if tuple(row.minimum_window_gap_seconds for row in sensitivity_rows) != (
+                GAP_MAGNITUDE_THRESHOLDS_SECONDS
+            ):
+                raise MotorCurrentFeatureProfileError(
+                    "Gap-magnitude sensitivity thresholds do not match the profile contract"
+                )
+            first_sensitivity_row = sensitivity_rows[0]
+            if (
+                first_sensitivity_row.gap_intersecting_cycle_count
+                != gap_tail_comparison.gap_intersecting_cycle_count
+                or first_sensitivity_row.strict_tail_cycle_count
+                != gap_tail_comparison.cycle_count_in_tail_and_gap
+                or first_sensitivity_row.non_tail_cycle_count
+                != gap_tail_comparison.cycle_count_in_gap_only
+            ):
+                raise MotorCurrentFeatureProfileError(
+                    "Gap-magnitude sensitivity does not reconcile with gap-tail comparison counts"
+                )
+            for row in sensitivity_rows:
+                if (
+                    row.strict_tail_cycle_count + row.non_tail_cycle_count
+                    != row.gap_intersecting_cycle_count
+                ):
+                    raise MotorCurrentFeatureProfileError(
+                        "Gap-magnitude sensitivity row does not reconcile"
+                    )
+            for previous, current in pairwise(sensitivity_rows):
+                if (
+                    current.gap_intersecting_cycle_count > previous.gap_intersecting_cycle_count
+                    or current.strict_tail_cycle_count > previous.strict_tail_cycle_count
+                    or current.non_tail_cycle_count > previous.non_tail_cycle_count
+                ):
+                    raise MotorCurrentFeatureProfileError(
+                        "Gap-magnitude sensitivity counts are not monotonic"
+                    )
         finally:
             tail_context.unpersist()
 
@@ -1232,6 +1346,7 @@ def collect_motor_current_feature_profile(
             gap_tail_comparison=gap_tail_comparison,
             gap_tail_disagreement_examples=gap_tail_disagreement_examples,
             gap_tail_disagreement_characterization=gap_tail_disagreement_characterization,
+            gap_magnitude_sensitivity=gap_magnitude_sensitivity,
         )
     finally:
         features.unpersist()

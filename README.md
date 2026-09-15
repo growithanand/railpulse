@@ -36,7 +36,9 @@ gap-intersecting windows versus 290 in the strict percentile-tail union, but 26 
 are gap-only. Deterministic examples show marginal span misses without gaps and material gaps that
 retain acceptable endpoint support. Across the complete disagreement groups, all 26 tail-only
 windows are span-only, while the 27 gap-only windows split into 2 leading-only and 25 internal-only
-gaps. No performance or maintenance-impact claims have been established.
+gaps. A gap-magnitude sensitivity profile shows strict-tail capture rising from 264 of 291 windows
+with any explicit overlap to all 179 windows with at least 300 seconds of in-window gap time. No
+performance or maintenance-impact claims have been established.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -111,7 +113,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
   membership overlap, deterministic weakest and one-sided examples, and internal-gap evidence for
   count-only windows. It also compares explicit gap intersection with the percentile-tail union
   and retains bounded examples and complete disagreement-group summaries without setting a
-  training threshold.
+  training threshold. A reconciled sensitivity table measures strict-tail capture as the maximum
+  in-window gap increases.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.

@@ -18,7 +18,7 @@ descriptive observation-support statistics.
 
 ## Reconciliation contract
 
-`motor-current-15m-profile-v9` verifies that:
+`motor-current-15m-profile-v10` verifies that:
 
 - accepted telemetry has one complete dataset/source/ingestion lineage;
 - Gold cycles have unique, non-null identifiers and a stop-timestamp field;
@@ -41,12 +41,14 @@ descriptive observation-support statistics.
 - bounded examples from both disagreement groups retain deterministic support, leading-gap, and
   internal-gap evidence and reconcile with their group sizes;
 - complete disagreement groups are partitioned by tail trigger and gap position, with support and
-  gap-magnitude summaries that reconcile with their group sizes; and
+  gap-magnitude summaries that reconcile with their group sizes;
+- strict-tail capture is reconciled at increasing maximum in-window gap thresholds, and the counts
+  are monotonic as the threshold increases; and
 - the configured and observed dataset versions agree.
 
 ## Verified complete-source result
 
-The version 9 command was run locally on 2026-09-14.
+The version 10 command was run locally on 2026-09-15.
 
 | Input or contract | Verified value |
 | --- | ---: |
@@ -178,6 +180,23 @@ Complete gap-only characterization:
 
 The 25 internal-only windows contain 25 internal material-gap markers, so each contains exactly one.
 
+Strict-tail sensitivity to maximum in-window gap magnitude:
+
+| Minimum maximum in-window gap | Gap-intersecting windows | In strict tail | Outside strict tail | Tail capture |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 second | 291 | 264 | 27 | 90.7% |
+| 20 seconds | 285 | 260 | 25 | 91.2% |
+| 60 seconds | 247 | 234 | 13 | 94.7% |
+| 120 seconds | 237 | 226 | 11 | 95.4% |
+| 300 seconds | 179 | 179 | 0 | 100.0% |
+| 600 seconds | 101 | 101 | 0 | 100.0% |
+
+For a leading gap, in-window magnitude is the uncovered time from the window start to the first
+observation, not the complete preceding source interval. For an internal gap, it is the recorded
+interval ending at the gap marker. If both positions occur, the larger in-window value is used. The
+1-second row represents every explicit gap intersection; 20 seconds is the existing Silver
+material-gap boundary, and the higher fixed values are diagnostic sensitivity points only.
+
 The JSON output retains the ten weakest windows for each measure in deterministic order. In this
 source, the ten lowest-count and ten shortest-span examples are the same windows. Their observation
 counts range from 3 to 7, first-to-last spans range from 19 to 59 seconds, and leading unobserved
@@ -255,8 +274,16 @@ window. The other 25 each contain one internal gap while retaining 75-91 observa
 seconds. Their largest internal intervals range from the 20-second material-gap boundary to 174
 seconds, with a median of 104 seconds. Explicit gap evidence therefore describes source continuity,
 while the percentile tails describe endpoint support and sample count. The full-group evidence
-explains the disagreement, but gap-magnitude sensitivity still needs inspection before either
-signal becomes an eligibility contract.
+explains the disagreement; the sensitivity profile below tests how it changes as in-window gap
+magnitude increases.
+
+The sensitivity curve shows that strict-tail capture increases with in-window gap magnitude. It
+captures 260 of the 285 windows at or above the 20-second material boundary, 226 of 237 at or above
+120 seconds, and every one of the 179 windows at or above 300 seconds. This supports using count and
+span as indicators of severe coverage loss, but not as complete detectors of shorter interruptions.
+It also does not resolve the 26 tail-only windows caused by one- or two-second span deficits. These
+results narrow the policy question; they do not establish that 300 seconds, or any other tested
+value, is a valid training-eligibility threshold.
 
 The profile does not persist features, summarize motor-current values as health states, test
 predictive usefulness, select a feature-coverage rule, or measure failure warning performance. The

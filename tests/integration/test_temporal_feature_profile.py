@@ -15,9 +15,11 @@ from pyspark.sql.types import (
 )
 
 from railpulse.features.temporal_feature_profile import (
+    GAP_MAGNITUDE_THRESHOLDS_SECONDS,
     MOTOR_CURRENT_FEATURE_PROFILE_VERSION,
     MotorCurrentFeatureProfileError,
     _collect_count_only_internal_gaps,
+    _collect_gap_magnitude_sensitivity,
     _collect_gap_tail_comparison,
     _collect_gap_tail_disagreement_characterization,
     _collect_gap_tail_disagreement_examples,
@@ -136,6 +138,7 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     comparison = profile.gap_tail_comparison
     disagreement_examples = profile.gap_tail_disagreement_examples
     disagreement_characterization = profile.gap_tail_disagreement_characterization
+    sensitivity_rows = profile.gap_magnitude_sensitivity.thresholds
 
     assert profile.profile_version == MOTOR_CURRENT_FEATURE_PROFILE_VERSION
     assert profile.feature_version == MOTOR_CURRENT_FEATURE_VERSION
@@ -255,6 +258,12 @@ def test_motor_current_feature_profile_reconciles_status_and_support(
     assert gap_only.minimum_largest_internal_gap_seconds == 899
     assert gap_only.median_largest_internal_gap_seconds == 899
     assert gap_only.maximum_largest_internal_gap_seconds == 899
+    assert [row.minimum_window_gap_seconds for row in sensitivity_rows] == list(
+        GAP_MAGNITUDE_THRESHOLDS_SECONDS
+    )
+    assert [row.gap_intersecting_cycle_count for row in sensitivity_rows] == [2, 2, 2, 2, 2, 2]
+    assert [row.strict_tail_cycle_count for row in sensitivity_rows] == [0, 0, 0, 0, 0, 0]
+    assert [row.non_tail_cycle_count for row in sensitivity_rows] == [2, 2, 2, 2, 2, 2]
 
 
 @pytest.mark.spark
@@ -501,6 +510,24 @@ def test_strict_tail_overlap_and_examples_distinguish_membership(
     assert gap_only.minimum_largest_internal_gap_seconds is None
     assert gap_only.median_largest_internal_gap_seconds is None
     assert gap_only.maximum_largest_internal_gap_seconds is None
+
+    sensitivity_rows = _collect_gap_magnitude_sensitivity(
+        gap_context,
+        p05_observation_count=75,
+        p05_observation_span_seconds=891,
+    ).thresholds
+
+    assert [row.minimum_window_gap_seconds for row in sensitivity_rows] == [
+        1,
+        20,
+        60,
+        120,
+        300,
+        600,
+    ]
+    assert [row.gap_intersecting_cycle_count for row in sensitivity_rows] == [5, 1, 1, 1, 1, 0]
+    assert [row.strict_tail_cycle_count for row in sensitivity_rows] == [4, 1, 1, 1, 1, 0]
+    assert [row.non_tail_cycle_count for row in sensitivity_rows] == [1, 0, 0, 0, 0, 0]
 
 
 @pytest.mark.spark

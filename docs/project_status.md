@@ -41,11 +41,13 @@ A source-lineage-aware, read-only full-source profile now applies that contract 
 cycles. It reconciles 15,703 available features, the 63 cycles without observed stops, and zero
 missing telemetry anchors. Available windows have a median of 91 observations, while the minimum of
 3 shows that availability alone is not yet a sufficient training-eligibility rule.
-The version 9 profile now inspects count and observed-span tails independently, retains deterministic
+The version 10 profile now inspects count and observed-span tails independently, retains deterministic
 one-sided examples, measures internal material gaps, compares the strict percentile-tail union with
 explicit gap intersection, and characterizes both disagreement groups. All 26 tail-only windows are
 below the span cutoff only. The 27 gap-only windows split into 2 leading-only and 25 internal-only
-gaps. Their complete summaries show that marginal endpoint-support cutoffs and material source
+gaps. A fixed-threshold sensitivity table shows strict-tail capture increasing from 264 of 291
+windows with any explicit gap overlap to all 179 windows with at least 300 seconds of in-window gap
+time. These summaries show that marginal endpoint-support cutoffs and material source
 discontinuities describe different properties.
 
 ## Environment observed on 2026-09-01
@@ -143,7 +145,8 @@ Repository-local Git identity:
   membership overlap, deterministic weakest and one-sided examples, and count-only internal-gap
   evidence. It compares explicit leading-or-internal gap intersection with the strict percentile-
   tail union and retains bounded examples plus complete trigger, position, and magnitude summaries
-  for both disagreement groups without writing or selecting a coverage rule.
+  for both disagreement groups. It also profiles strict-tail capture at increasing in-window gap
+  magnitudes without writing or selecting a coverage rule.
 
 Official local Bronze evidence:
 
@@ -280,6 +283,20 @@ preceding intervals are 186 and 8,008 seconds. The 25 internal-only windows cont
 with largest intervals ranging from 20 to 174 seconds and a median of 104 seconds. Their support
 remains at 75-91 observations over 892-899 seconds.
 
+| Minimum maximum in-window gap | Gap windows | In strict tail | Outside strict tail |
+| ---: | ---: | ---: | ---: |
+| 1 second | 291 | 264 | 27 |
+| 20 seconds | 285 | 260 | 25 |
+| 60 seconds | 247 | 234 | 13 |
+| 120 seconds | 237 | 226 | 11 |
+| 300 seconds | 179 | 179 | 0 |
+| 600 seconds | 101 | 101 | 0 |
+
+Leading gaps use only their uncovered time inside the feature window; internal gaps use their
+recorded interval. The strict tails capture every tested gap window at or above 300 seconds, but
+still miss 25 at the existing 20-second material boundary. This is diagnostic evidence, not an
+eligibility threshold.
+
 ## Not implemented
 
 - Persisted failure-horizon and temporal-feature data, feature-coverage eligibility rules,
@@ -299,5 +316,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will profile how strict-tail capture changes across material-gap magnitudes
-before selecting a feature-coverage eligibility rule or persisting a table.
+The next small increment will compare a small set of candidate coverage policies against retained
+feature and horizon-label counts before selecting a rule or persisting a feature table.
