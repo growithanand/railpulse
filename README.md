@@ -38,7 +38,10 @@ retain acceptable endpoint support. Across the complete disagreement groups, all
 windows are span-only, while the 27 gap-only windows split into 2 leading-only and 25 internal-only
 gaps. A gap-magnitude sensitivity profile shows strict-tail capture rising from 264 of 291 windows
 with any explicit overlap to all 179 windows with at least 300 seconds of in-window gap time. No
-performance or maintenance-impact claims have been established.
+performance or maintenance-impact claims have been established. A separate read-only comparison
+now measures five diagnostic coverage policies against two-hour horizon labels. The candidates
+retain 15,388-15,703 windows, and every candidate retains all 22 positive and all 5 null-label
+windows. This is descriptive coverage evidence; no eligibility policy has been selected.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -115,6 +118,9 @@ scalable, incremental, and Databricks-compatible engineering practices.
   and retains bounded examples and complete disagreement-group summaries without setting a
   training threshold. A reconciled sensitivity table measures strict-tail capture as the maximum
   in-window gap increases.
+- A read-only policy comparison that joins available motor-current windows to two-hour horizon
+  labels and reconciles retained and excluded positive, negative, and null-label counts for five
+  fixed coverage candidates without selecting or persisting a rule.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -199,6 +205,13 @@ Apply and inspect 15-minute motor-current feature coverage without persisting a 
 .venv-wsl/bin/python -m railpulse.features.temporal_feature_profile --master "local[4]"
 ```
 
+Compare diagnostic coverage policies with two-hour horizon-label retention without selecting or
+persisting a rule:
+
+```bash
+.venv-wsl/bin/python -m railpulse.features.coverage_policy_profile --master "local[4]"
+```
+
 ## Repository layout
 
 ```text
@@ -247,6 +260,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Full-source failure-horizon profile](docs/failure_horizon_profile.md)
 - [Past-only motor-current feature contract](docs/temporal_feature_contract.md)
 - [Full-source motor-current feature profile](docs/temporal_feature_profile.md)
+- [Motor-current coverage-policy profile](docs/coverage_policy_profile.md)
 
 An evaluation protocol, dashboard instructions, a demo script, and evidence-based résumé bullets
 will be added only when their supporting phases are implemented.

@@ -49,6 +49,11 @@ gaps. A fixed-threshold sensitivity table shows strict-tail capture increasing f
 windows with any explicit gap overlap to all 179 windows with at least 300 seconds of in-window gap
 time. These summaries show that marginal endpoint-support cutoffs and material source
 discontinuities describe different properties.
+A separate version 1 policy comparison now joins every available window to the default two-hour
+horizon output. Five fixed candidates retain 15,388-15,703 windows. Every candidate retains all 22
+positive and all 5 null-label windows, while its exclusions are entirely negative. This is
+diagnostic coverage evidence only: no feature-eligibility rule has been selected from full-source
+labels.
 
 ## Environment observed on 2026-09-01
 
@@ -147,6 +152,9 @@ Repository-local Git identity:
   tail union and retains bounded examples plus complete trigger, position, and magnitude summaries
   for both disagreement groups. It also profiles strict-tail capture at increasing in-window gap
   magnitudes without writing or selecting a coverage rule.
+- A source-lineage-aware, read-only coverage-policy profile joins available motor-current windows
+  to two-hour horizon labels and reconciles retained and excluded positive, negative, and null-label
+  counts across five fixed diagnostic candidates without selecting a rule.
 
 Official local Bronze evidence:
 
@@ -297,6 +305,20 @@ recorded interval. The strict tails capture every tested gap window at or above 
 still miss 25 at the existing 20-second material boundary. This is diagnostic evidence, not an
 eligibility threshold.
 
+Verified coverage-policy comparison:
+
+| Policy | Retained | Excluded | Retained positive | Retained negative | Retained null |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Available baseline | 15,703 | 0 | 22 | 15,676 | 5 |
+| Exclude strict tail | 15,413 | 290 | 22 | 15,386 | 5 |
+| Exclude material gaps at 20 seconds | 15,418 | 285 | 22 | 15,391 | 5 |
+| Exclude strict tail or material gaps | 15,388 | 315 | 22 | 15,361 | 5 |
+| Exclude strict tail or gaps at 120 seconds | 15,402 | 301 | 22 | 15,375 | 5 |
+
+All excluded windows are currently negative, but this four-event, complete-source comparison is not
+used to choose a rule or claim predictive value. See `docs/coverage_policy_profile.md` for policy
+definitions, reconciliation boundaries, lineage, and limitations.
+
 ## Not implemented
 
 - Persisted failure-horizon and temporal-feature data, feature-coverage eligibility rules,
@@ -316,5 +338,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will compare a small set of candidate coverage policies against retained
-feature and horizon-label counts before selecting a rule or persisting a feature table.
+The next small increment will define a label-independent feature-eligibility decision boundary,
+without persisting a feature table or using complete-source target retention to optimize it.
