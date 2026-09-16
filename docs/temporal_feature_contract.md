@@ -53,12 +53,13 @@ Missing features retain a zero observation count and null timestamps/statistics.
 ## Gaps, causality, and deferred work
 
 The feature does not fill gaps or assume a fixed number of samples. Count and first/last timestamps
-make the observed support inspectable. Later work must define a minimum coverage rule before model
-training. Feature values must never include failure-horizon targets or observations after the
-prediction timestamp.
+make the observed support inspectable. The subsequent
+[feature eligibility contract](feature_eligibility_contract.md) now defines a label-independent
+material-gap boundary before model training. Feature values must never include failure-horizon
+targets or observations after the prediction timestamp.
 
 The current dataset represents one compressor, so the rolling window is globally ordered. A
 multi-asset version must partition by a stable equipment identifier. The read-only
 [full-source feature profile](temporal_feature_profile.md) now documents availability and observed
-support, but it does not establish a minimum coverage rule. Additional sensors/windows,
-persistence, model selection, and performance claims remain separate reviewed increments.
+support that informed the separate eligibility decision. Additional sensors/windows, persistence,
+model selection, and performance claims remain separate reviewed increments.

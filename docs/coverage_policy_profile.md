@@ -93,8 +93,12 @@ The result shows that none of these fixed diagnostic exclusions removes a curren
 positive window. It does not justify choosing the policy that removes the most negative rows.
 Selecting a feature rule because it preserves labels across the full dataset would introduce
 label-informed selection, and four accepted failure events are too sparse for a stable performance
-claim. Future selection must remain label-independent or occur only within a chronological
+claim. A defensible selection must remain label-independent or occur only within a chronological
 development period, with final performance assessed on untouched later events.
+
+The subsequent [feature eligibility contract](feature_eligibility_contract.md) therefore uses the
+existing telemetry material-gap boundary and does not use these target-retention counts to set or
+optimize its rule.
 
 The comparison covers one sensor and one feature window. It does not test model accuracy, warning
 lead time, event recall, false alarms, maintenance impact, or the information content of excluded

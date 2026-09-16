@@ -41,7 +41,9 @@ with any explicit overlap to all 179 windows with at least 300 seconds of in-win
 performance or maintenance-impact claims have been established. A separate read-only comparison
 now measures five diagnostic coverage policies against two-hour horizon labels. The candidates
 retain 15,388-15,703 windows, and every candidate retains all 22 positive and all 5 null-label
-windows. This is descriptive coverage evidence; no eligibility policy has been selected.
+windows. This is descriptive coverage evidence. A subsequent label-independent contract now marks
+an available window eligible only when its maximum in-window gap is below the existing 20-second
+material-gap boundary; it does not use target retention to set the rule.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -121,6 +123,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
 - A read-only policy comparison that joins available motor-current windows to two-hour horizon
   labels and reconciles retained and excluded positive, negative, and null-label counts for five
   fixed coverage candidates without selecting or persisting a rule.
+- A versioned, label-independent motor-current eligibility transformation that uses the existing
+  20-second material-gap boundary, fails closed on missing context, and emits explicit reasons.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -261,6 +265,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Past-only motor-current feature contract](docs/temporal_feature_contract.md)
 - [Full-source motor-current feature profile](docs/temporal_feature_profile.md)
 - [Motor-current coverage-policy profile](docs/coverage_policy_profile.md)
+- [Motor-current feature eligibility contract](docs/feature_eligibility_contract.md)
 
 An evaluation protocol, dashboard instructions, a demo script, and evidence-based résumé bullets
 will be added only when their supporting phases are implemented.

@@ -53,7 +53,9 @@ A separate version 1 policy comparison now joins every available window to the d
 horizon output. Five fixed candidates retain 15,388-15,703 windows. Every candidate retains all 22
 positive and all 5 null-label windows, while its exclusions are entirely negative. This is
 diagnostic coverage evidence only: no feature-eligibility rule has been selected from full-source
-labels.
+labels. A separate label-independent version 1 contract now uses the existing 20-second telemetry
+material-gap boundary as its only coverage cutoff. It retains percentile tails as diagnostics,
+fails closed when feature or coverage context is unavailable, and does not inspect horizon labels.
 
 ## Environment observed on 2026-09-01
 
@@ -155,6 +157,8 @@ Repository-local Git identity:
 - A source-lineage-aware, read-only coverage-policy profile joins available motor-current windows
   to two-hour horizon labels and reconciles retained and excluded positive, negative, and null-label
   counts across five fixed diagnostic candidates without selecting a rule.
+- A versioned motor-current eligibility transformation applies the existing 20-second material-gap
+  boundary independently of horizon labels and preserves explicit reasons for every ineligible row.
 
 Official local Bronze evidence:
 
@@ -321,8 +325,8 @@ definitions, reconciliation boundaries, lineage, and limitations.
 
 ## Not implemented
 
-- Persisted failure-horizon and temporal-feature data, feature-coverage eligibility rules,
-  additional sensor features, and later Gold transformations.
+- Persisted failure-horizon, temporal-feature, and eligibility data; full-source eligibility
+  reconciliation; additional sensor features; and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -338,5 +342,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will define a label-independent feature-eligibility decision boundary,
-without persisting a feature table or using complete-source target retention to optimize it.
+The next small increment will apply and reconcile the label-independent eligibility contract over
+the complete source without persisting a feature table.
