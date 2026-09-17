@@ -66,8 +66,8 @@ gaps, missing features, missing context, and invariance when horizon labels are 
 
 The contract is a lazy Spark transformation and does not write a table. It assumes coverage context
 has at most one row per cycle; a later materialization boundary must validate key uniqueness before
-write. The next increment will apply and reconcile this exact contract over the complete source
-without persisting output.
+write. The read-only [full-source eligibility profile](eligibility_profile.md) now applies this
+exact contract and reconciles key, status, reason, and lineage counts without persisting output.
 
 Eligibility for additional sensors or feature windows requires separately versioned evidence. Model
 training, chronological splitting, target balancing, threshold tuning, evaluation, and performance

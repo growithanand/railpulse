@@ -43,7 +43,9 @@ now measures five diagnostic coverage policies against two-hour horizon labels. 
 retain 15,388-15,703 windows, and every candidate retains all 22 positive and all 5 null-label
 windows. This is descriptive coverage evidence. A subsequent label-independent contract now marks
 an available window eligible only when its maximum in-window gap is below the existing 20-second
-material-gap boundary; it does not use target retention to set the rule.
+material-gap boundary; it does not use target retention to set the rule. A read-only full-source
+profile reconciles 15,418 eligible and 348 ineligible cycles: 285 contain material in-window gaps
+and 63 lack prediction boundaries, with no other ineligibility reasons observed.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -125,6 +127,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
   fixed coverage candidates without selecting or persisting a rule.
 - A versioned, label-independent motor-current eligibility transformation that uses the existing
   20-second material-gap boundary, fails closed on missing context, and emits explicit reasons.
+- A source-lineage-aware, read-only full-source eligibility profile that reconciles one status per
+  Gold cycle and one exact reason per ineligible cycle without loading failure labels.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -216,6 +220,12 @@ persisting a rule:
 .venv-wsl/bin/python -m railpulse.features.coverage_policy_profile --master "local[4]"
 ```
 
+Apply and reconcile the selected label-independent eligibility contract without persisting output:
+
+```bash
+.venv-wsl/bin/python -m railpulse.features.eligibility_profile --master "local[4]"
+```
+
 ## Repository layout
 
 ```text
@@ -266,6 +276,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Full-source motor-current feature profile](docs/temporal_feature_profile.md)
 - [Motor-current coverage-policy profile](docs/coverage_policy_profile.md)
 - [Motor-current feature eligibility contract](docs/feature_eligibility_contract.md)
+- [Full-source motor-current eligibility profile](docs/eligibility_profile.md)
 
 An evaluation protocol, dashboard instructions, a demo script, and evidence-based résumé bullets
 will be added only when their supporting phases are implemented.

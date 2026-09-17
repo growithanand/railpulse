@@ -56,6 +56,10 @@ diagnostic coverage evidence only: no feature-eligibility rule has been selected
 labels. A separate label-independent version 1 contract now uses the existing 20-second telemetry
 material-gap boundary as its only coverage cutoff. It retains percentile tails as diagnostics,
 fails closed when feature or coverage context is unavailable, and does not inspect horizon labels.
+A source-lineage-aware, read-only full-source profile now applies that contract to every Gold cycle.
+It reconciles 15,418 eligible cycles and 348 ineligible cycles: 285 for material in-window gaps and
+63 for missing prediction boundaries. No missing prediction anchors, missing/invalid coverage
+contexts, or unsupported feature statuses occur.
 
 ## Environment observed on 2026-09-01
 
@@ -159,6 +163,8 @@ Repository-local Git identity:
   counts across five fixed diagnostic candidates without selecting a rule.
 - A versioned motor-current eligibility transformation applies the existing 20-second material-gap
   boundary independently of horizon labels and preserves explicit reasons for every ineligible row.
+- A read-only full-source eligibility profile validates feature and coverage-context keys, exact
+  status/reason semantics, source lineage, and one reconciled eligibility result per Gold cycle.
 
 Official local Bronze evidence:
 
@@ -323,10 +329,24 @@ All excluded windows are currently negative, but this four-event, complete-sourc
 used to choose a rule or claim predictive value. See `docs/coverage_policy_profile.md` for policy
 definitions, reconciliation boundaries, lineage, and limitations.
 
+Verified label-independent eligibility result:
+
+| Status or reason | Cycles |
+| --- | ---: |
+| Eligible | 15,418 |
+| Ineligible: material window gap | 285 |
+| Ineligible: missing prediction boundary | 63 |
+| Ineligible: all other reasons | 0 |
+| **Total** | **15,766** |
+
+Every cycle has one eligibility status, and every ineligible cycle has exactly one reconciled
+reason. The profile does not load failure labels or write a feature table. See
+`docs/eligibility_profile.md` for execution, lineage, and limitations.
+
 ## Not implemented
 
-- Persisted failure-horizon, temporal-feature, and eligibility data; full-source eligibility
-  reconciliation; additional sensor features; and later Gold transformations.
+- Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
+  and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and Databricks deployment resources.
 
@@ -342,5 +362,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will apply and reconcile the label-independent eligibility contract over
-the complete source without persisting a feature table.
+The next small increment will define the Gold feature-snapshot schema and its key and version
+invariants before implementing persistence.
