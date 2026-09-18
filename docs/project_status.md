@@ -165,6 +165,8 @@ Repository-local Git identity:
   boundary independently of horizon labels and preserves explicit reasons for every ineligible row.
 - A read-only full-source eligibility profile validates feature and coverage-context keys, exact
   status/reason semantics, source lineage, and one reconciled eligibility result per Gold cycle.
+- A Gold feature-snapshot schema contract defines the primary key, column order, version invariants,
+  lineage columns, and insert-only update semantics for the persisted feature table.
 
 Official local Bronze evidence:
 
@@ -362,5 +364,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will define the Gold feature-snapshot schema and its key and version
-invariants before implementing persistence.
+The next small increment will implement an idempotent feature-snapshot Delta writer with
+duplicate-key protection and reconciliation counts.

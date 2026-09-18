@@ -277,6 +277,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Motor-current coverage-policy profile](docs/coverage_policy_profile.md)
 - [Motor-current feature eligibility contract](docs/feature_eligibility_contract.md)
 - [Full-source motor-current eligibility profile](docs/eligibility_profile.md)
+- [Gold feature-snapshot schema contract](docs/feature_snapshot_contract.md)
 
 An evaluation protocol, dashboard instructions, a demo script, and evidence-based résumé bullets
 will be added only when their supporting phases are implemented.
