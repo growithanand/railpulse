@@ -102,9 +102,15 @@ Within a snapshot version the table is **insert-only**: new `loaded_cycle_id` va
 but existing rows must not be modified or deleted. Reclassifying an existing cycle after a
 transformation rule change requires a versioned full rebuild, not an in-place update.
 
+`persist_feature_snapshots` implements this rule with a Delta merge that contains only a
+`whenNotMatchedInsertAll` clause. Identical reruns are unchanged. If an incoming key already exists
+with any different contract value, the write fails before the merge. The writer also validates
+source and target keys, contract versions, lineage completeness, column types, and final row-count
+reconciliation.
+
 ## Deferred work
 
-The in-memory snapshot builder and its input validation are implemented. The Delta writer,
-reconciliation counts, persistence tests, and the CLI command that materializes the table are
-separate increments. Chronological splitting, modeling, event evaluation, and maintenance-impact
-claims depend on a persisted snapshot but are not part of this transformation scope.
+The in-memory builder and idempotent Delta persistence boundary are implemented. The full-source CLI
+command that derives and materializes the table is a separate increment. Chronological splitting,
+modeling, event evaluation, and maintenance-impact claims depend on the materialized snapshot but
+are not part of this persistence scope.

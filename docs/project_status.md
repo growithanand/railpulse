@@ -170,6 +170,9 @@ Repository-local Git identity:
 - A deterministic feature-snapshot builder now validates unique non-null cycle keys, fixed component
   versions, required columns, and nonempty source lineage before projecting the exact Gold contract.
   Future failure labels remain outside the snapshot so training and scoring share one feature table.
+- An insert-only Delta persistence boundary now inserts new feature-snapshot keys, treats identical
+  reruns as unchanged, rejects conflicting immutable rows or incompatible targets, and reconciles
+  source, inserted, unchanged, and target counts.
 
 Official local Bronze evidence:
 
@@ -367,5 +370,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will implement an idempotent feature-snapshot Delta writer with target
-compatibility checks and reconciliation counts.
+The next small increment will connect the verified full-source feature and eligibility pipeline to
+the snapshot builder and Delta writer through a reproducible Gold materialization command.
