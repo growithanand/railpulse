@@ -167,6 +167,9 @@ Repository-local Git identity:
   status/reason semantics, source lineage, and one reconciled eligibility result per Gold cycle.
 - A Gold feature-snapshot schema contract defines the primary key, column order, version invariants,
   lineage columns, and insert-only update semantics for the persisted feature table.
+- A deterministic feature-snapshot builder now validates unique non-null cycle keys, fixed component
+  versions, required columns, and nonempty source lineage before projecting the exact Gold contract.
+  Future failure labels remain outside the snapshot so training and scoring share one feature table.
 
 Official local Bronze evidence:
 
@@ -364,5 +367,5 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will implement an idempotent feature-snapshot Delta writer with
-duplicate-key protection and reconciliation counts.
+The next small increment will implement an idempotent feature-snapshot Delta writer with target
+compatibility checks and reconciliation counts.

@@ -23,6 +23,10 @@ a single materialized table for downstream chronological splitting, modeling, an
 The table must contain exactly one row per `loaded_cycle_id`. Duplicate keys within a snapshot
 version are prohibited. A persistence writer must validate key uniqueness before writing.
 
+`build_feature_snapshot` enforces this invariant before it returns a snapshot. It also rejects null
+keys, missing contract columns, conflicting pre-existing lineage columns, unsupported component
+versions, and empty lineage values. Extra upstream columns are deliberately discarded.
+
 ## Columns
 
 Columns appear in the fixed order defined by `FEATURE_SNAPSHOT_COLUMNS` in
@@ -84,6 +88,14 @@ Within a single snapshot version, every row must carry the same values for:
 
 A change to any component version requires a full rebuild of the table under a new snapshot version.
 
+## Label separation
+
+Failure-horizon labels are not stored in `gold.feature_snapshots`. Labels describe a future outcome,
+while this table represents information available at the prediction boundary. Keeping them separate
+makes the same snapshot usable for training and scoring and makes label access explicit when a later
+chronological modeling view is assembled. Eligibility is therefore materialized without consulting
+or retaining failure labels.
+
 ## Permitted update behavior
 
 Within a snapshot version the table is **insert-only**: new `loaded_cycle_id` values may be added
@@ -92,7 +104,7 @@ transformation rule change requires a versioned full rebuild, not an in-place up
 
 ## Deferred work
 
-This contract defines the schema only. The Delta writer, duplicate-key protection, reconciliation
-counts, persistence tests, and the CLI command that materializes the table are separate increments.
-Chronological splitting, modeling, event evaluation, and maintenance-impact claims depend on a
-persisted snapshot but are not part of the persistence scope.
+The in-memory snapshot builder and its input validation are implemented. The Delta writer,
+reconciliation counts, persistence tests, and the CLI command that materializes the table are
+separate increments. Chronological splitting, modeling, event evaluation, and maintenance-impact
+claims depend on a persisted snapshot but are not part of this transformation scope.
