@@ -106,7 +106,8 @@ transformation rule change requires a versioned full rebuild, not an in-place up
 `whenNotMatchedInsertAll` clause. Identical reruns are unchanged. If an incoming key already exists
 with any different contract value, the write fails before the merge. The writer also validates
 source and target keys, contract versions, lineage completeness, column types, and final row-count
-reconciliation.
+reconciliation. Type compatibility uses Spark SQL logical types so Delta's canonical nullability
+metadata for nested array elements does not make an otherwise identical rerun fail.
 
 ## Deferred work
 

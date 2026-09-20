@@ -226,6 +226,12 @@ Apply and reconcile the selected label-independent eligibility contract without 
 .venv-wsl/bin/python -m railpulse.features.eligibility_profile --master "local[4]"
 ```
 
+Materialize the versioned Gold feature snapshot after the eligibility profile has been reviewed:
+
+```bash
+.venv-wsl/bin/python -m railpulse.features.feature_snapshot_build --master "local[4]"
+```
+
 ## Repository layout
 
 ```text
@@ -278,6 +284,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Motor-current feature eligibility contract](docs/feature_eligibility_contract.md)
 - [Full-source motor-current eligibility profile](docs/eligibility_profile.md)
 - [Gold feature-snapshot schema contract](docs/feature_snapshot_contract.md)
+- [Gold feature-snapshot build](docs/feature_snapshot_build.md)
 
 An evaluation protocol, dashboard instructions, a demo script, and evidence-based résumé bullets
 will be added only when their supporting phases are implemented.

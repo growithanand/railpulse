@@ -57,8 +57,8 @@ def _assert_compatible_schemas(source: DataFrame, target: DataFrame) -> None:
             + ", ".join(missing_columns)
         )
 
-    source_types = {field.name: field.dataType for field in source.schema}
-    target_types = {field.name: field.dataType for field in target.schema}
+    source_types = {field.name: field.dataType.simpleString() for field in source.schema}
+    target_types = {field.name: field.dataType.simpleString() for field in target.schema}
     mismatches = [
         column_name
         for column_name in FEATURE_SNAPSHOT_COLUMNS

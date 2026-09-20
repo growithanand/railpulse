@@ -173,6 +173,11 @@ Repository-local Git identity:
 - An insert-only Delta persistence boundary now inserts new feature-snapshot keys, treats identical
   reruns as unchanged, rejects conflicting immutable rows or incompatible targets, and reconciles
   source, inserted, unchanged, and target counts.
+- A reproducible Gold command now connects Bronze telemetry validation, Gold cycle boundaries,
+  past-only features, gap-based eligibility, snapshot construction, and Delta persistence. Its
+  focused fixture test verifies first-write and zero-insert rerun behavior. The official-data run
+  inserted 15,766 reconciled snapshots; its verified rerun inserted none and left all 15,766 rows
+  unchanged.
 
 Official local Bronze evidence:
 
@@ -370,5 +375,6 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will connect the verified full-source feature and eligibility pipeline to
-the snapshot builder and Delta writer through a reproducible Gold materialization command.
+The next small increment will define the chronological modelling-view contract that explicitly
+joins immutable feature snapshots, cycle prediction timestamps, and versioned failure horizons
+without allowing future information into model inputs.
