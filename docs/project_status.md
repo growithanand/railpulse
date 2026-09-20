@@ -85,12 +85,7 @@ contexts, or unsupported feature statuses occur.
 | Delta Lake | 4.4.0 |
 | Local Spark master | `local[4]` for full ingestion; bounded 3 GiB driver heap |
 
-Repository-local Git identity:
-
-- Name: `Anand Mullasseril Shajahan`
-- Email: `anand.mullassheri@gmail.com`
-
-## Implemented in the working tree
+## Implemented capabilities
 
 - `src`-layout Python package boundaries.
 - Typed TOML configuration loading with repository-relative path resolution.
@@ -375,6 +370,8 @@ separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains
 output merges are insert-only: reclassifying an existing `record_id` after validation rules change
 will require an explicit versioned rebuild rather than silently moving records between tables.
 
-The next small increment will define the chronological modelling-view contract that explicitly
-joins immutable feature snapshots, cycle prediction timestamps, and versioned failure horizons
-without allowing future information into model inputs.
+## Next milestone
+
+Define the chronological modelling-view contract that explicitly joins immutable feature
+snapshots, cycle prediction timestamps, and versioned failure horizons without allowing future
+information into model inputs.

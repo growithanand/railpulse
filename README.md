@@ -11,41 +11,35 @@ MetroPT-3 compressor telemetry dataset. Its central question is:
 
 ## Current status
 
-The repository scaffold, official MetroPT-3 data contract, Bronze Delta ingestion, and Silver
-telemetry validation are implemented and locally verified. Accepted and quarantined telemetry can
-also be persisted to separate idempotent Silver Delta tables, as can accepted and quarantined failure
-events. Telemetry quality summaries also have a versioned, idempotent Silver output. The first Gold
-transformation derives and profiles provisional loaded-operation cycles, and a reproducible build
-command has materialized all 15,766 segments to local Delta with a verified zero-change rerun. All
-four start/stop censoring combinations and their duration tails are exposed through a tested,
-read-only SQL inspection. Phase 6 now has a tested cycle-to-failure horizon contract with explicit
-prediction boundaries, event-interval exclusions, and unknown-label preservation. A read-only
-full-source profile applies that contract to all 15,766 cycles and reconciles 22 positive cycle
-labels across three of the four published failure events. All later persisted horizon tables,
-models, alerts, dashboards, and Databricks resources are still planned. The first past-only feature
-contract now summarizes 15 minutes of motor current at the cycle prediction boundary without using
-future observations. A read-only full-source profile finds features for all 15,703 cycles with
-observed stops, zero missing telemetry anchors, and 63 cycles without prediction boundaries. Its
-low-support inspection also treats observation count and observed time span independently. The
-strict tails share 182 cycles but also contain 53 count-only and 55 span-only cycles, so the two
-measures are not interchangeable. Deterministic one-sided examples distinguish sparse windows
-with nearly complete time spans from windows whose leading coverage is truncated by source gaps.
-All 53 count-only windows contain an internal material gap after their first observation, confirming
-that count and span expose complementary gap positions. An all-window comparison finds 291
-gap-intersecting windows versus 290 in the strict percentile-tail union, but 26 are tail-only and 27
-are gap-only. Deterministic examples show marginal span misses without gaps and material gaps that
-retain acceptable endpoint support. Across the complete disagreement groups, all 26 tail-only
-windows are span-only, while the 27 gap-only windows split into 2 leading-only and 25 internal-only
-gaps. A gap-magnitude sensitivity profile shows strict-tail capture rising from 264 of 291 windows
-with any explicit overlap to all 179 windows with at least 300 seconds of in-window gap time. No
-performance or maintenance-impact claims have been established. A separate read-only comparison
-now measures five diagnostic coverage policies against two-hour horizon labels. The candidates
-retain 15,388-15,703 windows, and every candidate retains all 22 positive and all 5 null-label
-windows. This is descriptive coverage evidence. A subsequent label-independent contract now marks
-an available window eligible only when its maximum in-window gap is below the existing 20-second
-material-gap boundary; it does not use target retention to set the rule. A read-only full-source
-profile reconciles 15,418 eligible and 348 ineligible cycles: 285 contain material in-window gaps
-and 63 lack prediction boundaries, with no other ineligibility reasons observed.
+RailPulse currently has a locally verified, end-to-end data-engineering path from the official raw
+sources to versioned Gold feature snapshots. The implementation includes checksum-backed source
+provenance, idempotent Bronze ingestion, typed Silver validation and quarantine, data-quality
+metrics, loaded-operation cycles, causal two-hour failure horizons, past-only motor-current
+features, and label-independent feature eligibility.
+
+The `motor-current-15m-snapshot-build-v1` command now materializes one immutable
+`gold.feature_snapshots` Delta row per loaded cycle. Its complete-source run inserted 15,766 rows;
+an identical rerun inserted zero and reconciled all 15,766 rows as unchanged. Generated Delta data
+remains excluded from Git.
+
+### Verified complete-source evidence
+
+| Evidence | Verified result |
+| --- | ---: |
+| Accepted telemetry records | 1,516,948 |
+| Gold loaded cycles | 15,766 |
+| Available 15-minute motor-current features | 15,703 |
+| Eligible feature snapshots | 15,418 |
+| Ineligible feature snapshots | 348 |
+| Material-window-gap exclusions | 285 |
+| Missing prediction boundaries | 63 |
+| Positive two-hour cycle labels | 22 |
+| Accepted published failure events represented by positive cycles | 3 of 4 |
+
+The project has not trained or evaluated a predictive model yet. Chronological modelling views,
+baseline and anomaly models, alert episodes, event-level metrics, MLflow tracking, Databricks jobs,
+Unity Catalog registration, and Databricks SQL dashboards remain planned. Consequently, no model
+accuracy, warning-lead-time, false-alarm, or maintenance-impact claim is currently made.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -72,6 +66,7 @@ Official MetroPT-3 telemetry + separately documented failure reports
                               v
                       Gold data products
           cycles + temporal features + horizons + reliability KPIs
+                 + immutable feature snapshots
                               |
                               v
                baseline/anomaly scores -> alert episodes
@@ -129,6 +124,12 @@ scalable, incremental, and Databricks-compatible engineering practices.
   20-second material-gap boundary, fails closed on missing context, and emits explicit reasons.
 - A source-lineage-aware, read-only full-source eligibility profile that reconciles one status per
   Gold cycle and one exact reason per ineligible cycle without loading failure labels.
+- A versioned Gold feature-snapshot schema and deterministic builder that retain past-only features,
+  label-independent eligibility, and dataset/source/ingestion lineage while excluding future labels.
+- An insert-only `gold.feature_snapshots` Delta writer that rejects conflicting historical rows and
+  incompatible schemas, reconciles write counts, and treats identical reruns as unchanged.
+- A full-source snapshot build command with verified first-write and zero-insert rerun evidence for
+  all 15,766 Gold cycles.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -136,14 +137,19 @@ scalable, incremental, and Databricks-compatible engineering practices.
 
 ## Runtime stack
 
-Bronze and the current Silver pipeline use Python, PySpark 4.2.0, Apache Spark 4.2.0, Delta Lake
-4.4.0, pytest, and Ruff. Later phases will add Spark SQL, Databricks resources, MLflow, Structured
+The current pipeline uses Python, PySpark 4.2.0, Apache Spark 4.2.0, Spark SQL, Delta Lake 4.4.0,
+pytest, and Ruff. Later phases will add production Databricks resources, MLflow, Structured
 Streaming, and GitHub Actions where each is justified. Streaming will replay historical files; it
 will not be described as a live train connection.
 
 The local Spark/Delta integration is verified in Ubuntu WSL with Python 3.12 and Eclipse Temurin JDK
 21. Native Windows Spark is not the verified path because Hadoop requires a separate Windows helper.
 Databricks deployment and runtime compatibility have not been tested.
+
+The current code is ready for an initial Databricks integration increment, but the complete
+decision-support dashboard depends on stable chronological modelling, prediction, alert, and
+event-evaluation tables. The planned order is modelling-view contract, baseline evaluation,
+dashboard-ready aggregates, and then the polished Databricks SQL dashboard.
 
 ## Quick start
 
