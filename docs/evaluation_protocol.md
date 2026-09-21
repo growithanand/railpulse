@@ -83,6 +83,7 @@ choosing dates that manufacture convenient failure-event coverage.
 
 ## Deferred work
 
-This increment defines the schema and semantics only. The Spark join transformation, complete-source
-profile, chronological split selection, persisted Delta view, baseline model, and event-level
-evaluation are separate increments.
+The deterministic Spark transformation now validates one-to-one keys, component versions, feature
+window and prediction-boundary alignment, label semantics, and source lineage before assigning row
+status and ordered exclusion reasons. The complete-source profile, chronological split selection,
+persisted Delta view, baseline model, and event-level evaluation are separate increments.

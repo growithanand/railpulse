@@ -176,6 +176,9 @@ contexts, or unsupported feature statuses occur.
 - A versioned chronological modelling-view contract now defines the feature, target, time, lineage,
   and row-status columns. It permits training only for feature-eligible positive or negative
   horizons and retains censored, in-failure, and missing-boundary rows with explicit exclusions.
+- A deterministic modelling-view transformation now enforces complete one-to-one cycle joins,
+  feature-window and prediction-boundary alignment, supported component versions, label semantics,
+  and failure-source lineage before assigning ordered exclusion reasons.
 
 Official local Bronze evidence:
 
@@ -375,5 +378,5 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Implement the deterministic Spark transformation that joins immutable feature snapshots, cycle
-prediction timestamps, and versioned failure horizons while enforcing the modelling-view contract.
+Profile the modelling view against the complete official source, reconcile every row status and
+exclusion reason, and inspect chronological label/event coverage before selecting split boundaries.

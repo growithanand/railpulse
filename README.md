@@ -132,6 +132,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
   all 15,766 Gold cycles.
 - A leakage-safe chronological modelling-view contract that separates model inputs, target labels,
   row eligibility, exclusion reasons, source lineage, and the future split assignment.
+- A deterministic Spark modelling-view transformation that enforces one-to-one cycle joins,
+  point-in-time boundary alignment, supported versions, label semantics, and ordered exclusions.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
