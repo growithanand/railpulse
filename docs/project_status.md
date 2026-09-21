@@ -173,6 +173,9 @@ contexts, or unsupported feature statuses occur.
   focused fixture test verifies first-write and zero-insert rerun behavior. The official-data run
   inserted 15,766 reconciled snapshots; its verified rerun inserted none and left all 15,766 rows
   unchanged.
+- A versioned chronological modelling-view contract now defines the feature, target, time, lineage,
+  and row-status columns. It permits training only for feature-eligible positive or negative
+  horizons and retains censored, in-failure, and missing-boundary rows with explicit exclusions.
 
 Official local Bronze evidence:
 
@@ -372,6 +375,5 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Define the chronological modelling-view contract that explicitly joins immutable feature
-snapshots, cycle prediction timestamps, and versioned failure horizons without allowing future
-information into model inputs.
+Implement the deterministic Spark transformation that joins immutable feature snapshots, cycle
+prediction timestamps, and versioned failure horizons while enforcing the modelling-view contract.

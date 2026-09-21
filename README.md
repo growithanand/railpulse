@@ -130,6 +130,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
   incompatible schemas, reconciles write counts, and treats identical reruns as unchanged.
 - A full-source snapshot build command with verified first-write and zero-insert rerun evidence for
   all 15,766 Gold cycles.
+- A leakage-safe chronological modelling-view contract that separates model inputs, target labels,
+  row eligibility, exclusion reasons, source lineage, and the future split assignment.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -291,6 +293,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Full-source motor-current eligibility profile](docs/eligibility_profile.md)
 - [Gold feature-snapshot schema contract](docs/feature_snapshot_contract.md)
 - [Gold feature-snapshot build](docs/feature_snapshot_build.md)
+- [Chronological modelling-view contract](docs/evaluation_protocol.md)
 
-An evaluation protocol, dashboard instructions, a demo script, and evidence-based résumé bullets
-will be added only when their supporting phases are implemented.
+Dashboard instructions, a demo script, and evidence-based résumé bullets will be added only when
+their supporting phases are implemented.
