@@ -35,6 +35,10 @@ remains excluded from Git.
 | Missing prediction boundaries | 63 |
 | Positive two-hour cycle labels | 22 |
 | Accepted published failure events represented by positive cycles | 3 of 4 |
+| Trainable modelling-view rows | 15,413 |
+| Excluded modelling-view rows | 353 |
+| Trainable modelling-view rows | 15,413 |
+| Excluded modelling-view rows | 353 |
 
 The project has not trained or evaluated a predictive model yet. Chronological modelling views,
 baseline and anomaly models, alert episodes, event-level metrics, MLflow tracking, Databricks jobs,
@@ -134,6 +138,10 @@ scalable, incremental, and Databricks-compatible engineering practices.
   row eligibility, exclusion reasons, source lineage, and the future split assignment.
 - A deterministic Spark modelling-view transformation that enforces one-to-one cycle joins,
   point-in-time boundary alignment, supported versions, label semantics, and ordered exclusions.
+- A read-only complete-source modelling-view profile that reconciles 15,413 trainable rows, 353
+  excluded rows, 22 positive labels, 15,391 negative labels, and three represented failure events.
+- A read-only complete-source modelling-view profile that reconciles 15,413 trainable rows, 353
+  excluded rows, 22 positive labels, 15,391 negative labels, and three represented failure events.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -242,6 +250,12 @@ Materialize the versioned Gold feature snapshot after the eligibility profile ha
 .venv-wsl/bin/python -m railpulse.features.feature_snapshot_build --master "local[4]"
 ```
 
+Profile the complete chronological modelling view without selecting split dates or writing output:
+
+```bash
+.venv-wsl/bin/python -m railpulse.evaluation.modeling_view_profile --master "local[4]"
+```
+
 ## Repository layout
 
 ```text
@@ -296,6 +310,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Gold feature-snapshot schema contract](docs/feature_snapshot_contract.md)
 - [Gold feature-snapshot build](docs/feature_snapshot_build.md)
 - [Chronological modelling-view contract](docs/evaluation_protocol.md)
+- [Full-source modelling-view profile](docs/modeling_view_profile.md)
 
 Dashboard instructions, a demo script, and evidence-based résumé bullets will be added only when
 their supporting phases are implemented.

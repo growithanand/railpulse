@@ -179,6 +179,9 @@ contexts, or unsupported feature statuses occur.
 - A deterministic modelling-view transformation now enforces complete one-to-one cycle joins,
   feature-window and prediction-boundary alignment, supported component versions, label semantics,
   and failure-source lineage before assigning ordered exclusion reasons.
+- A read-only full-source modelling-view profile reconciles all 15,766 cycles into 15,413 trainable
+  and 353 excluded rows. The trainable set contains all 22 positive cycle labels, 15,391 negatives,
+  and positive coverage for three of four accepted failure events across 2020-02-01 to 2020-08-31.
 
 Official local Bronze evidence:
 
@@ -378,5 +381,5 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Profile the modelling view against the complete official source, reconcile every row status and
-exclusion reason, and inspect chronological label/event coverage before selecting split boundaries.
+Define and compare fixed chronological split candidates using only calendar boundaries and report
+row, label, operating-time, and failure-event coverage for each period before selecting one.
