@@ -186,6 +186,8 @@ contexts, or unsupported feature statuses occur.
   A read-only full-source comparison reconciles all 15,413 trainable rows for every candidate and
   reports period-level rows, labels, prediction-time spans, and represented failure events. Only
   `validation-2020-06_test-2020-07` has positive-event representation in train, validation, and test.
+- `calendar-chronological-split-selection-v1` freezes that June-validation/July-test candidate for
+  downstream work. Test rows are now unavailable for model and alert-threshold selection.
 
 Official local Bronze evidence:
 
@@ -385,5 +387,5 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Select and freeze the reviewed chronological split, then build an interpretable training-only
-engineering baseline without consulting the held-out test period.
+Define and test an interpretable engineering baseline whose parameters are derived from training
+rows only, without consulting the held-out test period.

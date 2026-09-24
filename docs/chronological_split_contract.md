@@ -21,10 +21,23 @@ period:
 | `validation-2020-06_test-2020-07` | 2020-06-01 | 2020-07-01 |
 | `validation-2020-06_test-2020-08` | 2020-06-01 | 2020-08-01 |
 
-These candidates deliberately expose different calendar allocations. They are definitions, not a
-split selection. The next read-only profile will compare row counts, positive and negative labels,
-operating-time coverage, and represented failure events in every period. A candidate will only be
-selected after that evidence is reviewed.
+These candidates deliberately expose different calendar allocations. The read-only full-source
+comparison in `docs/chronological_split_profile.md` reports row, label, prediction-time, and
+failure-event coverage for every period.
+
+## Selected split
+
+`calendar-chronological-split-selection-v1` freezes
+`validation-2020-06_test-2020-07` for subsequent modelling:
+
+- train: prediction timestamps before 2020-06-01;
+- validation: prediction timestamps from 2020-06-01 through 2020-06-30;
+- test: prediction timestamps on or after 2020-07-01.
+
+It is the only declared candidate with a represented positive failure event in every period. The
+selection used coverage feasibility only; no feature threshold, model score, alert threshold, or
+test-period performance was inspected. From this decision onward, test rows are unavailable for
+model and threshold selection.
 
 ## Leakage controls
 
@@ -35,5 +48,5 @@ selected after that evidence is reviewed.
 - The future test period remains unavailable for model or threshold selection after a candidate is
   chosen.
 
-The contract does not fit a model, balance classes, infer equipment health, or claim that any
-candidate has sufficient event coverage.
+The contract does not fit a model, balance classes, infer equipment health, or claim broad event
+coverage. Each selected period contains only one represented failure event.

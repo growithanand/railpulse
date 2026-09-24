@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime
 
 CHRONOLOGICAL_SPLIT_VERSION = "calendar-chronological-splits-v1"
+CHRONOLOGICAL_SPLIT_SELECTION_VERSION = "calendar-chronological-split-selection-v1"
+SELECTED_SPLIT_CANDIDATE_ID = "validation-2020-06_test-2020-07"
 
 PARTITION_TRAIN = "train"
 PARTITION_VALIDATION = "validation"
@@ -72,3 +74,9 @@ def get_split_candidate(candidate_id: str) -> ChronologicalSplitCandidate:
         if candidate.candidate_id == candidate_id:
             return candidate
     raise ChronologicalSplitError(f"Unknown chronological split candidate: {candidate_id}")
+
+
+def get_selected_split_candidate() -> ChronologicalSplitCandidate:
+    """Return the reviewed split frozen for baseline and model evaluation."""
+
+    return get_split_candidate(SELECTED_SPLIT_CANDIDATE_ID)

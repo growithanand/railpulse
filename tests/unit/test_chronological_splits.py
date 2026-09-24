@@ -5,13 +5,16 @@ from datetime import UTC, datetime
 import pytest
 
 from railpulse.evaluation.chronological_splits import (
+    CHRONOLOGICAL_SPLIT_SELECTION_VERSION,
     CHRONOLOGICAL_SPLIT_VERSION,
     PARTITION_TEST,
     PARTITION_TRAIN,
     PARTITION_VALIDATION,
+    SELECTED_SPLIT_CANDIDATE_ID,
     SPLIT_CANDIDATES,
     ChronologicalSplitCandidate,
     ChronologicalSplitError,
+    get_selected_split_candidate,
     get_split_candidate,
 )
 
@@ -30,6 +33,16 @@ def test_candidate_assigns_boundary_timestamps_to_later_partition() -> None:
     assert candidate.assign(datetime(2020, 6, 1)) == PARTITION_VALIDATION
     assert candidate.assign(datetime(2020, 6, 30, 23, 59, 59)) == PARTITION_VALIDATION
     assert candidate.assign(datetime(2020, 7, 1)) == PARTITION_TEST
+
+
+def test_selected_candidate_freezes_reviewed_june_july_boundaries() -> None:
+    candidate = get_selected_split_candidate()
+
+    assert CHRONOLOGICAL_SPLIT_SELECTION_VERSION == "calendar-chronological-split-selection-v1"
+    assert SELECTED_SPLIT_CANDIDATE_ID == "validation-2020-06_test-2020-07"
+    assert candidate in SPLIT_CANDIDATES
+    assert candidate.validation_start == datetime(2020, 6, 1)
+    assert candidate.test_start == datetime(2020, 7, 1)
 
 
 def test_candidate_rejects_invalid_boundaries_and_timestamps() -> None:

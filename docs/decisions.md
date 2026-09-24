@@ -120,3 +120,17 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   10-second cadence has jitter or gaps.
 - **Limitation:** Fifteen minutes is an initial inspectable window, not an optimized predictive
   horizon. Coverage rules, additional windows, and empirical usefulness remain unverified.
+
+## ADR-013 — Freeze June validation and July test boundaries
+
+- **Status:** Accepted
+- **Decision:** Use train timestamps before 2020-06-01, validation timestamps from 2020-06-01 up to
+  2020-07-01, and test timestamps from 2020-07-01 onward. Record the choice as
+  `calendar-chronological-split-selection-v1`.
+- **Why:** It is the only profiled candidate with a represented positive failure event in train,
+  validation, and test. The May-validation alternative has no training positives, while the
+  August-test alternative has no test positives.
+- **Guardrail:** Selection used only period feasibility and label/event coverage. Test features,
+  model scores, alert thresholds, and performance remain unavailable until final evaluation.
+- **Limitation:** Each period represents only one published failure event, so results will be
+  descriptive case-study evidence rather than a precise generalization estimate.

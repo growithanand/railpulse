@@ -141,6 +141,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
 - Three versioned calendar split candidates plus a read-only comparison that reports row, label,
   prediction-time, and failure-event coverage for train, validation, and test periods. The verified
   full-source result leaves one candidate with positive-event representation in every period.
+- A frozen June-validation/July-test split selected from coverage feasibility alone, with the test
+  period reserved for final evaluation rather than model or alert-threshold selection.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
