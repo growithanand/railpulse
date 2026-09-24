@@ -9,8 +9,10 @@ from pyspark.sql import functions as F
 from railpulse.evaluation.chronological_split_profile import (
     CHRONOLOGICAL_SPLIT_PROFILE_VERSION,
     ChronologicalSplitProfileError,
+    build_full_source_chronological_split_profile,
     collect_chronological_split_comparison,
 )
+from railpulse.evaluation.modeling_view_profile import FullSourceModelingViewInputs
 
 
 def _view(spark: SparkSession):
@@ -60,6 +62,24 @@ def test_split_profile_compares_labels_time_and_events_for_every_candidate(
     assert periods["test"].earliest_prediction_timestamp == "2020-07-15 00:00:00"
     assert periods["test"].latest_prediction_timestamp == "2020-08-31 00:00:00"
     assert periods["test"].prediction_span_seconds == 47 * 24 * 60 * 60
+
+    full_profile = build_full_source_chronological_split_profile(
+        FullSourceModelingViewInputs(
+            view=_view(spark),
+            failure_rows=_failures(spark),
+            label_observation_end="2020-09-01 03:59:50",
+            dataset_version="fixture-v1",
+            telemetry_source_sha256="telemetry-sha",
+            telemetry_ingestion_batch_id="telemetry-batch",
+            failure_source_sha256="failure-sha",
+            failure_source_document_sha256="failure-document-sha",
+            failure_ingestion_batch_id="failure-batch",
+            accepted_telemetry_record_count=100,
+        )
+    )
+    assert full_profile.dataset_version == "fixture-v1"
+    assert full_profile.accepted_telemetry_record_count == 100
+    assert full_profile.comparison.trainable_row_count == 6
 
 
 @pytest.mark.spark

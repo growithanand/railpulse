@@ -37,11 +37,9 @@ remains excluded from Git.
 | Accepted published failure events represented by positive cycles | 3 of 4 |
 | Trainable modelling-view rows | 15,413 |
 | Excluded modelling-view rows | 353 |
-| Trainable modelling-view rows | 15,413 |
-| Excluded modelling-view rows | 353 |
 
-The project has not trained or evaluated a predictive model yet. Chronological modelling views,
-baseline and anomaly models, alert episodes, event-level metrics, MLflow tracking, Databricks jobs,
+The project has not trained or evaluated a predictive model yet. Split selection, baseline and
+anomaly models, alert episodes, event-level metrics, MLflow tracking, Databricks jobs,
 Unity Catalog registration, and Databricks SQL dashboards remain planned. Consequently, no model
 accuracy, warning-lead-time, false-alarm, or maintenance-impact claim is currently made.
 
@@ -140,8 +138,9 @@ scalable, incremental, and Databricks-compatible engineering practices.
   point-in-time boundary alignment, supported versions, label semantics, and ordered exclusions.
 - A read-only complete-source modelling-view profile that reconciles 15,413 trainable rows, 353
   excluded rows, 22 positive labels, 15,391 negative labels, and three represented failure events.
-- A read-only complete-source modelling-view profile that reconciles 15,413 trainable rows, 353
-  excluded rows, 22 positive labels, 15,391 negative labels, and three represented failure events.
+- Three versioned calendar split candidates plus a read-only comparison that reports row, label,
+  prediction-time, and failure-event coverage for train, validation, and test periods. The verified
+  full-source result leaves one candidate with positive-event representation in every period.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -254,6 +253,12 @@ Profile the complete chronological modelling view without selecting split dates 
 
 ```bash
 .venv-wsl/bin/python -m railpulse.evaluation.modeling_view_profile --master "local[4]"
+```
+
+Compare the fixed chronological split candidates without fitting a model or writing output:
+
+```bash
+.venv-wsl/bin/python -m railpulse.evaluation.chronological_split_profile --master "local[4]"
 ```
 
 ## Repository layout

@@ -122,6 +122,22 @@ class FullSourceModelingViewProfile:
     summary: ModelingViewSummary
 
 
+@dataclass(frozen=True)
+class FullSourceModelingViewInputs:
+    """Rebuilt modelling view and source metadata shared by read-only profiles."""
+
+    view: DataFrame
+    failure_rows: tuple[Row, ...]
+    label_observation_end: str
+    dataset_version: str
+    telemetry_source_sha256: str
+    telemetry_ingestion_batch_id: str
+    failure_source_sha256: str
+    failure_source_document_sha256: str
+    failure_ingestion_batch_id: str
+    accepted_telemetry_record_count: int
+
+
 _PROFILE_COLUMNS = {
     "loaded_cycle_id",
     "modeling_view_version",
@@ -263,11 +279,11 @@ def collect_modeling_view_summary(
     )
 
 
-def profile_full_source_modeling_view(
+def build_full_source_modeling_view_inputs(
     spark: SparkSession,
     config: RailPulseConfig,
-) -> FullSourceModelingViewProfile:
-    """Rebuild labels, join materialized snapshots, and profile without writing."""
+) -> FullSourceModelingViewInputs:
+    """Rebuild the full-source modelling view once for read-only downstream profiles."""
 
     telemetry_bronze = spark.read.format("delta").load(
         str(bronze_table_path(config, TELEMETRY_TABLE))
@@ -314,7 +330,28 @@ def profile_full_source_modeling_view(
         failure_source_sha256=failure_source_sha256,
         failure_ingestion_batch_id=failure_ingestion_batch_id,
     )
-    summary = collect_modeling_view_summary(view, failure_rows)
+    return FullSourceModelingViewInputs(
+        view=view,
+        failure_rows=failure_rows,
+        label_observation_end=_timestamp_text(observation_end),
+        dataset_version=dataset_version,
+        telemetry_source_sha256=telemetry_source_sha256,
+        telemetry_ingestion_batch_id=telemetry_ingestion_batch_id,
+        failure_source_sha256=failure_source_sha256,
+        failure_source_document_sha256=failure_source_document_sha256,
+        failure_ingestion_batch_id=failure_ingestion_batch_id,
+        accepted_telemetry_record_count=telemetry_count,
+    )
+
+
+def profile_full_source_modeling_view(
+    spark: SparkSession,
+    config: RailPulseConfig,
+) -> FullSourceModelingViewProfile:
+    """Rebuild labels, join materialized snapshots, and profile without writing."""
+
+    inputs = build_full_source_modeling_view_inputs(spark, config)
+    summary = collect_modeling_view_summary(inputs.view, inputs.failure_rows)
     matched_event_count = sum(
         event.trainable_positive_cycle_count > 0 for event in summary.failure_event_counts
     )
@@ -324,15 +361,15 @@ def profile_full_source_modeling_view(
         feature_snapshot_version=FEATURE_SNAPSHOT_VERSION,
         failure_horizon_version=FAILURE_HORIZON_VERSION,
         failure_horizon_seconds=DEFAULT_FAILURE_HORIZON_SECONDS,
-        label_observation_end=_timestamp_text(observation_end),
-        dataset_version=dataset_version,
-        telemetry_source_sha256=telemetry_source_sha256,
-        telemetry_ingestion_batch_id=telemetry_ingestion_batch_id,
-        failure_source_sha256=failure_source_sha256,
-        failure_source_document_sha256=failure_source_document_sha256,
-        failure_ingestion_batch_id=failure_ingestion_batch_id,
-        accepted_telemetry_record_count=telemetry_count,
-        accepted_failure_event_count=len(failure_rows),
+        label_observation_end=inputs.label_observation_end,
+        dataset_version=inputs.dataset_version,
+        telemetry_source_sha256=inputs.telemetry_source_sha256,
+        telemetry_ingestion_batch_id=inputs.telemetry_ingestion_batch_id,
+        failure_source_sha256=inputs.failure_source_sha256,
+        failure_source_document_sha256=inputs.failure_source_document_sha256,
+        failure_ingestion_batch_id=inputs.failure_ingestion_batch_id,
+        accepted_telemetry_record_count=inputs.accepted_telemetry_record_count,
+        accepted_failure_event_count=len(inputs.failure_rows),
         matched_trainable_failure_event_count=matched_event_count,
         summary=summary,
     )

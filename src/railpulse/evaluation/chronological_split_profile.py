@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import argparse
+import json
+from collections.abc import Sequence
+from dataclasses import asdict, dataclass
+from pathlib import Path
 
-from pyspark.sql import Column, DataFrame, Row
+from pyspark.sql import Column, DataFrame, Row, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import LongType
 
+from railpulse.config import RailPulseConfig, load_config
 from railpulse.evaluation.chronological_splits import (
     CHRONOLOGICAL_SPLIT_VERSION,
     PARTITION_TEST,
@@ -15,11 +20,16 @@ from railpulse.evaluation.chronological_splits import (
     PARTITION_VALIDATION,
     SPLIT_CANDIDATES,
 )
+from railpulse.evaluation.modeling_view_profile import (
+    FullSourceModelingViewInputs,
+    build_full_source_modeling_view_inputs,
+)
 from railpulse.evaluation.modeling_view_schema import (
     MODELING_VIEW_VERSION,
     STATUS_TRAINABLE,
 )
 from railpulse.features.failure_horizons import STATUS_NEGATIVE, STATUS_POSITIVE
+from railpulse.spark import create_local_spark_session
 
 CHRONOLOGICAL_SPLIT_PROFILE_VERSION = "calendar-chronological-split-profile-v1"
 PARTITION_ORDER = (PARTITION_TRAIN, PARTITION_VALIDATION, PARTITION_TEST)
@@ -64,6 +74,25 @@ class ChronologicalSplitComparison:
     trainable_row_count: int
     accepted_failure_event_count: int
     candidates: tuple[SplitCandidateCount, ...]
+
+
+@dataclass(frozen=True)
+class FullSourceChronologicalSplitProfile:
+    """Source-bound result of the read-only chronological split comparison."""
+
+    profile_version: str
+    split_version: str
+    modeling_view_version: str
+    label_observation_end: str
+    dataset_version: str
+    telemetry_source_sha256: str
+    telemetry_ingestion_batch_id: str
+    failure_source_sha256: str
+    failure_source_document_sha256: str
+    failure_ingestion_batch_id: str
+    accepted_telemetry_record_count: int
+    accepted_failure_event_count: int
+    comparison: ChronologicalSplitComparison
 
 
 _REQUIRED_COLUMNS = {
@@ -215,3 +244,62 @@ def collect_chronological_split_comparison(
         accepted_failure_event_count=len(failure_rows),
         candidates=tuple(candidates),
     )
+
+
+def build_full_source_chronological_split_profile(
+    inputs: FullSourceModelingViewInputs,
+) -> FullSourceChronologicalSplitProfile:
+    """Attach full-source lineage to a reconciled split comparison."""
+
+    comparison = collect_chronological_split_comparison(inputs.view, inputs.failure_rows)
+    return FullSourceChronologicalSplitProfile(
+        profile_version=CHRONOLOGICAL_SPLIT_PROFILE_VERSION,
+        split_version=CHRONOLOGICAL_SPLIT_VERSION,
+        modeling_view_version=MODELING_VIEW_VERSION,
+        label_observation_end=inputs.label_observation_end,
+        dataset_version=inputs.dataset_version,
+        telemetry_source_sha256=inputs.telemetry_source_sha256,
+        telemetry_ingestion_batch_id=inputs.telemetry_ingestion_batch_id,
+        failure_source_sha256=inputs.failure_source_sha256,
+        failure_source_document_sha256=inputs.failure_source_document_sha256,
+        failure_ingestion_batch_id=inputs.failure_ingestion_batch_id,
+        accepted_telemetry_record_count=inputs.accepted_telemetry_record_count,
+        accepted_failure_event_count=len(inputs.failure_rows),
+        comparison=comparison,
+    )
+
+
+def profile_full_source_chronological_splits(
+    spark: SparkSession,
+    config: RailPulseConfig,
+) -> FullSourceChronologicalSplitProfile:
+    """Rebuild the modelling view and compare calendar candidates without writing."""
+
+    inputs = build_full_source_modeling_view_inputs(spark, config)
+    return build_full_source_chronological_split_profile(inputs)
+
+
+def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", type=Path, default=None)
+    parser.add_argument("--project-root", type=Path, default=None)
+    parser.add_argument("--master", default="local[4]")
+    return parser.parse_args(argv)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Run the read-only full-source split comparison and print deterministic JSON."""
+
+    args = _parse_args(argv)
+    config = load_config(args.config, project_root=args.project_root)
+    spark = create_local_spark_session("railpulse-chronological-split-profile", master=args.master)
+    try:
+        profile = profile_full_source_chronological_splits(spark, config)
+    finally:
+        spark.stop()
+    print(json.dumps(asdict(profile), indent=2, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -182,6 +182,10 @@ contexts, or unsupported feature statuses occur.
 - A read-only full-source modelling-view profile reconciles all 15,766 cycles into 15,413 trainable
   and 353 excluded rows. The trainable set contains all 22 positive cycle labels, 15,391 negatives,
   and positive coverage for three of four accepted failure events across 2020-02-01 to 2020-08-31.
+- Three fixed, versioned calendar split candidates assign trainable rows from prediction time alone.
+  A read-only full-source comparison reconciles all 15,413 trainable rows for every candidate and
+  reports period-level rows, labels, prediction-time spans, and represented failure events. Only
+  `validation-2020-06_test-2020-07` has positive-event representation in train, validation, and test.
 
 Official local Bronze evidence:
 
@@ -381,5 +385,5 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Define and compare fixed chronological split candidates using only calendar boundaries and report
-row, label, operating-time, and failure-event coverage for each period before selecting one.
+Select and freeze the reviewed chronological split, then build an interpretable training-only
+engineering baseline without consulting the held-out test period.
