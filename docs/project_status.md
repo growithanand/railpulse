@@ -188,6 +188,11 @@ contexts, or unsupported feature statuses occur.
   `validation-2020-06_test-2020-07` has positive-event representation in train, validation, and test.
 - `calendar-chronological-split-selection-v1` freezes that June-validation/July-test candidate for
   downstream work. Test rows are now unavailable for model and alert-threshold selection.
+- An interpretable robust-deviation baseline now fits the median and median absolute deviation of
+  15-minute mean motor current from 6,392 negative training rows. Its development-only profile
+  reconciles 6,396 training and 4,747 validation rows without reporting test scores. Validation
+  negatives have a median deviation score of 13.924 versus 0.576 for validation positives, showing
+  that the single global-current baseline is not a defensible high-score alert rule.
 
 Official local Bronze evidence:
 
@@ -387,5 +392,5 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Define and test an interpretable engineering baseline whose parameters are derived from training
-rows only, without consulting the held-out test period.
+Explain the development-period current shift using calendar and operating-context profiles, then
+revise the engineering baseline without consulting the held-out test period.
