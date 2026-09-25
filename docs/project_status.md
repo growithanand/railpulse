@@ -193,6 +193,10 @@ contexts, or unsupported feature statuses occur.
   reconciles 6,396 training and 4,747 validation rows without reporting test scores. Validation
   negatives have a median deviation score of 13.924 versus 0.576 for validation positives, showing
   that the single global-current baseline is not a defensible high-score alert rule.
+- A development-only monthly feature profile localizes the drift. Negative median 15-minute mean
+  current changes from 0.796 A in February to 2.948 A in April and 5.575 A in June, while June
+  positives have a 0.928 A median. This supports explicit regime or directional-rule investigation
+  rather than a symmetric global-deviation threshold.
 
 Official local Bronze evidence:
 
@@ -392,5 +396,5 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Explain the development-period current shift using calendar and operating-context profiles, then
-revise the engineering baseline without consulting the held-out test period.
+Define and compare transparent regime-aware or directional baseline candidates using training and
+validation only, without consulting the held-out test period.

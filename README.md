@@ -146,6 +146,10 @@ scalable, incremental, and Databricks-compatible engineering practices.
 - A training-only robust motor-current deviation baseline and development-only profile. The verified
   validation distribution exposes substantial temporal or operating-regime drift, so the score is
   retained as an honest benchmark failure rather than promoted to an alert rule.
+- A development-only monthly drift profile that localizes the shift: negative median current moves
+  from 0.796 A in February to 5.575 A in June, while June positives remain near 0.928 A.
+- A development-only monthly drift profile that localizes the shift: negative median current moves
+  from 0.796 A in February to 5.575 A in June, while June positives remain near 0.928 A.
 - A training-only robust motor-current deviation baseline and development-only profile. The verified
   validation distribution exposes substantial temporal or operating-regime drift, so the score is
   retained as an honest benchmark failure rather than promoted to an alert rule.
