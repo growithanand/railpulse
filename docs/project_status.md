@@ -197,6 +197,9 @@ contexts, or unsupported feature statuses occur.
   current changes from 0.796 A in February to 2.948 A in April and 5.575 A in June, while June
   positives have a 0.928 A median. This supports explicit regime or directional-rule investigation
   rather than a symmetric global-deviation threshold.
+- A development-only comparison now evaluates five fixed low-current thresholds. The 1.0 A rule
+  captures four of five validation positives but also flags 293 negative cycles; its validation
+  precision is 1.35% and its training false-positive rate is 43.70%. No threshold is selected.
 
 Official local Bronze evidence:
 
@@ -396,5 +399,5 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Define and compare transparent regime-aware or directional baseline candidates using training and
-validation only, without consulting the held-out test period.
+Add past-only operating-context features beyond motor-current mean, then revisit the engineering
+baseline using training and validation only while keeping the test period sealed.

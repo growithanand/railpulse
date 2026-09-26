@@ -148,6 +148,12 @@ scalable, incremental, and Databricks-compatible engineering practices.
   retained as an honest benchmark failure rather than promoted to an alert rule.
 - A development-only monthly drift profile that localizes the shift: negative median current moves
   from 0.796 A in February to 5.575 A in June, while June positives remain near 0.928 A.
+- A five-candidate directional low-current comparison that retains test isolation and rejects every
+  threshold as operationally weak; the best validation compromise still produces 293 false-positive
+  cycles for four true positives.
+- A five-candidate directional low-current comparison that retains test isolation and rejects every
+  threshold as operationally weak; the best validation compromise still produces 293 false-positive
+  cycles for four true positives.
 - A development-only monthly drift profile that localizes the shift: negative median current moves
   from 0.796 A in February to 5.575 A in June, while June positives remain near 0.928 A.
 - A training-only robust motor-current deviation baseline and development-only profile. The verified
