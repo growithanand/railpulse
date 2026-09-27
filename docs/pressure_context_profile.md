@@ -47,3 +47,7 @@ integration should wait until a development-only label comparison establishes wh
 differences add useful separation.
 
 These values are observed data characteristics, not equipment tolerances or leak thresholds.
+
+The subsequent [development-only comparison](pressure_context_development_profile.md) found
+substantial positive/negative overlap and did not justify adding the feature to a new snapshot
+version.

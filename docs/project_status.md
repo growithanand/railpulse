@@ -203,7 +203,11 @@ contexts, or unsupported feature statuses occur.
 - A past-only 15-minute pressure-context transformation summarizes signed and absolute differences
   between `TP3` and `Reservoirs`. Its full-source profile reconciles 15,703 available cycles and 63
   missing prediction boundaries. The median absolute window mean is 0.00154 bar and the maximum is
-  0.01086 bar, confirming close tracking but not yet predictive usefulness.
+  0.01086 bar, confirming close tracking but not predictive usefulness by itself.
+- A test-isolated development profile compares that pressure context across 6,548 training and
+  4,790 validation cycles. Training positives and negatives have nearly identical median absolute
+  means (0.00171 and 0.00165 bar), while validation distributions overlap and contain only five
+  positive cycles. The feature is not promoted into a new snapshot version.
 
 Official local Bronze evidence:
 
@@ -403,5 +407,6 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Compare pressure-context distributions by development label and period before deciding whether to
-include them in a versioned feature-snapshot expansion. Keep the test period sealed.
+Define and test a past-only cycle operating-context contract using only information available at the
+prediction boundary. Profile its source coverage before any label comparison or feature-snapshot
+expansion, and keep the test period sealed.

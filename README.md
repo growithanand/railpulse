@@ -152,19 +152,9 @@ scalable, incremental, and Databricks-compatible engineering practices.
   threshold as operationally weak; the best validation compromise still produces 293 false-positive
   cycles for four true positives.
 - A past-only panel-to-reservoir pressure-balance feature and full-source profile covering all 15,703
-  observed prediction boundaries. The signals track closely, so label separation will be checked
-  before the feature is added to a new snapshot version.
-- A past-only panel-to-reservoir pressure-balance feature and full-source profile covering all 15,703
-  observed prediction boundaries. The signals track closely, so label separation will be checked
-  before the feature is added to a new snapshot version.
-- A five-candidate directional low-current comparison that retains test isolation and rejects every
-  threshold as operationally weak; the best validation compromise still produces 293 false-positive
-  cycles for four true positives.
-- A development-only monthly drift profile that localizes the shift: negative median current moves
-  from 0.796 A in February to 5.575 A in June, while June positives remain near 0.928 A.
-- A training-only robust motor-current deviation baseline and development-only profile. The verified
-  validation distribution exposes substantial temporal or operating-regime drift, so the score is
-  retained as an honest benchmark failure rather than promoted to an alert rule.
+  observed prediction boundaries. A test-isolated development comparison finds substantial
+  positive/negative overlap across only four train and five validation positive cycles, so the
+  feature remains a research candidate and is not added to a new snapshot version.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
