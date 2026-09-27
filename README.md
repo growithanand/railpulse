@@ -151,6 +151,12 @@ scalable, incremental, and Databricks-compatible engineering practices.
 - A five-candidate directional low-current comparison that retains test isolation and rejects every
   threshold as operationally weak; the best validation compromise still produces 293 false-positive
   cycles for four true positives.
+- A past-only panel-to-reservoir pressure-balance feature and full-source profile covering all 15,703
+  observed prediction boundaries. The signals track closely, so label separation will be checked
+  before the feature is added to a new snapshot version.
+- A past-only panel-to-reservoir pressure-balance feature and full-source profile covering all 15,703
+  observed prediction boundaries. The signals track closely, so label separation will be checked
+  before the feature is added to a new snapshot version.
 - A five-candidate directional low-current comparison that retains test isolation and rejects every
   threshold as operationally weak; the best validation compromise still produces 293 false-positive
   cycles for four true positives.

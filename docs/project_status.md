@@ -200,6 +200,10 @@ contexts, or unsupported feature statuses occur.
 - A development-only comparison now evaluates five fixed low-current thresholds. The 1.0 A rule
   captures four of five validation positives but also flags 293 negative cycles; its validation
   precision is 1.35% and its training false-positive rate is 43.70%. No threshold is selected.
+- A past-only 15-minute pressure-context transformation summarizes signed and absolute differences
+  between `TP3` and `Reservoirs`. Its full-source profile reconciles 15,703 available cycles and 63
+  missing prediction boundaries. The median absolute window mean is 0.00154 bar and the maximum is
+  0.01086 bar, confirming close tracking but not yet predictive usefulness.
 
 Official local Bronze evidence:
 
@@ -399,5 +403,5 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Add past-only operating-context features beyond motor-current mean, then revisit the engineering
-baseline using training and validation only while keeping the test period sealed.
+Compare pressure-context distributions by development label and period before deciding whether to
+include them in a versioned feature-snapshot expansion. Keep the test period sealed.
