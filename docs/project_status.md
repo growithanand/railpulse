@@ -208,6 +208,9 @@ contexts, or unsupported feature statuses occur.
   4,790 validation cycles. Training positives and negatives have nearly identical median absolute
   means (0.00171 and 0.00165 bar), while validation distributions overlap and contain only five
   positive cycles. The feature is not promoted into a new snapshot version.
+- A past-only cycle operating-context contract now derives complete current and previous loaded
+  durations plus their intervening idle time from Gold cycle boundaries alone. Explicit statuses
+  retain first-cycle, censored, incomplete-predecessor, and invalid-order cases without labels.
 
 Official local Bronze evidence:
 
@@ -407,6 +410,6 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Define and test a past-only cycle operating-context contract using only information available at the
-prediction boundary. Profile its source coverage before any label comparison or feature-snapshot
-expansion, and keep the test period sealed.
+Profile cycle operating-context coverage and duration distributions across the full Gold cycle
+source without loading labels. Reconcile every status before any development-only comparison or
+feature-snapshot expansion, and keep the test period sealed.

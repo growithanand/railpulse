@@ -155,6 +155,9 @@ scalable, incremental, and Databricks-compatible engineering practices.
   observed prediction boundaries. A test-isolated development comparison finds substantial
   positive/negative overlap across only four train and five validation positive cycles, so the
   feature remains a research candidate and is not added to a new snapshot version.
+- A label-independent, past-only cycle operating-context contract for current loaded duration,
+  preceding loaded duration, and intervening idle time, with explicit censoring and predecessor
+  statuses. Full-source coverage has not yet been profiled.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
