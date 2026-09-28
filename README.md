@@ -158,7 +158,9 @@ scalable, incremental, and Databricks-compatible engineering practices.
 - A label-independent, past-only cycle operating-context contract for current loaded duration,
   preceding loaded duration, and intervening idle time, with explicit censoring and predecessor
   statuses. Its full-source profile reconciles all 15,766 cycles, finds complete context for 15,375,
-  and reports no invalid predecessor intervals.
+  and reports no invalid predecessor intervals. A test-isolated development comparison finds higher
+  current and preceding loaded durations for positive cycles in both train and validation, supporting
+  a versioned snapshot expansion without selecting a threshold.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.

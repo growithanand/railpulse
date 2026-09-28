@@ -45,4 +45,6 @@ continuity across source boundaries. They are feature-quality results, not healt
 The [full-source profile](cycle_operating_context_profile.md) reconciles every Gold cycle by status
 and characterizes all three duration components without loading failure labels. It finds complete
 context for 15,375 of 15,766 cycles and no invalid predecessor intervals. This coverage supports a
-development-only label comparison, but not yet a feature-snapshot expansion.
+[development-only label comparison](cycle_operating_context_development_profile.md). That comparison
+finds directionally consistent loaded-duration differences and supports a versioned snapshot
+expansion, while leaving threshold selection and test evaluation deferred.

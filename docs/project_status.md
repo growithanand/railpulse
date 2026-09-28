@@ -215,6 +215,11 @@ contexts, or unsupported feature statuses occur.
   for 15,375. There are 63 missing prediction boundaries, 167 left-censored current cycles, one
   missing predecessor, 160 incomplete predecessors, and no invalid predecessor intervals. Median
   loaded duration is 129 seconds; median preceding idle time is 843 seconds.
+- A test-isolated development comparison retains 6,373 training and 4,749 validation cycles with
+  complete context and observed labels. Positive median current duration is 178.5 seconds in train
+  and 129 seconds in validation, versus 119 and 60 seconds for negatives. Positive previous-cycle
+  duration is also higher in both periods. The context is approved for a versioned snapshot
+  expansion, not for a threshold or performance claim.
 
 Official local Bronze evidence:
 
@@ -414,6 +419,6 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Compare cycle operating-context distributions by training/validation period and observed horizon
-label without inspecting test rows. Decide from that development evidence whether these features
-justify a versioned snapshot expansion.
+Define and test a version 2 feature-snapshot contract that carries cycle operating-context values
+and status while preserving every version 1 snapshot and keeping future labels and test-period
+outcomes outside the feature table.

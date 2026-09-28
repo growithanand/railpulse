@@ -49,4 +49,7 @@ is about 32 minutes. The strong coverage and variation justify a development-onl
 chronological period and failure-horizon label.
 
 This result does not establish predictive value. The test period remains sealed, and no operating
-context is added to the immutable Gold feature snapshot yet.
+context is added to the immutable Gold feature snapshot yet. The subsequent
+[development-only comparison](cycle_operating_context_development_profile.md) finds directionally
+consistent loaded-duration differences and supports a versioned snapshot expansion without
+selecting a threshold.
