@@ -226,6 +226,9 @@ contexts, or unsupported feature statuses occur.
   immutable Delta writer inserts unseen keys, accepts identical reruns, rejects changed existing
   rows, and reconciles before and after counts. The existing `gold.feature_snapshots` schema and rows
   remain unchanged.
+- The full-source version 2 build materializes 15,766 rows from the immutable version 1 table and
+  Gold cycle context. Its identical rerun inserts zero rows and reports all 15,766 rows unchanged;
+  a column-for-column source comparison confirms version 1 remains at 15,766 unchanged rows.
 
 Official local Bronze evidence:
 
@@ -425,5 +428,6 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Add the full-source build command for `gold.feature_snapshots_v2`, then materialize and reconcile an
-initial write and zero-insert rerun without changing `gold.feature_snapshots`.
+Begin the Databricks handoff: install and authenticate the official CLI, validate the existing bundle
+against a development workspace, and define the first managed pipeline job without committing
+credentials or uploading ignored local data.

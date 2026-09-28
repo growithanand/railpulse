@@ -61,6 +61,7 @@ operation.
 
 ## Deferred work
 
-The schema, in-memory builder, and immutable Delta writer are tested. A separate increment will add
-the full-source build command, materialize the table, and reconcile it independently from the
-existing v1 table.
+The schema, in-memory builder, immutable Delta writer, and
+[full-source build](feature_snapshot_v2_build.md) are tested. The local table contains 15,766
+reconciled rows, and an identical rerun inserts zero rows while the existing version 1 table remains
+unchanged. Databricks deployment and managed-table registration remain separate platform work.

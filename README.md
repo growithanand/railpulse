@@ -161,10 +161,10 @@ scalable, incremental, and Databricks-compatible engineering practices.
   and reports no invalid predecessor intervals. A test-isolated development comparison finds higher
   current and preceding loaded durations for positive cycles in both train and validation, supporting
   a versioned snapshot expansion without selecting a threshold.
-- A separate version 2 feature-snapshot schema, in-memory builder, and immutable Delta writer that
-  preserve every version 1 motor-current field, add cycle context, reject key, version, or existing
-  row conflicts, and discard future labels. Full-source construction and reconciliation remain the
-  next increment.
+- A separate version 2 feature-snapshot schema, in-memory builder, immutable Delta writer, and
+  full-source build that preserve every version 1 motor-current field, add cycle context, reject key,
+  version, or existing-row conflicts, and discard future labels. The materialized 15,766-row table
+  has a verified zero-insert rerun while version 1 remains unchanged.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
@@ -271,6 +271,12 @@ Materialize the versioned Gold feature snapshot after the eligibility profile ha
 
 ```bash
 .venv-wsl/bin/python -m railpulse.features.feature_snapshot_build --master "local[4]"
+```
+
+Expand the immutable version 1 rows with cycle context in the separate version 2 table:
+
+```bash
+.venv-wsl/bin/python -m railpulse.features.feature_snapshot_v2_build --master "local[4]"
 ```
 
 Profile the complete chronological modelling view without selecting split dates or writing output:
