@@ -220,6 +220,10 @@ contexts, or unsupported feature statuses occur.
   and 129 seconds in validation, versus 119 and 60 seconds for negatives. Positive previous-cycle
   duration is also higher in both periods. The context is approved for a versioned snapshot
   expansion, not for a threshold or performance claim.
+- A version 2 snapshot contract now targets the separate `gold.feature_snapshots_v2` table. Its
+  tested in-memory builder preserves all v1 motor-current and eligibility fields, adds the six cycle
+  context fields, enforces one-to-one keys and supported versions, and excludes future labels. The
+  existing `gold.feature_snapshots` schema and rows remain unchanged.
 
 Official local Bronze evidence:
 
@@ -419,6 +423,5 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Define and test a version 2 feature-snapshot contract that carries cycle operating-context values
-and status while preserving every version 1 snapshot and keeping future labels and test-period
-outcomes outside the feature table.
+Add the immutable Delta writer and full-source build for `gold.feature_snapshots_v2`, then verify an
+initial write and zero-insert rerun without changing `gold.feature_snapshots`.

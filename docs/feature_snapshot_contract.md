@@ -115,3 +115,6 @@ The in-memory builder and idempotent Delta persistence boundary are implemented.
 command that derives and materializes the table is a separate increment. Chronological splitting,
 modeling, event evaluation, and maintenance-impact claims depend on the materialized snapshot but
 are not part of this persistence scope.
+
+The later [version 2 contract](feature_snapshot_v2_contract.md) uses a separate logical table to add
+cycle operating context. It does not mutate this version 1 schema or its materialized rows.

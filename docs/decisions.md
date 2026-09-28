@@ -134,3 +134,13 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   model scores, alert thresholds, and performance remain unavailable until final evaluation.
 - **Limitation:** Each period represents only one published failure event, so results will be
   descriptive case-study evidence rather than a precise generalization estimate.
+
+## ADR-014 — Preserve snapshot v1 and publish context through a v2 table
+
+- **Status:** Accepted
+- **Decision:** Keep `gold.feature_snapshots` on `motor-current-15m-snapshot-v1` and publish the
+  cycle-context expansion through the separate `gold.feature_snapshots_v2` contract.
+- **Why:** Existing v1 rows are immutable and already have verified rerun evidence. A separate table
+  makes the schema change explicit, preserves reproducibility, and lets downstream consumers opt in.
+- **Guardrail:** Version 2 remains label-free and must reconcile one-to-one with version 1 feature
+  inputs and cycle-context rows before it can be written.

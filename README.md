@@ -161,6 +161,9 @@ scalable, incremental, and Databricks-compatible engineering practices.
   and reports no invalid predecessor intervals. A test-isolated development comparison finds higher
   current and preceding loaded durations for positive cycles in both train and validation, supporting
   a versioned snapshot expansion without selecting a threshold.
+- A separate version 2 feature-snapshot schema and in-memory builder that preserve every version 1
+  motor-current field, add the cycle-context columns, reject key or version mismatches, and discard
+  future labels. Persistence and full-source reconciliation remain the next increment.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
 - A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
