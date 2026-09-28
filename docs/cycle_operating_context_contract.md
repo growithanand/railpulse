@@ -40,8 +40,9 @@ negative. Appending a later cycle cannot change context already assigned to earl
 The statuses preserve incomplete evidence instead of filling missing durations or assuming
 continuity across source boundaries. They are feature-quality results, not health or failure labels.
 
-## Next validation
+## Full-source validation
 
-The next increment will profile every Gold cycle by status and characterize the three duration
-features without loading failure labels. No feature-snapshot expansion is justified until that
-coverage is reconciled.
+The [full-source profile](cycle_operating_context_profile.md) reconciles every Gold cycle by status
+and characterizes all three duration components without loading failure labels. It finds complete
+context for 15,375 of 15,766 cycles and no invalid predecessor intervals. This coverage supports a
+development-only label comparison, but not yet a feature-snapshot expansion.

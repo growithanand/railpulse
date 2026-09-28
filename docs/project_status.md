@@ -211,6 +211,10 @@ contexts, or unsupported feature statuses occur.
 - A past-only cycle operating-context contract now derives complete current and previous loaded
   durations plus their intervening idle time from Gold cycle boundaries alone. Explicit statuses
   retain first-cycle, censored, incomplete-predecessor, and invalid-order cases without labels.
+- Its label-independent full-source profile reconciles all 15,766 Gold cycles, with complete context
+  for 15,375. There are 63 missing prediction boundaries, 167 left-censored current cycles, one
+  missing predecessor, 160 incomplete predecessors, and no invalid predecessor intervals. Median
+  loaded duration is 129 seconds; median preceding idle time is 843 seconds.
 
 Official local Bronze evidence:
 
@@ -410,6 +414,6 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Profile cycle operating-context coverage and duration distributions across the full Gold cycle
-source without loading labels. Reconcile every status before any development-only comparison or
-feature-snapshot expansion, and keep the test period sealed.
+Compare cycle operating-context distributions by training/validation period and observed horizon
+label without inspecting test rows. Decide from that development evidence whether these features
+justify a versioned snapshot expansion.
