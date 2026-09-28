@@ -222,8 +222,10 @@ contexts, or unsupported feature statuses occur.
   expansion, not for a threshold or performance claim.
 - A version 2 snapshot contract now targets the separate `gold.feature_snapshots_v2` table. Its
   tested in-memory builder preserves all v1 motor-current and eligibility fields, adds the six cycle
-  context fields, enforces one-to-one keys and supported versions, and excludes future labels. The
-  existing `gold.feature_snapshots` schema and rows remain unchanged.
+  context fields, enforces one-to-one keys and supported versions, and excludes future labels. Its
+  immutable Delta writer inserts unseen keys, accepts identical reruns, rejects changed existing
+  rows, and reconciles before and after counts. The existing `gold.feature_snapshots` schema and rows
+  remain unchanged.
 
 Official local Bronze evidence:
 
@@ -423,5 +425,5 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Add the immutable Delta writer and full-source build for `gold.feature_snapshots_v2`, then verify an
+Add the full-source build command for `gold.feature_snapshots_v2`, then materialize and reconcile an
 initial write and zero-insert rerun without changing `gold.feature_snapshots`.

@@ -51,8 +51,16 @@ The table contains information available at the cycle prediction boundary. It do
 failure labels, chronological partitions, model scores, or test outcomes. Snapshot v1 remains
 unchanged, and the held-out test period remains unavailable during v2 construction.
 
+## Persistence guarantees
+
+`persist_feature_snapshots_v2` writes only to the separate version 2 table. It validates required
+columns, versions, unique keys, lineage, and cycle-context values before every write. It inserts
+unseen cycle IDs, treats an identical rerun as unchanged, and rejects any attempt to modify an
+existing row. Source, inserted, unchanged, before, and after counts are reconciled after each Delta
+operation.
+
 ## Deferred work
 
-This increment defines and tests the in-memory schema and builder. A separate increment will add a
-v2-specific immutable Delta writer and full-source build, then reconcile it independently from the
+The schema, in-memory builder, and immutable Delta writer are tested. A separate increment will add
+the full-source build command, materialize the table, and reconcile it independently from the
 existing v1 table.
