@@ -12,6 +12,11 @@ resources:
           python_wheel_task:
             package_name: railpulse
             entry_point: databricks_preflight
+            named_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              gold_schema: ${var.gold_schema}
       environments:
         - environment_key: default
           spec:

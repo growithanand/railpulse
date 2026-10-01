@@ -170,6 +170,9 @@ scalable, incremental, and Databricks-compatible engineering practices.
 - A Databricks Asset Bundle that passes strict CLI validation and deploys a serverless Python-wheel
   preflight job. Its first managed run completed successfully and reported the expected package,
   Spark, runtime, catalog, and schema metadata without writing project data.
+- A tested Unity Catalog namespace contract that maps the logical Bronze, Silver, and Gold layers to
+  separate development schemas through bundle variables. The namespace-aware preflight is deployed
+  but has not yet been run; schema provisioning remains a reviewed, not-yet-executed operation.
 - Durable project planning, status, and architecture-decision documentation.
 
 ## Runtime stack
@@ -330,6 +333,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Project plan](docs/project_plan.md)
 - [Project status](docs/project_status.md)
 - [Architecture decisions](docs/decisions.md)
+- [Databricks namespace contract](docs/databricks_namespace.md)
 - [Data placement](data/README.md)
 - [Dataset manifest](docs/dataset_manifest.json)
 - [Data contract](docs/data_contract.md)

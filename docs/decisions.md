@@ -83,8 +83,8 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Why:** Delta 4.4 is built and tested for Spark 4.2, Spark 4.2 supports Python 3.10+ and Java
   17/21/25, and JDK 21 is an LTS runtime. The installed Windows JDK 23 is outside that Java set, and
   native Windows Hadoop also requires an additional `winutils.exe` helper.
-- **Limitation:** Databricks runtime and deployment compatibility remain unverified until a workspace
-  is available.
+- **Limitation:** This local runtime does not prove managed-catalog behavior. Databricks package and
+  Spark compatibility were subsequently verified through the read-only managed preflight.
 
 ## ADR-010 — Use source-derived keys and path-backed local Bronze tables
 
@@ -144,3 +144,15 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   makes the schema change explicit, preserves reproducibility, and lets downstream consumers opt in.
 - **Guardrail:** Version 2 remains label-free and must reconcile one-to-one with version 1 feature
   inputs and cycle-context rows before it can be written.
+
+## ADR-015 — Reuse the workspace catalog and isolate medallion schemas
+
+- **Status:** Accepted
+- **Decision:** Use the existing `workspace` catalog for development and map RailPulse's logical
+  layers to `railpulse_bronze`, `railpulse_silver`, and `railpulse_gold`. Managed workloads must use
+  fully qualified three-level names produced by the validated `CatalogNamespace` contract.
+- **Why:** Reusing the governed workspace catalog avoids an unnecessary top-level object while
+  separate schemas preserve clear layer boundaries and allow later privilege separation. Bundle
+  variables keep physical names environment-specific.
+- **Limitation:** The schemas are declared but not yet provisioned. Creation remains a separate
+  reviewed workspace mutation subject to Unity Catalog privileges.

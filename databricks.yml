@@ -4,6 +4,20 @@ bundle:
 include:
   - resources/*.yml
 
+variables:
+  catalog:
+    description: Existing Unity Catalog catalog used by RailPulse resources.
+    default: workspace
+  bronze_schema:
+    description: Schema reserved for source-aligned RailPulse tables.
+    default: railpulse_bronze
+  silver_schema:
+    description: Schema reserved for validated RailPulse tables.
+    default: railpulse_silver
+  gold_schema:
+    description: Schema reserved for decision-support RailPulse tables.
+    default: railpulse_gold
+
 artifacts:
   default:
     type: whl

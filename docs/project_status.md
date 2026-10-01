@@ -94,6 +94,8 @@ contexts, or unsupported feature statuses occur.
 - Planning, decisions, status, and data-placement documentation.
 - Validated and deployed Databricks Asset Bundle with a successful serverless Python-wheel preflight
   run.
+- Tested Unity Catalog identifier and layer-mapping contract with bundle-configurable catalog and
+  Bronze, Silver, and Gold schemas; the schemas are not yet provisioned.
 - SHA-256 manifest for the official UCI archive and both members.
 - Complete-file CSV inspection covering 1,516,948 rows and 15 sensors.
 - Source/next-Bronze contracts, sensor dictionary, and separate four-row failure reference.
@@ -420,6 +422,10 @@ The job imported RailPulse package version 0.1.0, initialized Spark 4.2.0, and r
 contract. It did not create or modify project tables. No credentials, ignored local data, workspace
 URLs, user identifiers, or deployment state were written to the repository.
 
+The namespace-aware version 2 preflight configuration also returns `Validation OK!`. Its deployment
+updated the one existing preflight job and added or deleted no resources. Version 2 has not been run
+yet.
+
 Before this handoff checkpoint, the complete repository suite passed all 134 tests, including the
 Spark and Delta integration tests. Ruff lint and formatting checks, Python bytecode compilation,
 and an isolated wheel build also passed.
@@ -446,6 +452,6 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Define the catalog and schema boundary for the first bounded Databricks data-processing job, then
-review its planned workspace changes before deployment. Do not commit credentials or upload ignored
-local data.
+Run the deployed namespace-aware version 2 preflight. After that read-only checkpoint, provision only
+the declared Bronze, Silver, and Gold schemas before implementing the first bounded catalog-backed
+data-processing job. Do not commit credentials or upload ignored local data.

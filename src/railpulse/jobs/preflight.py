@@ -8,8 +8,9 @@ from dataclasses import asdict, dataclass
 from typing import Protocol
 
 from railpulse import __version__
+from railpulse.catalog import CatalogNamespace
 
-PREFLIGHT_CONTRACT_VERSION = "databricks-runtime-preflight-v1"
+PREFLIGHT_CONTRACT_VERSION = "databricks-runtime-preflight-v2"
 
 
 class DatabricksPreflightError(RuntimeError):
@@ -36,6 +37,9 @@ class DatabricksPreflightResult:
     databricks_runtime_version: str
     current_catalog: str
     current_schema: str
+    planned_bronze_schema: str
+    planned_silver_schema: str
+    planned_gold_schema: str
 
 
 def _required_text(value: object, *, field_name: str) -> str:
@@ -45,7 +49,10 @@ def _required_text(value: object, *, field_name: str) -> str:
     return text
 
 
-def collect_databricks_preflight(spark: _SparkSession) -> DatabricksPreflightResult:
+def collect_databricks_preflight(
+    spark: _SparkSession,
+    namespace: CatalogNamespace,
+) -> DatabricksPreflightResult:
     """Collect read-only package, Spark, and catalog evidence from an active session."""
 
     spark_version = _required_text(getattr(spark, "version", None), field_name="Spark version")
@@ -63,23 +70,44 @@ def collect_databricks_preflight(spark: _SparkSession) -> DatabricksPreflightRes
             "Managed runtime returned an incompatible catalog context row."
         ) from error
 
+    current_catalog = _required_text(current_catalog, field_name="current catalog")
+    if current_catalog.casefold() != namespace.catalog.casefold():
+        raise DatabricksPreflightError(
+            f"Managed runtime catalog {current_catalog!r} does not match configured catalog "
+            f"{namespace.catalog!r}."
+        )
+
     return DatabricksPreflightResult(
         contract_version=PREFLIGHT_CONTRACT_VERSION,
         package_version=__version__,
         spark_version=spark_version,
         databricks_runtime_version=os.environ.get("DATABRICKS_RUNTIME_VERSION", "unknown"),
-        current_catalog=_required_text(current_catalog, field_name="current catalog"),
+        current_catalog=current_catalog,
         current_schema=_required_text(current_schema, field_name="current schema"),
+        planned_bronze_schema=namespace.schema("bronze"),
+        planned_silver_schema=namespace.schema("silver"),
+        planned_gold_schema=namespace.schema("gold"),
     )
 
 
-def main() -> int:
+def main(
+    catalog: str = "workspace",
+    bronze_schema: str = "railpulse_bronze",
+    silver_schema: str = "railpulse_silver",
+    gold_schema: str = "railpulse_gold",
+) -> int:
     """Run the non-writing preflight inside a managed Spark task."""
 
     from pyspark.sql import SparkSession
 
     spark = SparkSession.getActiveSession() or SparkSession.builder.getOrCreate()
-    result = collect_databricks_preflight(spark)
+    namespace = CatalogNamespace(
+        catalog=catalog,
+        bronze_schema=bronze_schema,
+        silver_schema=silver_schema,
+        gold_schema=gold_schema,
+    )
+    result = collect_databricks_preflight(spark, namespace)
     print(json.dumps(asdict(result), sort_keys=True))
     return 0
 
