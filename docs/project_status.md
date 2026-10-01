@@ -92,7 +92,8 @@ contexts, or unsupported feature statuses occur.
 - Deterministic package and configuration tests.
 - Dataset, Delta, Spark, streaming, MLflow, model, secret, and local-state exclusions.
 - Planning, decisions, status, and data-placement documentation.
-- Minimal Databricks Asset Bundle entry point; not CLI-validated or deployed.
+- Validated and deployed Databricks Asset Bundle with a successful serverless Python-wheel preflight
+  run.
 - SHA-256 manifest for the official UCI archive and both members.
 - Complete-file CSV inspection covering 1,516,948 rows and 15 sensors.
 - Source/next-Bronze contracts, sensor dictionary, and separate four-row failure reference.
@@ -410,10 +411,14 @@ reason. The profile does not load failure labels or write a feature table. See
 ## Databricks handoff preflight verified on 2026-10-01
 
 The official Databricks CLI 1.18.0 is installed in the local development environment. Browser-based
-OAuth authentication is configured in a machine-local `railpulse-dev` profile. Strict validation
-against the development workspace resolves the `railpulse` bundle, target, user, and workspace root
-and returns `Validation OK!`. No bundle was deployed, no credentials were written to the repository,
-and no ignored local data was uploaded.
+OAuth authentication remains machine-local. Strict validation against the development workspace
+returns `Validation OK!`. The bundle then deployed one development-only serverless Python-wheel job,
+and its first run terminated successfully.
+
+The job imported RailPulse package version 0.1.0, initialized Spark 4.2.0, and reported the expected
+`workspace.default` catalog context through the versioned `databricks-runtime-preflight-v1` output
+contract. It did not create or modify project tables. No credentials, ignored local data, workspace
+URLs, user identifiers, or deployment state were written to the repository.
 
 Before this handoff checkpoint, the complete repository suite passed all 134 tests, including the
 Spark and Delta integration tests. Ruff lint and formatting checks, Python bytecode compilation,
@@ -424,7 +429,7 @@ and an isolated wheel build also passed.
 - Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
   and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
-- CI workflow and Databricks deployment resources.
+- CI workflow and production Databricks data-processing resources beyond the preflight job.
 
 No data-quality, model-performance, failure-detection, warning-lead-time, false-alarm, or cost result
 has been measured.
@@ -434,11 +439,13 @@ has been measured.
 The source contradictions documented in Phase 2 remain unresolved. Bronze deliberately performs no
 type conversion, sensor-range validation, deduplication, timestamp normalization, or source-value
 repair. Native Windows Spark is not the verified runtime because its Hadoop layer requires a
-separate Windows helper; Ubuntu WSL is the tested local path. Databricks remains untested. Silver
-output merges are insert-only: reclassifying an existing `record_id` after validation rules change
-will require an explicit versioned rebuild rather than silently moving records between tables.
+separate Windows helper; Ubuntu WSL is the tested local path. Databricks bundle deployment and the
+serverless Python-wheel runtime are verified, but catalog-backed pipeline writes remain untested.
+Silver output merges are insert-only: reclassifying an existing `record_id` after validation rules
+change will require an explicit versioned rebuild rather than silently moving records between tables.
 
 ## Next milestone
 
-Define the first managed Databricks job, validate its resource configuration, and review its planned
-workspace changes before deployment. Do not commit credentials or upload ignored local data.
+Define the catalog and schema boundary for the first bounded Databricks data-processing job, then
+review its planned workspace changes before deployment. Do not commit credentials or upload ignored
+local data.

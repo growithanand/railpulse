@@ -38,10 +38,10 @@ remains excluded from Git.
 | Trainable modelling-view rows | 15,413 |
 | Excluded modelling-view rows | 353 |
 
-The project has not trained or evaluated a predictive model yet. Split selection, baseline and
-anomaly models, alert episodes, event-level metrics, MLflow tracking, Databricks jobs,
-Unity Catalog registration, and Databricks SQL dashboards remain planned. Consequently, no model
-accuracy, warning-lead-time, false-alarm, or maintenance-impact claim is currently made.
+The project has not trained or evaluated a predictive model yet. Split selection, production
+anomaly models, alert episodes, event-level metrics, MLflow tracking, data-processing Databricks
+jobs, Unity Catalog registration, and Databricks SQL dashboards remain planned. Consequently, no
+model accuracy, warning-lead-time, false-alarm, or maintenance-impact claim is currently made.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -167,8 +167,9 @@ scalable, incremental, and Databricks-compatible engineering practices.
   has a verified zero-insert rerun while version 1 remains unchanged.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
-- A minimal Databricks Asset Bundle entry point that passes strict CLI validation against an
-  authenticated development workspace. It has not been deployed.
+- A Databricks Asset Bundle that passes strict CLI validation and deploys a serverless Python-wheel
+  preflight job. Its first managed run completed successfully and reported the expected package,
+  Spark, runtime, catalog, and schema metadata without writing project data.
 - Durable project planning, status, and architecture-decision documentation.
 
 ## Runtime stack
@@ -180,13 +181,13 @@ will not be described as a live train connection.
 
 The local Spark/Delta integration is verified in Ubuntu WSL with Python 3.12 and Eclipse Temurin JDK
 21. Native Windows Spark is not the verified path because Hadoop requires a separate Windows helper.
-Databricks workspace access and bundle validation are verified, but deployment and runtime
-compatibility have not been tested.
+Databricks workspace access, bundle validation and deployment, wheel installation, and serverless
+runtime compatibility are verified through a successful read-only preflight run.
 
-The current code is ready for its first managed Databricks job, but the complete decision-support
-dashboard still depends on prediction, alert, and event-evaluation tables. The planned platform
-order is a managed job, catalog-backed tables, dashboard-ready aggregates, and then the polished
-Databricks SQL dashboard.
+The next platform step is a deliberately bounded data-processing job backed by governed catalog
+objects. The complete decision-support dashboard still depends on prediction, alert, and
+event-evaluation tables. The planned order is catalog-backed pipeline outputs, dashboard-ready
+aggregates, and then the polished Databricks SQL dashboard.
 
 ## Quick start
 
