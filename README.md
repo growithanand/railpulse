@@ -167,7 +167,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
   has a verified zero-insert rerun while version 1 remains unchanged.
 - Data and artifact exclusion rules that allow only the placement guide and vetted reference
   metadata to be versioned under `data/`.
-- A minimal Databricks Asset Bundle entry point. It has not been deployed or CLI-validated.
+- A minimal Databricks Asset Bundle entry point that passes strict CLI validation against an
+  authenticated development workspace. It has not been deployed.
 - Durable project planning, status, and architecture-decision documentation.
 
 ## Runtime stack
@@ -179,12 +180,13 @@ will not be described as a live train connection.
 
 The local Spark/Delta integration is verified in Ubuntu WSL with Python 3.12 and Eclipse Temurin JDK
 21. Native Windows Spark is not the verified path because Hadoop requires a separate Windows helper.
-Databricks deployment and runtime compatibility have not been tested.
+Databricks workspace access and bundle validation are verified, but deployment and runtime
+compatibility have not been tested.
 
-The current code is ready for an initial Databricks integration increment, but the complete
-decision-support dashboard depends on stable chronological modelling, prediction, alert, and
-event-evaluation tables. The planned order is modelling-view contract, baseline evaluation,
-dashboard-ready aggregates, and then the polished Databricks SQL dashboard.
+The current code is ready for its first managed Databricks job, but the complete decision-support
+dashboard still depends on prediction, alert, and event-evaluation tables. The planned platform
+order is a managed job, catalog-backed tables, dashboard-ready aggregates, and then the polished
+Databricks SQL dashboard.
 
 ## Quick start
 

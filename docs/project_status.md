@@ -407,12 +407,13 @@ Every cycle has one eligibility status, and every ineligible cycle has exactly o
 reason. The profile does not load failure labels or write a feature table. See
 `docs/eligibility_profile.md` for execution, lineage, and limitations.
 
-## Databricks handoff preflight on 2026-09-30
+## Databricks handoff preflight verified on 2026-10-01
 
-The official Databricks CLI 1.18.0 is installed in the local development environment. A strict
-validation attempt discovered the `railpulse` bundle and its default `dev` target, then stopped at
-the expected authentication boundary because no workspace profile is configured. No bundle was
-deployed, no credentials were written to the repository, and no ignored local data was uploaded.
+The official Databricks CLI 1.18.0 is installed in the local development environment. Browser-based
+OAuth authentication is configured in a machine-local `railpulse-dev` profile. Strict validation
+against the development workspace resolves the `railpulse` bundle, target, user, and workspace root
+and returns `Validation OK!`. No bundle was deployed, no credentials were written to the repository,
+and no ignored local data was uploaded.
 
 Before this handoff checkpoint, the complete repository suite passed all 134 tests, including the
 Spark and Delta integration tests. Ruff lint and formatting checks, Python bytecode compilation,
@@ -439,6 +440,5 @@ will require an explicit versioned rebuild rather than silently moving records b
 
 ## Next milestone
 
-Continue the Databricks handoff: authenticate the installed CLI to a development workspace, complete
-strict bundle validation, and define the first managed pipeline job without committing credentials
-or uploading ignored local data.
+Define the first managed Databricks job, validate its resource configuration, and review its planned
+workspace changes before deployment. Do not commit credentials or upload ignored local data.
