@@ -1,0 +1,20 @@
+resources:
+  jobs:
+    preflight:
+      name: railpulse-preflight
+      description: Verify the packaged RailPulse code and Spark runtime without writing data.
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      tasks:
+        - task_key: runtime_preflight
+          environment_key: default
+          python_wheel_task:
+            package_name: railpulse
+            entry_point: databricks_preflight
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

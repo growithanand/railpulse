@@ -13,6 +13,9 @@ authors = [
 ]
 dependencies = []
 
+[project.scripts]
+databricks_preflight = "railpulse.jobs.preflight:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8,<9",

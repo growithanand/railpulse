@@ -1,6 +1,16 @@
 bundle:
   name: railpulse
 
+include:
+  - resources/*.yml
+
+artifacts:
+  default:
+    type: whl
+    path: .
+    build: python -m pip wheel . --no-deps --no-build-isolation --wheel-dir dist
+    dynamic_version: true
+
 targets:
   dev:
     default: true
