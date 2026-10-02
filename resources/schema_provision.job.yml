@@ -1,0 +1,25 @@
+resources:
+  jobs:
+    schema_provision:
+      name: railpulse-schema-provision
+      description: Idempotently create and reconcile the three RailPulse Unity Catalog schemas.
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      tasks:
+        - task_key: provision_catalog_schemas
+          environment_key: default
+          python_wheel_task:
+            package_name: railpulse
+            entry_point: databricks_schema_provision
+            named_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              gold_schema: ${var.gold_schema}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

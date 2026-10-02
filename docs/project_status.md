@@ -96,6 +96,8 @@ contexts, or unsupported feature statuses occur.
   run.
 - Tested Unity Catalog identifier and layer-mapping contract with bundle-configurable catalog and
   Bronze, Silver, and Gold schemas; the schemas are not yet provisioned.
+- Tested idempotent Databricks schema provisioner with current-catalog protection, pre/post inventory
+  reconciliation, missing-only creation, and no-op rerun behavior; it is not deployed or run.
 - SHA-256 manifest for the official UCI archive and both members.
 - Complete-file CSV inspection covering 1,516,948 rows and 15 sensors.
 - Source/next-Bronze contracts, sensor dictionary, and separate four-row failure reference.
@@ -429,6 +431,9 @@ terminated successfully with package 0.1.0, Spark 4.2.0, runtime `client.4.10`, 
 confirmed that only `default` and `information_schema` exist; the preflight created no schemas or
 tables.
 
+The schema-provisioning job configuration also returns `Validation OK!`. Its unapplied plan adds one
+unscheduled job, updates the existing preflight job's shared wheel reference, and deletes nothing.
+
 Before this handoff checkpoint, the complete repository suite passed all 134 tests, including the
 Spark and Delta integration tests. Ruff lint and formatting checks, Python bytecode compilation,
 and an isolated wheel build also passed.
@@ -455,7 +460,6 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Implement and test an idempotent provisioning boundary for only the declared Bronze, Silver, and Gold
-schemas, then review its planned workspace changes before execution. The first bounded catalog-backed
-data-processing job follows schema verification. Do not commit credentials or upload ignored local
-data.
+Deploy the reviewed schema-provisioning job and run it once, then independently confirm all three
+schemas through the catalog API. The first bounded catalog-backed data-processing job follows schema
+verification. Do not commit credentials or upload ignored local data.

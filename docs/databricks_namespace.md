@@ -47,9 +47,15 @@ added or deleted no resources. The version 2 run completed successfully on 2026-
 the active `workspace.default` context plus all three planned schemas. A subsequent catalog API check
 confirmed that only `default` and `information_schema` exist, so the preflight created nothing.
 
-The next platform checkpoint is a tested, idempotent schema-provisioning boundary followed by a
-review of its planned workspace changes. The first catalog-backed table write remains explicitly out
-of scope until the three schemas are provisioned and verified.
+The schema-provisioning boundary is now implemented and tested. It inventories the three target
+names through `information_schema.schemata`, skips visible schemas, executes fully qualified `CREATE
+SCHEMA IF NOT EXISTS` statements only for missing layers, and reconciles the final inventory. A rerun
+with all three schemas present executes no creation statements.
+
+The updated bundle returns `Validation OK!`. Its plan adds one unscheduled schema-provisioning job,
+updates the existing preflight job's shared wheel reference, and deletes nothing. That plan has not
+been applied, and the provisioner has not been run. The first catalog-backed table write remains out
+of scope until the three schemas are provisioned and independently verified.
 
 Databricks documents the
 [three-level Unity Catalog namespace](https://docs.databricks.com/aws/en/data-governance/unity-catalog/access-control/permissions-concepts)
