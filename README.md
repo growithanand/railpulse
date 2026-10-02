@@ -172,11 +172,11 @@ scalable, incremental, and Databricks-compatible engineering practices.
   Spark, runtime, catalog, and schema metadata without writing project data.
 - A tested Unity Catalog namespace contract that maps the logical Bronze, Silver, and Gold layers to
   separate development schemas through bundle variables. The namespace-aware preflight completed
-  successfully and confirmed all three planned names without creating them; schema provisioning
-  remains a reviewed, not-yet-executed operation.
+  successfully and confirmed all three planned names without creating them.
 - A tested, idempotent schema provisioner that inventories visible schemas, creates only missing
-  RailPulse layer schemas with `IF NOT EXISTS`, and reconciles the result. Its validated bundle plan
-  has not been deployed or run.
+  RailPulse layer schemas with `IF NOT EXISTS`, and reconciles the result. Its first managed run
+  created all three schemas, which were then independently verified through the catalog API. Its
+  second managed run reported all three as preexisting and created nothing.
 - Durable project planning, status, and architecture-decision documentation.
 
 ## Runtime stack

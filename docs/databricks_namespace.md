@@ -37,10 +37,10 @@ writes easier to detect. Future table adapters must build names through the shar
 
 ## Provisioning boundary
 
-The authenticated development workspace exposes the managed `workspace` catalog. At this checkpoint,
-only its system-created `default` and `information_schema` schemas exist. Creating the three RailPulse
-schemas is a separate reviewed operation because it changes persistent workspace state and requires
-`USE CATALOG` and `CREATE SCHEMA` privileges.
+The authenticated development workspace exposes the managed `workspace` catalog. Before
+provisioning, a catalog API check found only its system-created `default` and `information_schema`
+schemas. This established that the reviewed operation would add exactly three persistent schemas and
+would require `USE CATALOG` and `CREATE SCHEMA` privileges.
 
 The updated bundle validates successfully. Its deployment changed the existing preflight job and
 added or deleted no resources. The version 2 run completed successfully on 2026-10-01 and reported
@@ -52,10 +52,19 @@ names through `information_schema.schemata`, skips visible schemas, executes ful
 SCHEMA IF NOT EXISTS` statements only for missing layers, and reconciles the final inventory. A rerun
 with all three schemas present executes no creation statements.
 
-The updated bundle returns `Validation OK!`. Its plan adds one unscheduled schema-provisioning job,
-updates the existing preflight job's shared wheel reference, and deletes nothing. That plan has not
-been applied, and the provisioner has not been run. The first catalog-backed table write remains out
-of scope until the three schemas are provisioned and independently verified.
+The updated bundle returns `Validation OK!`. On 2026-10-02, its reviewed deployment added one
+unscheduled schema-provisioning job, updated the existing preflight job's shared wheel reference, and
+deleted nothing. The first provisioner run terminated successfully with the
+`databricks-schema-provision-v1` contract, no preexisting target schemas, and all three targets newly
+available. An independent catalog API check then confirmed the three names and their intended layer
+comments. No tables or project data were created.
+
+A second managed run terminated successfully with all three targets reported as preexisting and no
+newly available schemas. This verifies remote idempotency as well as the first-run creation path.
+
+The next platform checkpoint is a governed source-data landing contract under the Bronze schema.
+Creating a volume or uploading ignored local source data remains out of scope until that design and
+its planned workspace changes are reviewed.
 
 Databricks documents the
 [three-level Unity Catalog namespace](https://docs.databricks.com/aws/en/data-governance/unity-catalog/access-control/permissions-concepts)

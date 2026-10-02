@@ -95,9 +95,10 @@ contexts, or unsupported feature statuses occur.
 - Validated and deployed Databricks Asset Bundle with a successful serverless Python-wheel preflight
   run.
 - Tested Unity Catalog identifier and layer-mapping contract with bundle-configurable catalog and
-  Bronze, Silver, and Gold schemas; the schemas are not yet provisioned.
+  separate Bronze, Silver, and Gold schema targets.
 - Tested idempotent Databricks schema provisioner with current-catalog protection, pre/post inventory
-  reconciliation, missing-only creation, and no-op rerun behavior; it is not deployed or run.
+  reconciliation, missing-only creation, and no-op rerun behavior. Its first managed run created and
+  reconciled all three target schemas; its second managed run created nothing.
 - SHA-256 manifest for the official UCI archive and both members.
 - Complete-file CSV inspection covering 1,516,948 rows and 15 sensors.
 - Source/next-Bronze contracts, sensor dictionary, and separate four-row failure reference.
@@ -431,8 +432,16 @@ terminated successfully with package 0.1.0, Spark 4.2.0, runtime `client.4.10`, 
 confirmed that only `default` and `information_schema` exist; the preflight created no schemas or
 tables.
 
-The schema-provisioning job configuration also returns `Validation OK!`. Its unapplied plan adds one
-unscheduled job, updates the existing preflight job's shared wheel reference, and deletes nothing.
+The schema-provisioning job configuration also returns `Validation OK!`. Its reviewed deployment
+added one unscheduled job, updated the existing preflight job's shared wheel reference, and deleted
+nothing. The first managed run on 2026-10-02 returned
+`databricks-schema-provision-v1`, reported no preexisting target schemas, and made all three target
+schemas available. A separate catalog API check confirmed each schema and its layer comment. No
+tables or project data were created.
+
+The second managed provisioner run also terminated successfully. It reported all three target
+schemas as preexisting, returned an empty `newly_available_schemas` list, and preserved the same
+three-schema inventory.
 
 Before this handoff checkpoint, the complete repository suite passed all 134 tests, including the
 Spark and Delta integration tests. Ruff lint and formatting checks, Python bytecode compilation,
@@ -443,7 +452,8 @@ and an isolated wheel build also passed.
 - Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
   and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
-- CI workflow and production Databricks data-processing resources beyond the preflight job.
+- CI workflow and production Databricks data-processing resources beyond the preflight and schema
+  provisioner jobs.
 
 No data-quality, model-performance, failure-detection, warning-lead-time, false-alarm, or cost result
 has been measured.
@@ -460,6 +470,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Deploy the reviewed schema-provisioning job and run it once, then independently confirm all three
-schemas through the catalog API. The first bounded catalog-backed data-processing job follows schema
-verification. Do not commit credentials or upload ignored local data.
+Define and test the governed source-data landing boundary under the Bronze schema, then review its
+planned workspace changes before creating a volume or uploading the ignored official source files.
+The first bounded catalog-backed ingestion job follows that landing-zone verification. Do not commit
+credentials or upload ignored local data.
