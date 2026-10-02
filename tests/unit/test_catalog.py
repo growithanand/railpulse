@@ -18,6 +18,7 @@ def test_catalog_namespace_builds_three_level_names() -> None:
     assert namespace.table("gold", "feature_snapshots_v2") == (
         "workspace.railpulse_gold.feature_snapshots_v2"
     )
+    assert namespace.volume("bronze", "source") == "workspace.railpulse_bronze.source"
 
 
 @pytest.mark.parametrize(
@@ -63,3 +64,6 @@ def test_catalog_namespace_validates_table_identifiers() -> None:
 
     with pytest.raises(CatalogNamespaceError, match="table_name"):
         namespace.table("bronze", "telemetry-raw")
+
+    with pytest.raises(CatalogNamespaceError, match="volume_name"):
+        namespace.volume("bronze", "source-files")

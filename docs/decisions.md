@@ -154,5 +154,22 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Why:** Reusing the governed workspace catalog avoids an unnecessary top-level object while
   separate schemas preserve clear layer boundaries and allow later privilege separation. Bundle
   variables keep physical names environment-specific.
-- **Limitation:** The schemas are declared but not yet provisioned. Creation remains a separate
-  reviewed workspace mutation subject to Unity Catalog privileges.
+- **Evidence:** The first managed provisioner run created all three schemas, an independent catalog
+  check confirmed them, and a second run created nothing. Tables and source files remain absent.
+
+## ADR-016 — Land source files in a managed Bronze Volume
+
+- **Status:** Accepted
+- **Decision:** Declare one managed Unity Catalog Volume named `source` under the physical Bronze
+  schema. Store inputs below `metropt3/<dataset-version>/`, with separate `telemetry/` and
+  `reference/` directories. Build every path through the validated, versioned source-landing
+  contract.
+- **Why:** A managed Volume provides a governed non-tabular file boundary without a user-specific
+  workspace path or a separately configured external storage location. Dataset-versioned
+  directories prevent a future source revision from silently replacing the verified artifact.
+- **Alternative:** Workspace files are user-oriented rather than a durable governed data boundary.
+  An external Volume would add cloud-storage configuration that this development workspace does not
+  currently require.
+- **Guardrail:** Bundle deployment may create only the empty Volume and must be reviewed separately
+  from file upload. The Volume has deletion protection, and the ingestion job must verify manifest
+  size and checksum before writing a Bronze table.

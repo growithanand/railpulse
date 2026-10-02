@@ -17,6 +17,9 @@ variables:
   gold_schema:
     description: Schema reserved for decision-support RailPulse tables.
     default: railpulse_gold
+  source_volume:
+    description: Managed Volume used for checksum-verified source-file landing.
+    default: source
 
 artifacts:
   default:

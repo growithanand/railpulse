@@ -2,8 +2,9 @@
 
 ## Status
 
-The namespace is declared and validated in code but is not provisioned. This boundary does not
-create schemas, tables, volumes, or grants.
+The three development schemas are declared, validated, provisioned, and remotely reconciled. No
+RailPulse table or source file exists in them yet. A managed Bronze source Volume is now declared
+for a later reviewed deployment but has not been created.
 
 ## Development mapping
 
@@ -62,9 +63,10 @@ comments. No tables or project data were created.
 A second managed run terminated successfully with all three targets reported as preexisting and no
 newly available schemas. This verifies remote idempotency as well as the first-run creation path.
 
-The next platform checkpoint is a governed source-data landing contract under the Bronze schema.
-Creating a volume or uploading ignored local source data remains out of scope until that design and
-its planned workspace changes are reviewed.
+The governed source-data landing contract is documented in `docs/databricks_source_landing.md`.
+The next platform checkpoint is a reviewed bundle plan followed by creation and independent
+verification of the empty managed Volume. Uploading ignored local source data remains a separate,
+subsequent action.
 
 Databricks documents the
 [three-level Unity Catalog namespace](https://docs.databricks.com/aws/en/data-governance/unity-catalog/access-control/permissions-concepts)

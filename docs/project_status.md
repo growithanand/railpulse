@@ -2,7 +2,13 @@
 
 ## Current phase
 
-**Phase 6 — Temporal features and failure horizons (underway)**
+**Databricks migration — governed source landing (underway)**
+
+The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
+investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
+wheel runtime are also verified, and the three Unity Catalog layer schemas are provisioned. The
+current increment defines the first governed file boundary for moving the checksum-verified inputs
+into the workspace; the declared managed Volume is not yet deployed and contains no data.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -99,6 +105,10 @@ contexts, or unsupported feature statuses occur.
 - Tested idempotent Databricks schema provisioner with current-catalog protection, pre/post inventory
   reconciliation, missing-only creation, and no-op rerun behavior. Its first managed run created and
   reconciled all three target schemas; its second managed run created nothing.
+- Tested Databricks source-landing contract with deterministic dataset-versioned Volume paths,
+  shared identifier validation, fixed source filenames, and CLI-path conversion. The bundle now
+  declares one deletion-protected managed Volume under the Bronze schema for a later reviewed
+  deployment; it has not been created or populated.
 - SHA-256 manifest for the official UCI archive and both members.
 - Complete-file CSV inspection covering 1,516,948 rows and 15 sensors.
 - Source/next-Bronze contracts, sensor dictionary, and separate four-row failure reference.
@@ -443,9 +453,20 @@ The second managed provisioner run also terminated successfully. It reported all
 schemas as preexisting, returned an empty `newly_available_schemas` list, and preserved the same
 three-schema inventory.
 
+The governed source-landing contract now targets `workspace.railpulse_bronze.source` and separates
+the official telemetry and reviewed failure reference below the immutable dataset version. Bundle
+validation succeeds, the current schema contains no Volume, and the read-only plan reports one
+Volume creation, two existing job updates, and no deletion. Deployment and file upload remain
+deliberately unexecuted until that plan is reviewed.
+
 Before this handoff checkpoint, the complete repository suite passed all 134 tests, including the
 Spark and Delta integration tests. Ruff lint and formatting checks, Python bytecode compilation,
 and an isolated wheel build also passed.
+
+For the source-landing increment, all 65 non-Spark tests passed while 96 Spark tests were
+deliberately deselected. Ruff lint, the 145-file format check, bytecode compilation, the configured
+wheel build, strict bundle validation, the remote Volume inventory, and the read-only bundle plan
+also passed.
 
 ## Not implemented
 
@@ -453,9 +474,9 @@ and an isolated wheel build also passed.
   and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks data-processing resources beyond the preflight and schema
-  provisioner jobs.
+  provisioner jobs. The source Volume is declared but not deployed.
 
-No data-quality, model-performance, failure-detection, warning-lead-time, false-alarm, or cost result
+No predictive-model performance, failure-detection, warning-lead-time, false-alarm, or cost result
 has been measured.
 
 ## Known constraints and next phase
@@ -470,7 +491,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Define and test the governed source-data landing boundary under the Bronze schema, then review its
-planned workspace changes before creating a volume or uploading the ignored official source files.
-The first bounded catalog-backed ingestion job follows that landing-zone verification. Do not commit
-credentials or upload ignored local data.
+Review the source-landing bundle plan, deploy and independently verify the empty managed Volume,
+then upload the two checksum-contracted inputs as a separate controlled action. The first bounded
+catalog-backed ingestion job follows that landing-zone verification. Do not commit credentials,
+local paths, deployment state, or ignored source data.

@@ -65,3 +65,9 @@ class CatalogNamespace:
 
         validated_table = _validated_identifier(table_name, field_name="table_name")
         return f"{self.schema(layer)}.{validated_table}"
+
+    def volume(self, layer: CatalogLayer, volume_name: str) -> str:
+        """Return a validated, fully qualified Unity Catalog volume identifier."""
+
+        validated_volume = _validated_identifier(volume_name, field_name="volume_name")
+        return f"{self.schema(layer)}.{validated_volume}"

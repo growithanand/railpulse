@@ -38,10 +38,10 @@ remains excluded from Git.
 | Trainable modelling-view rows | 15,413 |
 | Excluded modelling-view rows | 353 |
 
-The project has not trained or evaluated a predictive model yet. Split selection, production
-anomaly models, alert episodes, event-level metrics, MLflow tracking, data-processing Databricks
-jobs, Unity Catalog registration, and Databricks SQL dashboards remain planned. Consequently, no
-model accuracy, warning-lead-time, false-alarm, or maintenance-impact claim is currently made.
+The project has not trained or evaluated a predictive model yet. Production anomaly models, alert
+episodes, event-level metrics, MLflow tracking, catalog-backed Databricks tables, and Databricks SQL
+dashboards remain planned. Consequently, no model accuracy, warning-lead-time, false-alarm, or
+maintenance-impact claim is currently made.
 
 See [the project status](docs/project_status.md) for verified environment details and
 [the project plan](docs/project_plan.md) for delivery phases.
@@ -177,6 +177,11 @@ scalable, incremental, and Databricks-compatible engineering practices.
   RailPulse layer schemas with `IF NOT EXISTS`, and reconciles the result. Its first managed run
   created all three schemas, which were then independently verified through the catalog API. Its
   second managed run reported all three as preexisting and created nothing.
+- A tested, versioned source-landing contract and reviewed bundle resource for one managed Unity
+  Catalog Volume under the Bronze schema. It fixes dataset-versioned telemetry and failure-reference
+  paths, rejects unsafe identifiers, and protects the declared Volume from bundle destruction. The
+  strict bundle validation passes; the read-only plan shows one Volume creation, two existing job
+  updates, and no deletion. The plan is not deployed and no source file has been uploaded.
 - Durable project planning, status, and architecture-decision documentation.
 
 ## Runtime stack
@@ -191,10 +196,11 @@ The local Spark/Delta integration is verified in Ubuntu WSL with Python 3.12 and
 Databricks workspace access, bundle validation and deployment, wheel installation, and serverless
 runtime compatibility are verified through a successful read-only preflight run.
 
-The next platform step is a deliberately bounded data-processing job backed by governed catalog
-objects. The complete decision-support dashboard still depends on prediction, alert, and
-event-evaluation tables. The planned order is catalog-backed pipeline outputs, dashboard-ready
-aggregates, and then the polished Databricks SQL dashboard.
+The next platform step is to review the source-landing bundle plan, deploy and verify the empty
+managed Volume, and only then upload the two checksum-contracted inputs. A deliberately bounded
+catalog-backed Bronze ingestion job follows. The complete decision-support dashboard still depends
+on prediction, alert, and event-evaluation tables. The planned order is catalog-backed pipeline
+outputs, dashboard-ready aggregates, and then the polished Databricks SQL dashboard.
 
 ## Quick start
 
@@ -338,6 +344,7 @@ prohibited. Sparse failure events will be reported honestly; inconclusive result
 - [Project status](docs/project_status.md)
 - [Architecture decisions](docs/decisions.md)
 - [Databricks namespace contract](docs/databricks_namespace.md)
+- [Databricks source-landing contract](docs/databricks_source_landing.md)
 - [Data placement](data/README.md)
 - [Dataset manifest](docs/dataset_manifest.json)
 - [Data contract](docs/data_contract.md)

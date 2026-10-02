@@ -1,0 +1,10 @@
+resources:
+  volumes:
+    source_landing:
+      catalog_name: ${var.catalog}
+      schema_name: ${var.bronze_schema}
+      name: ${var.source_volume}
+      volume_type: MANAGED
+      comment: Governed landing storage for checksum-verified RailPulse source files.
+      lifecycle:
+        prevent_destroy: true
