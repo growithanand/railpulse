@@ -423,8 +423,11 @@ contract. It did not create or modify project tables. No credentials, ignored lo
 URLs, user identifiers, or deployment state were written to the repository.
 
 The namespace-aware version 2 preflight configuration also returns `Validation OK!`. Its deployment
-updated the one existing preflight job and added or deleted no resources. Version 2 has not been run
-yet.
+updated the one existing preflight job and added or deleted no resources. The managed run then
+terminated successfully with package 0.1.0, Spark 4.2.0, runtime `client.4.10`, the active
+`workspace.default` context, and the three planned layer schemas. A subsequent catalog API check
+confirmed that only `default` and `information_schema` exist; the preflight created no schemas or
+tables.
 
 Before this handoff checkpoint, the complete repository suite passed all 134 tests, including the
 Spark and Delta integration tests. Ruff lint and formatting checks, Python bytecode compilation,
@@ -452,6 +455,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Run the deployed namespace-aware version 2 preflight. After that read-only checkpoint, provision only
-the declared Bronze, Silver, and Gold schemas before implementing the first bounded catalog-backed
-data-processing job. Do not commit credentials or upload ignored local data.
+Implement and test an idempotent provisioning boundary for only the declared Bronze, Silver, and Gold
+schemas, then review its planned workspace changes before execution. The first bounded catalog-backed
+data-processing job follows schema verification. Do not commit credentials or upload ignored local
+data.

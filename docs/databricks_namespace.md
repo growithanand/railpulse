@@ -43,9 +43,13 @@ schemas is a separate reviewed operation because it changes persistent workspace
 `USE CATALOG` and `CREATE SCHEMA` privileges.
 
 The updated bundle validates successfully. Its deployment changed the existing preflight job and
-added or deleted no resources. The next platform checkpoint is another read-only preflight run.
-Schema creation and the first catalog-backed table write remain explicitly out of scope until that
-checkpoint is complete.
+added or deleted no resources. The version 2 run completed successfully on 2026-10-01 and reported
+the active `workspace.default` context plus all three planned schemas. A subsequent catalog API check
+confirmed that only `default` and `information_schema` exist, so the preflight created nothing.
+
+The next platform checkpoint is a tested, idempotent schema-provisioning boundary followed by a
+review of its planned workspace changes. The first catalog-backed table write remains explicitly out
+of scope until the three schemas are provisioned and verified.
 
 Databricks documents the
 [three-level Unity Catalog namespace](https://docs.databricks.com/aws/en/data-governance/unity-catalog/access-control/permissions-concepts)
