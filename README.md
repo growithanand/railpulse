@@ -181,9 +181,9 @@ scalable, incremental, and Databricks-compatible engineering practices.
   Catalog Volume under the Bronze schema. It fixes dataset-versioned telemetry and failure-reference
   paths, rejects unsafe identifiers, and protects the declared Volume from bundle destruction. The
   reviewed deployment created the Volume and updated the two existing jobs without deleting a
-  resource. An independent catalog check confirmed its type and comment, and its file listing is
-  empty. Both local inputs match their manifest-backed size and SHA-256 contracts; no source file
-  has been uploaded.
+  resource. An independent catalog check confirmed its type and comment. A separate controlled
+  upload landed exactly the two contracted inputs, and downloaded verification copies matched their
+  manifest-backed byte sizes and SHA-256 identities.
 - Durable project planning, status, and architecture-decision documentation.
 
 ## Runtime stack
@@ -198,11 +198,11 @@ The local Spark/Delta integration is verified in Ubuntu WSL with Python 3.12 and
 Databricks workspace access, bundle validation and deployment, wheel installation, and serverless
 runtime compatibility are verified through a successful read-only preflight run.
 
-The next platform step is to upload both verified source files to their contracted paths and
-reconcile their remote identities before ingestion. A deliberately bounded catalog-backed Bronze
-ingestion job follows. The complete decision-support dashboard still depends on prediction, alert,
-and event-evaluation tables. The planned order is catalog-backed pipeline outputs, dashboard-ready
-aggregates, and then the polished Databricks SQL dashboard.
+The next platform step is a deliberately bounded catalog-backed Bronze ingestion job that verifies
+both landed identities before writing tables and proves an identical rerun is idempotent. The
+complete decision-support dashboard still depends on prediction, alert, and event-evaluation
+tables. The planned order is catalog-backed pipeline outputs, dashboard-ready aggregates, and then
+the polished Databricks SQL dashboard.
 
 ## Quick start
 

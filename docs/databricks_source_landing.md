@@ -3,9 +3,9 @@
 ## Status
 
 `databricks-source-landing-v1` is defined in code and bundle configuration. Its managed Volume was
-deployed and independently verified on 2026-10-03. The Volume is empty; no source file has been
-uploaded. Both local ingestion inputs independently match their manifest-backed size and SHA-256
-contracts.
+deployed and independently verified on 2026-10-03. A separate controlled upload placed exactly the
+two contracted ingestion inputs in their versioned paths. Remote byte sizes and independently
+downloaded SHA-256 identities match the manifest. No ingestion job has run and no table was created.
 
 ## Purpose
 
@@ -71,9 +71,9 @@ On 2026-10-03, both local runtime inputs were read without modification and comp
 | Official telemetry CSV | 218,300,507 | Match | Match |
 | Reviewed failure reference | 556 | Match | Match |
 
-The failure-reference byte count is now explicit in the manifest so the same identity can be
-reconciled after upload. Raw telemetry remains ignored, and no machine-local path is recorded in
-versioned evidence.
+The failure-reference byte count is explicit in the manifest so the same identity can be reconciled
+after upload. Raw telemetry remains ignored, and no machine-local path is recorded in versioned
+evidence.
 
 ## Deployment evidence
 
@@ -108,6 +108,21 @@ no second deployment was performed.
 Required upload access is `USE CATALOG`, `USE SCHEMA`, and `WRITE VOLUME`. Credentials and OAuth
 profiles remain machine-local. Local source paths, workspace URLs, user identities, and deployment
 state must not be committed.
+
+## Controlled source-upload evidence
+
+On 2026-10-03, the two locally verified inputs were uploaded separately from bundle deployment and
+without enabling overwrite. Each contracted directory then contained exactly one regular file:
+
+| Artifact | Remote bytes | Directory file count | Downloaded SHA-256 |
+| --- | ---: | ---: | --- |
+| Official telemetry CSV | 218,300,507 | 1 | Manifest match |
+| Reviewed failure reference | 556 | 1 | Manifest match |
+
+Each remote file was downloaded to an ignored temporary directory and hashed independently. Both
+downloaded byte counts and SHA-256 values matched the manifest, after which the temporary copies
+were removed. This proves the transferred contents rather than relying only on CLI success output.
+No job ran and no Bronze table was created during the upload checkpoint.
 
 ## Deferred ingestion boundary
 

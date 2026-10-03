@@ -2,13 +2,14 @@
 
 ## Current phase
 
-**Databricks migration — governed source landing (underway)**
+**Databricks migration — catalog-backed Bronze ingestion next**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
 wheel runtime are also verified, and the three Unity Catalog layer schemas are provisioned. The
-current increment defines the first governed file boundary for moving the checksum-verified inputs
-into the workspace. The managed Volume is deployed, independently verified, and empty.
+current increment completes the first governed file boundary for the checksum-verified inputs. The
+managed Volume is deployed and independently verified, and its two landed inputs match their
+manifest-backed byte sizes and SHA-256 identities.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -108,8 +109,8 @@ contexts, or unsupported feature statuses occur.
 - Tested Databricks source-landing contract with deterministic dataset-versioned Volume paths,
   shared identifier validation, fixed source filenames, and CLI-path conversion. The bundle now
   manages one deletion-protected Volume under the Bronze schema. Its reviewed deployment and
-  independent Catalog API check succeeded, and its file listing is empty. Both local inputs match
-  their manifest-backed size and SHA-256 contracts.
+  independent Catalog API check succeeded. A separate controlled upload landed exactly the two
+  contracted inputs, whose remote byte sizes and downloaded SHA-256 identities match the manifest.
 - SHA-256 manifest for the official UCI archive and both members.
 - Complete-file CSV inspection covering 1,516,948 rows and 15 sensors.
 - Source/next-Bronze contracts, sensor dictionary, and separate four-row failure reference.
@@ -458,9 +459,10 @@ The governed source-landing contract now targets `workspace.railpulse_bronze.sou
 the official telemetry and reviewed failure reference below the immutable dataset version. Bundle
 validation succeeded, and the reviewed deployment created that Volume while updating two existing
 jobs and deleting nothing. The Catalog API confirmed a managed Volume with the contracted comment;
-an independent file listing returned empty. Local preflight then confirmed the telemetry CSV and
-failure reference match their declared byte sizes and SHA-256 identities. No source file was
-uploaded and no job was run.
+an independent file listing returned empty immediately after deployment. Local preflight confirmed
+the telemetry CSV and failure reference match their declared identities. A separate no-overwrite
+upload then landed both files, and downloaded verification copies reconciled their remote byte sizes
+and SHA-256 hashes. No job was run and no table was created.
 
 Before this handoff checkpoint, the complete repository suite passed all 134 tests, including the
 Spark and Delta integration tests. Ruff lint and formatting checks, Python bytecode compilation,
@@ -494,7 +496,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Upload both verified source files to their contracted paths as a separate controlled action, then
-reconcile their remote size and checksum before ingestion. The first bounded catalog-backed
-ingestion job follows that landing-zone verification. Do not commit credentials, local paths,
-deployment state, or ignored source data.
+Implement the first bounded catalog-backed ingestion job. It must verify both landed sizes and
+SHA-256 identities before writing fully qualified Bronze tables, then reconcile the first managed
+run and an identical rerun. Do not commit credentials, local paths, deployment state, or ignored
+source data.

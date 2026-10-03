@@ -3,8 +3,8 @@
 ## Status
 
 The three development schemas are declared, validated, provisioned, and remotely reconciled. No
-RailPulse table or source file exists in them yet. The managed Bronze source Volume is deployed,
-independently verified, and empty.
+RailPulse table exists in them yet. The managed Bronze source Volume is deployed and independently
+verified, and it contains exactly the two manifest-backed ingestion inputs.
 
 ## Development mapping
 
@@ -64,9 +64,9 @@ A second managed run terminated successfully with all three targets reported as 
 newly available schemas. This verifies remote idempotency as well as the first-run creation path.
 
 The governed source-data landing contract is documented in `docs/databricks_source_landing.md`.
-The next platform checkpoint is local and remote checksum reconciliation for the two contracted
-source files. Uploading ignored local source data remains a separate, reviewed action from Volume
-deployment.
+The controlled source upload remained separate from Volume deployment. Remote directory listings
+and downloaded verification copies reconciled both files against their manifest-backed sizes and
+SHA-256 identities. The next platform checkpoint is the first catalog-backed Bronze ingestion job.
 
 Databricks documents the
 [three-level Unity Catalog namespace](https://docs.databricks.com/aws/en/data-governance/unity-catalog/access-control/permissions-concepts)
