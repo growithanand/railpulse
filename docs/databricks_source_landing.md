@@ -2,8 +2,9 @@
 
 ## Status
 
-`databricks-source-landing-v1` is defined in code and bundle configuration but has not been
-deployed. No Volume, directory, or file was created by this increment.
+`databricks-source-landing-v1` is defined in code and bundle configuration. Its managed Volume was
+deployed and independently verified on 2026-10-03. The Volume is empty; no source file has been
+uploaded.
 
 ## Purpose
 
@@ -11,7 +12,7 @@ RailPulse needs a governed file boundary between the ignored local source artifa
 Bronze tables. A Unity Catalog managed Volume provides that boundary without treating CSV files as
 tables or placing data in a user-specific workspace directory.
 
-The planned development object is:
+The development object is:
 
 ```text
 workspace.railpulse_bronze.source
@@ -59,23 +60,35 @@ versions, and non-Volume CLI paths fail before a job can use them.
 The default Volume name is configurable through the bundle variable `source_volume`; the physical
 path remains environment-specific while the layout below it is versioned and deterministic.
 
-## Planned workspace mutation
+## Deployment evidence
 
-The bundle declares exactly one managed Volume resource with deletion protection:
+The bundle manages exactly one source Volume resource with deletion protection:
 
 ```text
 workspace.railpulse_bronze.source
 ```
 
-A future reviewed deployment may create that empty Volume. File upload is a separate action and is
-not performed by bundle deployment. Before deployment, the bundle plan must be inspected for
-unrelated changes. After deployment, the Catalog API and an empty-directory listing must confirm
-the object before either source file is uploaded.
+Before deployment, strict validation returned `Validation OK!`. The reviewed plan reported one
+Volume creation, two existing job updates, and no deletion. Deployment then reported the same
+resource changes: one created, two changed, and none deleted.
 
-Read-only verification on 2026-10-02 found no existing Volume in `workspace.railpulse_bronze`.
-Strict bundle validation returned `Validation OK!`, and the plan reported one Volume creation, two
-existing job updates, and no deletion. The job updates must remain in the reviewed deployment scope;
-no plan has been applied.
+An independent Catalog API read confirmed:
+
+| Property | Verified value |
+| --- | --- |
+| Catalog | `workspace` |
+| Schema | `railpulse_bronze` |
+| Volume | `source` |
+| Type | `MANAGED` |
+| Comment | `Governed landing storage for checksum-verified RailPulse source files.` |
+
+A file listing of `dbfs:/Volumes/workspace/railpulse_bronze/source` returned an empty result. The
+workspace files uploaded by bundle deployment contain packaged code and configuration under the
+bundle workspace root; they are not dataset files in this Volume.
+
+The post-deployment plan reports the Volume unchanged with no creation or deletion pending. It
+continues to show updates for the two jobs because the bundle builds a dynamically versioned wheel;
+no second deployment was performed.
 
 Required upload access is `USE CATALOG`, `USE SCHEMA`, and `WRITE VOLUME`. Credentials and OAuth
 profiles remain machine-local. Local source paths, workspace URLs, user identities, and deployment

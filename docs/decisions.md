@@ -173,3 +173,6 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Guardrail:** Bundle deployment may create only the empty Volume and must be reviewed separately
   from file upload. The Volume has deletion protection, and the ingestion job must verify manifest
   size and checksum before writing a Bronze table.
+- **Evidence:** The reviewed deployment created the managed Volume and updated two existing jobs
+  without deleting a resource. A Catalog API read confirmed the contracted type and comment, and an
+  independent file listing confirmed that the Volume is empty.
