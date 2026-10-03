@@ -4,7 +4,8 @@
 
 `databricks-source-landing-v1` is defined in code and bundle configuration. Its managed Volume was
 deployed and independently verified on 2026-10-03. The Volume is empty; no source file has been
-uploaded.
+uploaded. Both local ingestion inputs independently match their manifest-backed size and SHA-256
+contracts.
 
 ## Purpose
 
@@ -59,6 +60,20 @@ versions, and non-Volume CLI paths fail before a job can use them.
 
 The default Volume name is configurable through the bundle variable `source_volume`; the physical
 path remains environment-specific while the layout below it is versioned and deterministic.
+
+## Local source preflight
+
+On 2026-10-03, both local runtime inputs were read without modification and compared with
+`docs/dataset_manifest.json`:
+
+| Artifact | Actual bytes | Size contract | SHA-256 contract |
+| --- | ---: | --- | --- |
+| Official telemetry CSV | 218,300,507 | Match | Match |
+| Reviewed failure reference | 556 | Match | Match |
+
+The failure-reference byte count is now explicit in the manifest so the same identity can be
+reconciled after upload. Raw telemetry remains ignored, and no machine-local path is recorded in
+versioned evidence.
 
 ## Deployment evidence
 

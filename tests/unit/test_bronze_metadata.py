@@ -46,6 +46,6 @@ def test_manifest_exposes_all_bronze_source_identities() -> None:
     assert artifacts.dataset_version == "uci-791-aab991a970e5"
     assert artifacts.telemetry_sha256.startswith("db30ccb4")
     assert artifacts.failure_source_document_sha256.startswith("b00fac0e")
-    assert artifacts.failure_transcription_sha256 == file_sha256(
-        PROJECT_ROOT / manifest["failure_reference"]["path"]
-    )
+    failure_reference = PROJECT_ROOT / manifest["failure_reference"]["path"]
+    assert manifest["failure_reference"]["size_bytes"] == failure_reference.stat().st_size
+    assert artifacts.failure_transcription_sha256 == file_sha256(failure_reference)

@@ -108,7 +108,8 @@ contexts, or unsupported feature statuses occur.
 - Tested Databricks source-landing contract with deterministic dataset-versioned Volume paths,
   shared identifier validation, fixed source filenames, and CLI-path conversion. The bundle now
   manages one deletion-protected Volume under the Bronze schema. Its reviewed deployment and
-  independent Catalog API check succeeded, and its file listing is empty.
+  independent Catalog API check succeeded, and its file listing is empty. Both local inputs match
+  their manifest-backed size and SHA-256 contracts.
 - SHA-256 manifest for the official UCI archive and both members.
 - Complete-file CSV inspection covering 1,516,948 rows and 15 sensors.
 - Source/next-Bronze contracts, sensor dictionary, and separate four-row failure reference.
@@ -457,7 +458,9 @@ The governed source-landing contract now targets `workspace.railpulse_bronze.sou
 the official telemetry and reviewed failure reference below the immutable dataset version. Bundle
 validation succeeded, and the reviewed deployment created that Volume while updating two existing
 jobs and deleting nothing. The Catalog API confirmed a managed Volume with the contracted comment;
-an independent file listing returned empty. No source file was uploaded and no job was run.
+an independent file listing returned empty. Local preflight then confirmed the telemetry CSV and
+failure reference match their declared byte sizes and SHA-256 identities. No source file was
+uploaded and no job was run.
 
 Before this handoff checkpoint, the complete repository suite passed all 134 tests, including the
 Spark and Delta integration tests. Ruff lint and formatting checks, Python bytecode compilation,
@@ -491,7 +494,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Verify both local source files against the manifest, upload them to their contracted paths as a
-separate controlled action, and reconcile their remote size and checksum before ingestion. The
-first bounded catalog-backed ingestion job follows that landing-zone verification. Do not commit
-credentials, local paths, deployment state, or ignored source data.
+Upload both verified source files to their contracted paths as a separate controlled action, then
+reconcile their remote size and checksum before ingestion. The first bounded catalog-backed
+ingestion job follows that landing-zone verification. Do not commit credentials, local paths,
+deployment state, or ignored source data.
