@@ -126,14 +126,19 @@ No job ran and no Bronze table was created during the upload checkpoint.
 
 ## Deferred ingestion boundary
 
-This contract does not create Bronze tables or choose batch versus streaming ingestion. The next
-job increment will:
+The bundle now declares a read-only `railpulse-source-preflight` job as the first managed ingestion
+gate. It loads the committed manifest from the synced bundle files, reconstructs both versioned
+Volume paths through `DatabricksSourceLanding`, and checks exact size before streaming each file
+through SHA-256. It emits versioned JSON evidence and performs no Spark SQL or table write. The job
+is not deployed or run by this increment.
 
-1. accept the two contracted Volume paths as managed parameters;
-2. verify file size and SHA-256 against the dataset manifest;
-3. preserve raw tokens and source metadata;
-4. write fully qualified Bronze tables through the shared catalog namespace;
-5. reconcile the first write and an identical rerun.
+This contract does not yet create Bronze tables or choose batch versus streaming ingestion. The
+following job increment will:
+
+1. require the source-preflight task to succeed;
+2. preserve raw tokens and source metadata;
+3. write fully qualified Bronze tables through the shared catalog namespace;
+4. reconcile the first write and an identical rerun.
 
 The 218 MB telemetry file does not require distributed computing. Spark remains appropriate here as
 a production-pattern implementation that will share semantics with later incremental replay.

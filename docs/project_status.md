@@ -111,6 +111,9 @@ contexts, or unsupported feature statuses occur.
   manages one deletion-protected Volume under the Bronze schema. Its reviewed deployment and
   independent Catalog API check succeeded. A separate controlled upload landed exactly the two
   contracted inputs, whose remote byte sizes and downloaded SHA-256 identities match the manifest.
+- Tested, read-only managed source-preflight contract that reloads the committed manifest, rebuilds
+  both Volume paths, fails on size or SHA-256 mismatch, and emits versioned reconciliation evidence.
+  Its unscheduled bundle job is declared but not deployed or run.
 - SHA-256 manifest for the official UCI archive and both members.
 - Complete-file CSV inspection covering 1,516,948 rows and 15 sensors.
 - Source/next-Bronze contracts, sensor dictionary, and separate four-row failure reference.
@@ -479,7 +482,8 @@ also passed.
   and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks data-processing resources beyond the preflight and schema
-  provisioner jobs. The source Volume exists, but no catalog-backed ingestion job exists yet.
+  provisioner jobs. A read-only source-preflight job is declared but not deployed; no catalog-backed
+  table-writing job exists yet.
 
 No predictive-model performance, failure-detection, warning-lead-time, false-alarm, or cost result
 has been measured.
@@ -496,7 +500,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Implement the first bounded catalog-backed ingestion job. It must verify both landed sizes and
-SHA-256 identities before writing fully qualified Bronze tables, then reconcile the first managed
-run and an identical rerun. Do not commit credentials, local paths, deployment state, or ignored
-source data.
+Review, deploy, and run the read-only source-preflight job against the two landed files. Then make it
+the required first task of a bounded catalog-backed ingestion job that writes fully qualified Bronze
+tables and reconciles the first managed run and an identical rerun. Do not commit credentials, local
+paths, deployment state, or ignored source data.

@@ -16,6 +16,7 @@ dependencies = []
 [project.scripts]
 databricks_preflight = "railpulse.jobs.preflight:main"
 databricks_schema_provision = "railpulse.jobs.schema_provision:main"
+databricks_source_preflight = "railpulse.jobs.source_preflight:main"
 
 [project.optional-dependencies]
 dev = [

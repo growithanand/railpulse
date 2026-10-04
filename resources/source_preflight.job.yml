@@ -1,0 +1,27 @@
+resources:
+  jobs:
+    source_preflight:
+      name: railpulse-source-preflight
+      description: Verify both manifest-backed Volume files without writing tables.
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      tasks:
+        - task_key: verify_landed_sources
+          environment_key: default
+          python_wheel_task:
+            package_name: railpulse
+            entry_point: databricks_source_preflight
+            named_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              gold_schema: ${var.gold_schema}
+              source_volume: ${var.source_volume}
+              manifest_path: ${workspace.file_path}/docs/dataset_manifest.json
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl
