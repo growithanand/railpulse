@@ -183,7 +183,8 @@ scalable, incremental, and Databricks-compatible engineering practices.
   reviewed deployment created the Volume and updated the two existing jobs without deleting a
   resource. An independent catalog check confirmed its type and comment. A separate controlled
   upload landed exactly the two contracted inputs, and downloaded verification copies matched their
-  manifest-backed byte sizes and SHA-256 identities.
+  manifest-backed byte sizes and SHA-256 identities. A deployed read-only source-preflight job then
+  reproduced both identity checks without creating a table.
 - Durable project planning, status, and architecture-decision documentation.
 
 ## Runtime stack
@@ -198,11 +199,11 @@ The local Spark/Delta integration is verified in Ubuntu WSL with Python 3.12 and
 Databricks workspace access, bundle validation and deployment, wheel installation, and serverless
 runtime compatibility are verified through a successful read-only preflight run.
 
-The next platform step is a deliberately bounded catalog-backed Bronze ingestion job that verifies
-both landed identities before writing tables and proves an identical rerun is idempotent. The
-complete decision-support dashboard still depends on prediction, alert, and event-evaluation
-tables. The planned order is catalog-backed pipeline outputs, dashboard-ready aggregates, and then
-the polished Databricks SQL dashboard.
+The next platform step is to make the successful source-preflight task the required gate of a
+deliberately bounded catalog-backed Bronze ingestion job, then prove an identical rerun is
+idempotent. The complete decision-support dashboard still depends on prediction, alert, and
+event-evaluation tables. The planned order is catalog-backed pipeline outputs, dashboard-ready
+aggregates, and then the polished Databricks SQL dashboard.
 
 ## Quick start
 

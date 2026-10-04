@@ -124,13 +124,32 @@ downloaded byte counts and SHA-256 values matched the manifest, after which the 
 were removed. This proves the transferred contents rather than relying only on CLI success output.
 No job ran and no Bronze table was created during the upload checkpoint.
 
-## Deferred ingestion boundary
+## Managed source preflight
 
-The bundle now declares a read-only `railpulse-source-preflight` job as the first managed ingestion
+The bundle declares a read-only `railpulse-source-preflight` job as the first managed ingestion
 gate. It loads the committed manifest from the synced bundle files, reconstructs both versioned
 Volume paths through `DatabricksSourceLanding`, and checks exact size before streaming each file
-through SHA-256. It emits versioned JSON evidence and performs no Spark SQL or table write. The job
-is not deployed or run by this increment.
+through SHA-256. It emits versioned JSON evidence and performs no Spark SQL or table write.
+
+The reviewed deployment on 2026-10-04 created that job, refreshed the two existing shared-wheel
+jobs, deleted nothing, and left the Volume unchanged. The first managed run failed before reading a
+source file because the wheel entry point ignored Databricks command-line parameters and fell back
+to its local manifest path. The adapter was corrected to parse the exact configured argument names,
+covered by a regression test, and redeployed with no resource addition or deletion.
+
+The corrected managed run terminated successfully with
+`databricks-source-preflight-v1` and reconciled:
+
+| Artifact | Verified bytes | Verified SHA-256 |
+| --- | ---: | --- |
+| Official telemetry CSV | 218,300,507 | Manifest match |
+| Reviewed failure reference | 556 | Manifest match |
+
+An independent post-run catalog inventory remained empty, and both Volume listings retained their
+original size and modification time. The run therefore verified source identity without creating a
+Bronze table or changing either file.
+
+## Deferred ingestion boundary
 
 This contract does not yet create Bronze tables or choose batch versus streaming ingestion. The
 following job increment will:

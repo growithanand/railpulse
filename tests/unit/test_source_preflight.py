@@ -12,6 +12,7 @@ from railpulse.jobs.source_preflight import (
     SourceFileReader,
     SourcePreflightError,
     VolumeFileReader,
+    _parse_args,
     load_source_contracts,
     reconcile_landed_sources,
 )
@@ -68,6 +69,34 @@ def test_manifest_exposes_both_managed_source_contracts() -> None:
     assert contracts.telemetry_sha256.startswith("db30ccb4")
     assert contracts.failure_reference_size_bytes == 556
     assert contracts.failure_reference_sha256.startswith("3a9e0220")
+
+
+def test_source_preflight_parses_bundle_named_parameters() -> None:
+    args = _parse_args(
+        [
+            "--catalog",
+            "catalog_name",
+            "--bronze_schema",
+            "bronze_name",
+            "--silver_schema",
+            "silver_name",
+            "--gold_schema",
+            "gold_name",
+            "--source_volume",
+            "volume_name",
+            "--manifest_path",
+            "/Workspace/bundle/files/docs/dataset_manifest.json",
+        ]
+    )
+
+    assert vars(args) == {
+        "catalog": "catalog_name",
+        "bronze_schema": "bronze_name",
+        "silver_schema": "silver_name",
+        "gold_schema": "gold_name",
+        "source_volume": "volume_name",
+        "manifest_path": "/Workspace/bundle/files/docs/dataset_manifest.json",
+    }
 
 
 def test_volume_file_reader_streams_exact_file_identity(tmp_path: Path) -> None:

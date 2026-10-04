@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Protocol
@@ -204,27 +206,32 @@ def reconcile_landed_sources(
     )
 
 
-def main(
-    catalog: str = "workspace",
-    bronze_schema: str = "railpulse_bronze",
-    silver_schema: str = "railpulse_silver",
-    gold_schema: str = "railpulse_gold",
-    source_volume: str = "source",
-    manifest_path: str = "docs/dataset_manifest.json",
-) -> int:
+def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--catalog", default="workspace")
+    parser.add_argument("--bronze_schema", default="railpulse_bronze")
+    parser.add_argument("--silver_schema", default="railpulse_silver")
+    parser.add_argument("--gold_schema", default="railpulse_gold")
+    parser.add_argument("--source_volume", default="source")
+    parser.add_argument("--manifest_path", default="docs/dataset_manifest.json")
+    return parser.parse_args(argv)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
     """Run managed source reconciliation and print one machine-readable result."""
 
+    args = _parse_args(argv)
     namespace = CatalogNamespace(
-        catalog=catalog,
-        bronze_schema=bronze_schema,
-        silver_schema=silver_schema,
-        gold_schema=gold_schema,
+        catalog=args.catalog,
+        bronze_schema=args.bronze_schema,
+        silver_schema=args.silver_schema,
+        gold_schema=args.gold_schema,
     )
-    contracts = load_source_contracts(manifest_path)
+    contracts = load_source_contracts(args.manifest_path)
     landing = DatabricksSourceLanding(
         namespace=namespace,
         dataset_version=contracts.dataset_version,
-        volume_name=source_volume,
+        volume_name=args.source_volume,
     )
     result = reconcile_landed_sources(landing, contracts, VolumeFileReader())
     print(json.dumps(asdict(result), sort_keys=True))
