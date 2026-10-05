@@ -16,6 +16,7 @@ from pyspark.sql import Column, DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import StructType
 
+from railpulse.catalog import CatalogNamespace
 from railpulse.config import RailPulseConfig, load_config
 from railpulse.ingestion.schemas import (
     CORRUPT_RECORD_FIELD,
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
 TELEMETRY_TABLE = "telemetry_raw"
 FAILURE_TABLE = "failure_reports_raw"
 RECORD_ID_FIELD = "record_id"
+CATALOG_BRONZE_CONTRACT_VERSION = "databricks-bronze-write-v1"
 
 
 class BronzeIngestionError(RuntimeError):
@@ -54,6 +56,21 @@ class BronzeIngestionResult:
 
     table_name: str
     target_path: str
+    source_sha256: str
+    ingestion_batch_id: str
+    source_row_count: int
+    inserted_row_count: int
+    matched_target_row_count: int
+    target_row_count_before: int
+    target_row_count_after: int
+
+
+@dataclass(frozen=True)
+class CatalogBronzeIngestionResult:
+    """Count reconciliation for one fully qualified Unity Catalog table write."""
+
+    contract_version: str
+    table_name: str
     source_sha256: str
     ingestion_batch_id: str
     source_row_count: int
@@ -122,6 +139,18 @@ def bronze_table_path(config: RailPulseConfig, table_name: str) -> Path:
     """Resolve a local path corresponding to a logical Bronze table."""
 
     return config.paths.delta / config.schemas.bronze / table_name
+
+
+def catalog_bronze_table(namespace: CatalogNamespace, table_name: str) -> str:
+    """Return one supported fully qualified managed Bronze table name."""
+
+    supported_tables = (TELEMETRY_TABLE, FAILURE_TABLE)
+    if table_name not in supported_tables:
+        raise BronzeIngestionError(
+            f"Unsupported managed Bronze table {table_name!r}; expected one of "
+            + ", ".join(supported_tables)
+        )
+    return namespace.table("bronze", table_name)
 
 
 def _read_raw_csv(
@@ -332,6 +361,82 @@ def merge_bronze_records(
         return BronzeIngestionResult(
             table_name=f"bronze.{table_name}",
             target_path=path_string,
+            source_sha256=source_sha256,
+            ingestion_batch_id=deterministic_batch_id(
+                dataset_version,
+                table_name,
+                source_sha256,
+            ),
+            source_row_count=source_count,
+            inserted_row_count=inserted_count,
+            matched_target_row_count=source_count,
+            target_row_count_before=before_count,
+            target_row_count_after=after_count,
+        )
+    finally:
+        cached.unpersist()
+
+
+def merge_catalog_bronze_records(
+    frame: DataFrame,
+    namespace: CatalogNamespace,
+    *,
+    table_name: str,
+    source_sha256: str,
+    dataset_version: str,
+) -> CatalogBronzeIngestionResult:
+    """Insert unseen records into a managed Delta table and reconcile counts."""
+
+    qualified_table = catalog_bronze_table(namespace, table_name)
+    spark = frame.sparkSession
+    cached = frame.persist(StorageLevel.DISK_ONLY)
+
+    try:
+        source_count = cached.count()
+        if source_count == 0:
+            raise BronzeIngestionError(f"{qualified_table} source contains no data rows")
+        _assert_source_keys_are_safe(cached, qualified_table)
+
+        target_exists = spark.catalog.tableExists(qualified_table)
+        before_count = spark.table(qualified_table).count() if target_exists else 0
+
+        if target_exists:
+            (
+                DeltaTable.forName(spark, qualified_table)
+                .alias("target")
+                .merge(
+                    cached.alias("source"),
+                    f"target.{RECORD_ID_FIELD} = source.{RECORD_ID_FIELD}",
+                )
+                .whenNotMatchedInsertAll()
+                .execute()
+            )
+        else:
+            cached.write.format("delta").mode("errorifexists").saveAsTable(qualified_table)
+
+        target = spark.table(qualified_table)
+        after_count = target.count()
+        inserted_count = after_count - before_count
+        unmatched_count = (
+            cached.select(RECORD_ID_FIELD)
+            .join(
+                target.select(RECORD_ID_FIELD),
+                on=RECORD_ID_FIELD,
+                how="left_anti",
+            )
+            .limit(1)
+            .count()
+        )
+
+        if inserted_count < 0 or inserted_count > source_count or unmatched_count:
+            raise BronzeIngestionError(
+                f"{qualified_table} reconciliation failed: source={source_count}, "
+                f"unmatched={unmatched_count}, before={before_count}, after={after_count}"
+            )
+
+        return CatalogBronzeIngestionResult(
+            contract_version=CATALOG_BRONZE_CONTRACT_VERSION,
+            table_name=qualified_table,
             source_sha256=source_sha256,
             ingestion_batch_id=deterministic_batch_id(
                 dataset_version,

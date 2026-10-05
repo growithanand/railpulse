@@ -14,6 +14,20 @@ and quarantine belong to Silver.
 Generated Delta storage and `_delta_log` content are ignored. They must be reproduced from the
 checksum-verified sources rather than committed.
 
+For the managed runtime, the same logical frames can now be written through the
+`databricks-bronze-write-v1` adapter to these allowlisted Unity Catalog targets:
+
+| Logical table | Managed target |
+| --- | --- |
+| `bronze.telemetry_raw` | `<catalog>.<bronze_schema>.telemetry_raw` |
+| `bronze.failure_reports_raw` | `<catalog>.<bronze_schema>.failure_reports_raw` |
+
+The adapter accepts a validated `CatalogNamespace`; it does not accept arbitrary table names. Its
+first write uses `errorifexists`, and subsequent writes use an insert-only Delta `MERGE` on
+`record_id`. It reports the fully qualified target plus before, inserted, and after counts. This
+adapter is code-complete but is not yet connected to a deployed Databricks job, so this increment
+does not create or modify remote tables.
+
 ## Runtime
 
 The verified local pairing is:
@@ -118,4 +132,5 @@ Run the deterministic unit and Spark/Delta integration suite inside the configur
 
 Fixtures cover raw numeric-token preservation, source metadata, checksum rejection, malformed-row
 retention, duplicate-key rejection, separate failure provenance, first writes, and zero-insert
-reruns.
+reruns. A local catalog-backed integration test also proves that the managed adapter creates a
+named Delta table and produces zero inserts on an identical rerun.

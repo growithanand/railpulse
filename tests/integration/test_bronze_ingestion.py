@@ -9,8 +9,10 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import StringType
 
+from railpulse.catalog import CatalogNamespace
 from railpulse.config import load_config
 from railpulse.ingestion.bronze import (
+    CATALOG_BRONZE_CONTRACT_VERSION,
     FAILURE_TABLE,
     TELEMETRY_TABLE,
     BronzeIngestionError,
@@ -18,6 +20,7 @@ from railpulse.ingestion.bronze import (
     file_sha256,
     ingest_failure_reports,
     ingest_telemetry,
+    merge_catalog_bronze_records,
     read_telemetry_bronze,
 )
 from railpulse.ingestion.schemas import TELEMETRY_RAW_FIELDS
@@ -196,3 +199,50 @@ def test_duplicate_source_keys_fail_without_writing_a_table(
         )
 
     assert not bronze_table_path(config, TELEMETRY_TABLE).exists()
+
+
+@pytest.mark.spark
+def test_catalog_bronze_merge_is_insert_only_and_idempotent(spark: SparkSession) -> None:
+    namespace = CatalogNamespace(
+        catalog="spark_catalog",
+        bronze_schema="railpulse_managed_bronze_test",
+        silver_schema="railpulse_managed_silver_test",
+        gold_schema="railpulse_managed_gold_test",
+    )
+    qualified_schema = namespace.schema("bronze")
+    qualified_table = namespace.table("bronze", TELEMETRY_TABLE)
+    source = FIXTURES / "metropt3_telemetry_sample.csv"
+    checksum = file_sha256(source)
+    frame = read_telemetry_bronze(
+        spark,
+        source,
+        source_sha256=checksum,
+        dataset_version="fixture-v1",
+        ingested_at=INGESTED_AT,
+    )
+
+    spark.sql(f"CREATE DATABASE IF NOT EXISTS {qualified_schema}").collect()
+    try:
+        first = merge_catalog_bronze_records(
+            frame,
+            namespace,
+            table_name=TELEMETRY_TABLE,
+            source_sha256=checksum,
+            dataset_version="fixture-v1",
+        )
+        second = merge_catalog_bronze_records(
+            frame,
+            namespace,
+            table_name=TELEMETRY_TABLE,
+            source_sha256=checksum,
+            dataset_version="fixture-v1",
+        )
+
+        assert first.contract_version == CATALOG_BRONZE_CONTRACT_VERSION
+        assert first.table_name == qualified_table
+        assert (first.source_row_count, first.inserted_row_count) == (3, 3)
+        assert (second.source_row_count, second.inserted_row_count) == (3, 0)
+        assert (second.target_row_count_before, second.target_row_count_after) == (3, 3)
+        assert spark.table(qualified_table).select("record_id").distinct().count() == 3
+    finally:
+        spark.sql(f"DROP DATABASE IF EXISTS {qualified_schema} CASCADE").collect()

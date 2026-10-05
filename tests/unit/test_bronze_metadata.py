@@ -7,8 +7,12 @@ import pytest
 pytest.importorskip("pyspark")
 pytest.importorskip("delta")
 
+from railpulse.catalog import CatalogNamespace
 from railpulse.ingestion.bronze import (
+    FAILURE_TABLE,
+    TELEMETRY_TABLE,
     BronzeIngestionError,
+    catalog_bronze_table,
     deterministic_batch_id,
     file_sha256,
     load_dataset_artifacts,
@@ -16,6 +20,15 @@ from railpulse.ingestion.bronze import (
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _catalog_namespace() -> CatalogNamespace:
+    return CatalogNamespace(
+        catalog="workspace",
+        bronze_schema="railpulse_bronze",
+        silver_schema="railpulse_silver",
+        gold_schema="railpulse_gold",
+    )
 
 
 def test_file_sha256_and_verification_use_exact_content(tmp_path: Path) -> None:
@@ -36,6 +49,20 @@ def test_batch_identifier_is_stable_and_table_specific() -> None:
     assert first == deterministic_batch_id("dataset-v1", "telemetry_raw", "a" * 64)
     assert first != deterministic_batch_id("dataset-v1", "failure_reports_raw", "a" * 64)
     assert len(first) == 64
+
+
+def test_catalog_bronze_tables_are_fully_qualified_and_allowlisted() -> None:
+    namespace = _catalog_namespace()
+
+    assert catalog_bronze_table(namespace, TELEMETRY_TABLE) == (
+        "workspace.railpulse_bronze.telemetry_raw"
+    )
+    assert catalog_bronze_table(namespace, FAILURE_TABLE) == (
+        "workspace.railpulse_bronze.failure_reports_raw"
+    )
+
+    with pytest.raises(BronzeIngestionError, match="Unsupported managed Bronze table"):
+        catalog_bronze_table(namespace, "temporary_copy")
 
 
 def test_manifest_exposes_all_bronze_source_identities() -> None:
