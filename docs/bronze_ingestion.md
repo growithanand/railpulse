@@ -24,9 +24,14 @@ For the managed runtime, the same logical frames can now be written through the
 
 The adapter accepts a validated `CatalogNamespace`; it does not accept arbitrary table names. Its
 first write uses `errorifexists`, and subsequent writes use an insert-only Delta `MERGE` on
-`record_id`. It reports the fully qualified target plus before, inserted, and after counts. This
-adapter is code-complete but is not yet connected to a deployed Databricks job, so this increment
-does not create or modify remote tables.
+`record_id`. It reports the fully qualified target plus before, inserted, and after counts.
+
+The bundle declares an unscheduled `railpulse-bronze-ingestion` job with two ordered tasks. The
+first runs the read-only `databricks-source-preflight-v1` size-and-hash reconciliation. The second
+runs only after that task succeeds, rebuilds the same manifest-backed Volume paths, reads both raw
+schemas, and invokes the allowlisted catalog adapter. A failed preflight therefore prevents table
+writes. The job definition is not deployed by this increment, so no remote table is created or
+modified until deployment and execution receive separate review.
 
 ## Runtime
 
