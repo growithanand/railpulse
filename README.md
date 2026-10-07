@@ -1,213 +1,208 @@
 # RailPulse
 
-**Predictive Maintenance and Analytics Platform for Metro Compressor Systems**
+**Predictive maintenance and analytics for metro compressor systems**
 
-RailPulse is an industrial data and machine-learning portfolio project based on the
-MetroPT-3 compressor telemetry dataset. Its central question is:
+RailPulse is an end-to-end data engineering and machine-learning portfolio project built on the
+[MetroPT-3](https://archive.ics.uci.edu/dataset/791/metropt%2B3%2B) air-compressor dataset. It turns
+1.5 million telemetry observations and separately published failure reports into governed Delta
+tables, point-in-time features, chronological modelling data, and an eventual maintenance dashboard.
+
+The project asks a practical question:
 
 > Can abnormal compressor behaviour be identified early enough to support maintenance
-> intervention—ideally at least two hours before a recorded failure—without producing an
-> unacceptable number of false alarms?
+> intervention—ideally at least two hours before a recorded failure—without creating an
+> unacceptable false-alarm burden?
+
+No final model-performance or maintenance-impact claim is made yet. The current emphasis is the
+reproducible data foundation and leakage-safe evaluation design needed to make such claims credible.
 
 ## Current status
 
-RailPulse currently has a locally verified, end-to-end data-engineering path from the official raw
-sources to versioned Gold feature snapshots. The implementation includes checksum-backed source
-provenance, idempotent Bronze ingestion, typed Silver validation and quarantine, data-quality
-metrics, loaded-operation cycles, causal two-hour failure horizons, past-only motor-current
-features, and label-independent feature eligibility.
+The complete Bronze-to-Gold engineering path is verified locally on the official data. The
+Databricks foundation is also live: the package runs on serverless compute, the three Unity Catalog
+schemas exist, both source files are stored in a governed Volume, and a managed preflight job has
+reproduced their manifest-backed sizes and SHA-256 hashes.
 
-The `motor-current-15m-snapshot-build-v1` command now materializes one immutable
-`gold.feature_snapshots` Delta row per loaded cycle. Its complete-source run inserted 15,766 rows;
-an identical rerun inserted zero and reconciled all 15,766 rows as unchanged. Generated Delta data
-remains excluded from Git.
+A two-task managed Bronze job is implemented, tested, committed, and accepted by bundle validation.
+Its first task verifies the landed files; its second task can write the two allowlisted catalog
+tables only after verification succeeds. That job has **not** been deployed or run yet, so no
+catalog-backed Bronze table currently exists.
 
-### Verified complete-source evidence
+| Area | Verified state | Next boundary |
+| --- | --- | --- |
+| Source governance | Manifest, immutable paths, checksums, managed Volume | Complete |
+| Local pipeline | Verified through Gold v1/v2 snapshots and modelling-view profile | Complete |
+| Databricks runtime | Serverless wheel execution and source preflight | Complete |
+| Managed Bronze | Writer and gated job definition validated | Deploy, run, and prove rerun |
+| Managed Silver/Gold | Local contracts already exist | Adapt storage to catalog tables |
+| Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
+| Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
+
+See [project status](docs/project_status.md) for the detailed implementation record and
+[project plan](docs/project_plan.md) for the delivery sequence.
+
+## Architecture
+
+```text
+Official telemetry CSV + published failure reports
+                         |
+                         v
+       checksum manifest + governed source Volume
+                         |
+                         v
+                 Bronze Delta tables
+        raw strings, corrupt rows, file lineage,
+           deterministic record and batch IDs
+                         |
+                         v
+                 Silver Delta tables
+      typed values, accepted/quarantine outputs,
+       quality reasons, gaps, duplicate detection
+                         |
+                         v
+                  Gold data products
+       loaded cycles, point-in-time features,
+       feature snapshots v1/v2, failure horizons
+                         |
+                         v
+          chronological modelling and MLflow
+                         |
+                         v
+        alert episodes + event-level evaluation
+                         |
+                         v
+        Databricks SQL maintenance dashboard
+```
+
+The dataset is small enough to process on one machine. Spark and Databricks are used deliberately
+to demonstrate scalable, incremental, governed patterns rather than to imply that distributed
+compute is required for 1.5 million rows.
+
+## What the project demonstrates
+
+### Governed ingestion
+
+- Exact source identity through versioned paths, byte sizes, and SHA-256 checksums.
+- Separate provenance for telemetry, the failure transcription, and its official source document.
+- All-string Bronze schemas that preserve raw tokens and malformed rows before interpretation.
+- Deterministic record and batch identifiers with insert-only Delta merges and count reconciliation.
+- Rerunnable writes: an identical source produces zero new rows.
+
+### Data quality and transformation
+
+- Explicit parsing, analogue-envelope, binary-domain, duplicate, and event-time sequence checks.
+- Separate accepted and quarantine tables with record-level rejection reasons.
+- Material-gap detection without incorrectly labelling measurements after a gap as invalid.
+- Causal loaded-cycle segmentation with left- and right-censoring retained as data, not discarded.
+- Monotonic Gold merges that prevent settled cycle history from being silently rewritten.
+
+### Point-in-time features and evaluation
+
+- Strict past-only feature windows ending at each cycle prediction timestamp.
+- Label-independent feature eligibility and immutable feature snapshots.
+- A two-hour cycle-to-failure horizon with explicit null states for incomplete or in-failure cases.
+- Calendar-based train, validation, and test periods; random row splitting is prohibited.
+- Tests that prove future telemetry cannot change historical feature values.
+
+### Platform engineering
+
+- A Python `src` package with unit and Spark/Delta integration tests.
+- Databricks Asset Bundle resources, Python-wheel tasks, serverless execution, and Unity Catalog.
+- Validated catalog/schema identifiers and fully qualified managed table names.
+- Read-only preflight tasks separated from provisioning, upload, deployment, and table mutation.
+- Generated data, Delta logs, credentials, environment files, and workspace state excluded from Git.
+
+## Verified complete-source evidence
 
 | Evidence | Verified result |
 | --- | ---: |
-| Accepted telemetry records | 1,516,948 |
-| Gold loaded cycles | 15,766 |
+| Telemetry rows reconciled through Bronze and Silver | 1,516,948 |
+| Published failure records retained | 4 |
+| Provisional loaded cycles | 15,766 |
 | Available 15-minute motor-current features | 15,703 |
-| Eligible feature snapshots | 15,418 |
-| Ineligible feature snapshots | 348 |
+| Feature-eligible cycles | 15,418 |
 | Material-window-gap exclusions | 285 |
 | Missing prediction boundaries | 63 |
-| Positive two-hour cycle labels | 22 |
-| Accepted published failure events represented by positive cycles | 3 of 4 |
 | Trainable modelling-view rows | 15,413 |
+| Positive two-hour cycle labels | 22 |
+| Negative trainable cycle labels | 15,391 |
 | Excluded modelling-view rows | 353 |
+| Failure events represented by positive cycles | 3 of 4 |
 
-The project has not trained or evaluated a predictive model yet. Production anomaly models, alert
-episodes, event-level metrics, MLflow tracking, catalog-backed Databricks tables, and Databricks SQL
-dashboards remain planned. Consequently, no model accuracy, warning-lead-time, false-alarm, or
-maintenance-impact claim is currently made.
+Local first-write and rerun checks materialized 15,766 rows in each versioned Gold feature-snapshot
+table. Identical reruns inserted zero rows and left the existing snapshots unchanged. Generated
+Delta storage is intentionally not committed.
 
-See [the project status](docs/project_status.md) for verified environment details and
-[the project plan](docs/project_plan.md) for delivery phases.
+## Modelling findings so far
 
-## Intended user and outcome
+The modelling work is intentionally conservative:
 
-RailPulse is designed for a maintenance or reliability engineer who needs to inspect equipment
-condition, review alert episodes, compare alerts with recorded failures, measure useful warning
-lead time and false-alarm frequency, and compare maintenance policies.
+- A June-validation/July-test chronological split was selected from coverage feasibility alone.
+  The held-out test period has not been used to choose features or thresholds.
+- A training-only robust motor-current deviation baseline exposed substantial temporal or
+  operating-regime drift and was retained as a documented benchmark failure.
+- Five directional low-current thresholds were rejected because their validation false-alarm burden
+  remained operationally weak.
+- A pressure-balance feature showed substantial positive/negative overlap and was not promoted.
+- Loaded-cycle duration context showed consistent development-period signal and was added through a
+  separate immutable version 2 feature snapshot instead of rewriting version 1.
 
-The planned flow is:
+These negative and mixed results are part of the portfolio evidence: the project records why a
+candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
 
-```text
-Official MetroPT-3 telemetry + separately documented failure reports
-                              |
-                              v
-                     Bronze Delta tables
-                  raw values + source metadata
-                              |
-                              v
-                     Silver Delta tables
-              validation + quarantine + quality metrics
-                              |
-                              v
-                      Gold data products
-          cycles + temporal features + horizons + reliability KPIs
-                 + immutable feature snapshots
-                              |
-                              v
-               baseline/anomaly scores -> alert episodes
-                              |
-                              v
-                Databricks SQL decision-support dashboard
-```
+## Databricks progression
 
-This is a production-pattern demonstration. Approximately 1.5 million records at a nominal
-10-second cadence do not inherently require distributed computing; Spark is used to demonstrate
-scalable, incremental, and Databricks-compatible engineering practices.
+Completed managed steps:
 
-## Implemented now
+1. Validate the bundle and packaged wheel on serverless compute.
+2. Provision separate Bronze, Silver, and Gold schemas idempotently.
+3. Create a deletion-protected managed source Volume.
+4. Upload the two contracted inputs without overwrite.
+5. Independently verify remote sizes and downloaded hashes.
+6. Run the deployed source-preflight job successfully without creating tables.
+7. Implement and test an allowlisted Unity Catalog Bronze writer.
+8. Define and validate an unscheduled two-task Bronze workflow with a mandatory preflight gate.
 
-- A Python `src` package with clear ingestion, validation, feature, model, evaluation, and
-  monitoring boundaries.
-- Checked-in TOML defaults loaded through a typed, validated configuration module.
-- Deterministic package and configuration tests.
-- A checksum-backed official dataset manifest, sensor dictionary, failure-event reference, and
-  streaming CSV contract inspector.
-- Explicit all-string Bronze schemas, source/checksum metadata, corrupt-record capture, deterministic
-  identifiers, Delta `MERGE` idempotency, and row reconciliation.
-- Locally materialized `bronze.telemetry_raw` and `bronze.failure_reports_raw` Delta tables; generated
-  table storage remains ignored.
-- Typed Silver telemetry with explicit parsing, domain, range, duplicate, and timestamp-sequence
-  quality reasons, plus separate accepted and quarantine Delta outputs.
-- Typed Silver failure events with structural rejection reasons and separate accepted and quarantine
-  Delta outputs.
-- Versioned telemetry quality summaries with reconciled row, gap, and rejection-reason counts.
-- Causal loaded-cycle boundaries, deterministic segment identifiers, cycle-level aggregation, and
-  a reproducible full-source profile using the documented `DV_eletric` operating signal.
-- Monotonic `gold.loaded_cycles` Delta merge semantics that insert new IDs, close right-censored
-  cycles without changing their IDs, and reject regressive or incompatible snapshots.
-- A source-bound `loaded-cycle-build-v1` command with reconciled full-source first-write and rerun
-  evidence for the local `gold.loaded_cycles` table.
-- A tested Spark SQL inspection that reconciles censoring-group counts and descriptive duration
-  tails without assigning health or failure meaning.
-- A versioned cycle-to-failure horizon transformation that labels strictly future failure starts at
-  observed cycle stops and preserves in-failure, open-cycle, and incomplete-horizon rows as null.
-- A source-lineage-aware, read-only full-source horizon profile that reconciles cycle statuses and
-  positive-cycle allocation across every accepted failure event.
-- A tested 15-minute motor-current feature window with strict past-only event-time boundaries,
-  observation-support metadata, and explicit missing-feature statuses.
-- A source-lineage-aware, read-only full-source motor-current profile that reconciles feature
-  availability, observation-support percentiles, independent count and span tails, their strict
-  membership overlap, deterministic weakest and one-sided examples, and internal-gap evidence for
-  count-only windows. It also compares explicit gap intersection with the percentile-tail union
-  and retains bounded examples and complete disagreement-group summaries without setting a
-  training threshold. A reconciled sensitivity table measures strict-tail capture as the maximum
-  in-window gap increases.
-- A read-only policy comparison that joins available motor-current windows to two-hour horizon
-  labels and reconciles retained and excluded positive, negative, and null-label counts for five
-  fixed coverage candidates without selecting or persisting a rule.
-- A versioned, label-independent motor-current eligibility transformation that uses the existing
-  20-second material-gap boundary, fails closed on missing context, and emits explicit reasons.
-- A source-lineage-aware, read-only full-source eligibility profile that reconciles one status per
-  Gold cycle and one exact reason per ineligible cycle without loading failure labels.
-- A versioned Gold feature-snapshot schema and deterministic builder that retain past-only features,
-  label-independent eligibility, and dataset/source/ingestion lineage while excluding future labels.
-- An insert-only `gold.feature_snapshots` Delta writer that rejects conflicting historical rows and
-  incompatible schemas, reconciles write counts, and treats identical reruns as unchanged.
-- A full-source snapshot build command with verified first-write and zero-insert rerun evidence for
-  all 15,766 Gold cycles.
-- A leakage-safe chronological modelling-view contract that separates model inputs, target labels,
-  row eligibility, exclusion reasons, source lineage, and the future split assignment.
-- A deterministic Spark modelling-view transformation that enforces one-to-one cycle joins,
-  point-in-time boundary alignment, supported versions, label semantics, and ordered exclusions.
-- A read-only complete-source modelling-view profile that reconciles 15,413 trainable rows, 353
-  excluded rows, 22 positive labels, 15,391 negative labels, and three represented failure events.
-- Three versioned calendar split candidates plus a read-only comparison that reports row, label,
-  prediction-time, and failure-event coverage for train, validation, and test periods. The verified
-  full-source result leaves one candidate with positive-event representation in every period.
-- A frozen June-validation/July-test split selected from coverage feasibility alone, with the test
-  period reserved for final evaluation rather than model or alert-threshold selection.
-- A training-only robust motor-current deviation baseline and development-only profile. The verified
-  validation distribution exposes substantial temporal or operating-regime drift, so the score is
-  retained as an honest benchmark failure rather than promoted to an alert rule.
-- A development-only monthly drift profile that localizes the shift: negative median current moves
-  from 0.796 A in February to 5.575 A in June, while June positives remain near 0.928 A.
-- A five-candidate directional low-current comparison that retains test isolation and rejects every
-  threshold as operationally weak; the best validation compromise still produces 293 false-positive
-  cycles for four true positives.
-- A past-only panel-to-reservoir pressure-balance feature and full-source profile covering all 15,703
-  observed prediction boundaries. A test-isolated development comparison finds substantial
-  positive/negative overlap across only four train and five validation positive cycles, so the
-  feature remains a research candidate and is not added to a new snapshot version.
-- A label-independent, past-only cycle operating-context contract for current loaded duration,
-  preceding loaded duration, and intervening idle time, with explicit censoring and predecessor
-  statuses. Its full-source profile reconciles all 15,766 cycles, finds complete context for 15,375,
-  and reports no invalid predecessor intervals. A test-isolated development comparison finds higher
-  current and preceding loaded durations for positive cycles in both train and validation, supporting
-  a versioned snapshot expansion without selecting a threshold.
-- A separate version 2 feature-snapshot schema, in-memory builder, immutable Delta writer, and
-  full-source build that preserve every version 1 motor-current field, add cycle context, reject key,
-  version, or existing-row conflicts, and discard future labels. The materialized 15,766-row table
-  has a verified zero-insert rerun while version 1 remains unchanged.
-- Data and artifact exclusion rules that allow only the placement guide and vetted reference
-  metadata to be versioned under `data/`.
-- A Databricks Asset Bundle that passes strict CLI validation and deploys a serverless Python-wheel
-  preflight job. Its first managed run completed successfully and reported the expected package,
-  Spark, runtime, catalog, and schema metadata without writing project data.
-- A tested Unity Catalog namespace contract that maps the logical Bronze, Silver, and Gold layers to
-  separate development schemas through bundle variables. The namespace-aware preflight completed
-  successfully and confirmed all three planned names without creating them.
-- A tested, idempotent schema provisioner that inventories visible schemas, creates only missing
-  RailPulse layer schemas with `IF NOT EXISTS`, and reconciles the result. Its first managed run
-  created all three schemas, which were then independently verified through the catalog API. Its
-  second managed run reported all three as preexisting and created nothing.
-- A tested, versioned source-landing contract and reviewed bundle resource for one managed Unity
-  Catalog Volume under the Bronze schema. It fixes dataset-versioned telemetry and failure-reference
-  paths, rejects unsafe identifiers, and protects the declared Volume from bundle destruction. The
-  reviewed deployment created the Volume and updated the two existing jobs without deleting a
-  resource. An independent catalog check confirmed its type and comment. A separate controlled
-  upload landed exactly the two contracted inputs, and downloaded verification copies matched their
-  manifest-backed byte sizes and SHA-256 identities. A deployed read-only source-preflight job then
-  reproduced both identity checks without creating a table.
-- Durable project planning, status, and architecture-decision documentation.
+The next controlled step is to deploy that workflow without running it. Execution will then be
+reviewed separately because it creates:
 
-## Runtime stack
+- `<catalog>.<bronze_schema>.telemetry_raw`
+- `<catalog>.<bronze_schema>.failure_reports_raw`
 
-The current pipeline uses Python, PySpark 4.2.0, Apache Spark 4.2.0, Spark SQL, Delta Lake 4.4.0,
-pytest, and Ruff. Later phases will add production Databricks resources, MLflow, Structured
-Streaming, and GitHub Actions where each is justified. Streaming will replay historical files; it
-will not be described as a live train connection.
+After a first successful run, an identical rerun must report zero inserts before managed Silver or
+Gold work begins.
 
-The local Spark/Delta integration is verified in Ubuntu WSL with Python 3.12 and Eclipse Temurin JDK
-21. Native Windows Spark is not the verified path because Hadoop requires a separate Windows helper.
-Databricks workspace access, bundle validation and deployment, wheel installation, and serverless
-runtime compatibility are verified through a successful read-only preflight run.
+## Roadmap to the portfolio demonstration
 
-The next platform step is to make the successful source-preflight task the required gate of a
-deliberately bounded catalog-backed Bronze ingestion job, then prove an identical rerun is
-idempotent. The complete decision-support dashboard still depends on prediction, alert, and
-event-evaluation tables. The planned order is catalog-backed pipeline outputs, dashboard-ready
-aggregates, and then the polished Databricks SQL dashboard.
+1. Materialize and reconcile the two managed Bronze tables.
+2. Adapt the verified Silver accepted, quarantine, and quality outputs to Unity Catalog.
+3. Materialize Gold cycles, feature snapshots, horizons, and modelling views in Databricks.
+4. Track final candidate training and parameters with MLflow while keeping the test period sealed.
+5. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
+   the failure-event level.
+6. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
+7. Add a short reproducible demo path and evidence-based résumé bullets.
+
+## Technology
+
+- Python 3.11+
+- PySpark / Apache Spark 4.2
+- Delta Lake 4.4
+- Spark SQL and Databricks SQL
+- Databricks Asset Bundles, serverless jobs, Volumes, and Unity Catalog
+- pytest and Ruff
+- MLflow planned for final experiment tracking
+
+Local Spark/Delta execution is verified in Ubuntu WSL with a supported JDK 21. Native Windows Spark
+is not the verified path because its Hadoop layer requires an additional Windows helper binary.
 
 ## Quick start
 
-Python 3.11 or newer is required. Package-only checks can run in a normal virtual environment:
+Raw data is not stored in Git. Download MetroPT-3 from UCI and place the official CSV as described
+in [data/README.md](data/README.md). The repository already contains the vetted four-row failure
+reference and the checksum manifest.
+
+Package checks can run in a normal virtual environment:
 
 ```powershell
 python -m venv .venv
@@ -218,155 +213,72 @@ python -m venv .venv
 .venv\Scripts\python -m ruff format --check .
 ```
 
-Spark/Delta integration and ingestion are run inside Ubuntu WSL with a supported JDK 21. From the
-repository mounted in WSL:
+Spark/Delta integration is run inside WSL with JDK 21:
 
 ```bash
 python3 -m venv .venv-wsl
 .venv-wsl/bin/python -m pip install --upgrade pip
 .venv-wsl/bin/python -m pip install -e ".[dev,spark]"
-export JAVA_HOME=/path/to/a/jdk-21
+export JAVA_HOME=/path/to/jdk-21
 export PYSPARK_PYTHON="$PWD/.venv-wsl/bin/python"
-export PYSPARK_SUBMIT_ARGS="--driver-memory 3g --conf spark.driver.extraJavaOptions=-Djdk.lang.Process.launchMechanism=VFORK pyspark-shell"
+export PYSPARK_SUBMIT_ARGS="--driver-memory 3g pyspark-shell"
 .venv-wsl/bin/python -m pytest
 ```
 
-The local JDK and virtual environment belong under ignored `.tools/` and `.venv-wsl/` when kept in
-the project. See [Bronze ingestion](docs/bronze_ingestion.md) for source placement, execution, table
-locations, idempotency behavior, and verified counts.
-
-To reproduce the complete-file source inspection after downloading the official CSV into ignored
-raw storage:
-
-```powershell
-.venv\Scripts\python -m railpulse.validation.metropt3 `
-  "data\raw\source\metropt3-uci-791\MetroPT3(AirCompressor).csv"
-```
-
-After source inspection, materialize or safely reconcile both Bronze tables:
+Core local materialization commands:
 
 ```bash
 .venv-wsl/bin/python -m railpulse.ingestion.bronze --master "local[4]"
-```
-
-Then derive, reconcile, and persist the full-source Gold cycle table:
-
-```bash
 .venv-wsl/bin/python -m railpulse.features.cycle_build --master "local[4]"
-```
-
-Inspect censoring categories and observed-duration tails without modifying Gold data:
-
-```bash
-.venv-wsl/bin/python -m railpulse.features.cycle_inspection --master "local[2]"
-```
-
-Apply and inspect the default two-hour failure horizon without persisting another table:
-
-```bash
-.venv-wsl/bin/python -m railpulse.features.failure_horizon_profile --master "local[4]"
-```
-
-Apply and inspect 15-minute motor-current feature coverage without persisting a feature table:
-
-```bash
-.venv-wsl/bin/python -m railpulse.features.temporal_feature_profile --master "local[4]"
-```
-
-Compare diagnostic coverage policies with two-hour horizon-label retention without selecting or
-persisting a rule:
-
-```bash
-.venv-wsl/bin/python -m railpulse.features.coverage_policy_profile --master "local[4]"
-```
-
-Apply and reconcile the selected label-independent eligibility contract without persisting output:
-
-```bash
-.venv-wsl/bin/python -m railpulse.features.eligibility_profile --master "local[4]"
-```
-
-Materialize the versioned Gold feature snapshot after the eligibility profile has been reviewed:
-
-```bash
 .venv-wsl/bin/python -m railpulse.features.feature_snapshot_build --master "local[4]"
-```
-
-Expand the immutable version 1 rows with cycle context in the separate version 2 table:
-
-```bash
 .venv-wsl/bin/python -m railpulse.features.feature_snapshot_v2_build --master "local[4]"
 ```
 
-Profile the complete chronological modelling view without selecting split dates or writing output:
-
-```bash
-.venv-wsl/bin/python -m railpulse.evaluation.modeling_view_profile --master "local[4]"
-```
-
-Compare the fixed chronological split candidates without fitting a model or writing output:
-
-```bash
-.venv-wsl/bin/python -m railpulse.evaluation.chronological_split_profile --master "local[4]"
-```
+The remaining profile commands and their expected evidence are linked from
+[project status](docs/project_status.md).
 
 ## Repository layout
 
 ```text
-configs/             Checked-in, environment-independent defaults
-data/                Placement instructions; actual data is ignored
-docs/                Plans, decisions, contracts, protocols, and status
-src/railpulse/       Reusable production code
-tests/               Deterministic unit and integration tests
-sql/                 Spark/Databricks SQL introduced with data products
-notebooks/           Thin exploration and demonstration entry points
-dashboards/          Dashboard queries and specifications
-resources/           Databricks deployment resources
+configs/             Environment-independent local defaults
+data/                Placement guide and vetted failure reference; raw data ignored
+docs/                Contracts, decisions, profiles, project plan, and status
+resources/           Databricks jobs and managed infrastructure definitions
+src/railpulse/       Reusable ingestion, validation, feature, model, and evaluation code
+tests/               Unit and Spark/Delta integration tests
+sql/                 Checked-in analytical SQL
 ```
 
-Reusable transformations belong in Python modules or SQL, not hidden notebook state.
+Reusable transformations belong in Python modules or checked-in SQL, not hidden notebook state.
 
-## Verified dataset and evaluation guardrails
+## Dataset and evaluation guardrails
 
-RailPulse uses the [official UCI MetroPT-3 dataset](https://archive.ics.uci.edu/dataset/791/metropt%2B3%2B),
-ID 791 and DOI [10.24432/C5VW3R](https://doi.org/10.24432/C5VW3R), under CC BY 4.0. The retrieved
-archive, CSV, and PDF are identified by SHA-256 in the
-[dataset manifest](docs/dataset_manifest.json). Raw artifacts are never committed.
+RailPulse uses the official UCI MetroPT-3 dataset, ID 791, DOI
+[10.24432/C5VW3R](https://doi.org/10.24432/C5VW3R), under CC BY 4.0. The retrieved archive, CSV, and
+source PDF are identified in [the dataset manifest](docs/dataset_manifest.json). Raw artifacts are
+never committed.
 
-The actual CSV contains 1,516,948 rows, 15 sensor signals, and timestamps from 2020-02-01 through
-2020-09-01. Its cadence is nominally 10 seconds with jitter and material gaps. Published failures
-are stored separately from telemetry and retain unresolved source ambiguities.
+The telemetry covers 2020-02-01 through 2020-09-01 at a nominal 10-second cadence with jitter and
+material gaps. Failure reports remain separate from telemetry, and unresolved source ambiguities
+are preserved.
 
-Evaluation will be chronological and failure-event-aware. Future-looking windows, centered
-features, random row-level splits, full-dataset normalization, and test-set threshold selection are
-prohibited. Sparse failure events will be reported honestly; inconclusive results are acceptable.
+Evaluation is chronological and failure-event-aware. Future-looking windows, centered features,
+random row-level splits, full-dataset normalization, and test-set threshold selection are
+prohibited. With only four published failures, conclusions must be presented as case-study evidence
+rather than precise estimates of generalization or maintenance impact.
 
-## Documentation
+## Key documentation
 
-- [Project plan](docs/project_plan.md)
 - [Project status](docs/project_status.md)
+- [Project plan](docs/project_plan.md)
 - [Architecture decisions](docs/decisions.md)
-- [Databricks namespace contract](docs/databricks_namespace.md)
-- [Databricks source-landing contract](docs/databricks_source_landing.md)
-- [Data placement](data/README.md)
 - [Dataset manifest](docs/dataset_manifest.json)
 - [Data contract](docs/data_contract.md)
-- [Data dictionary](docs/data_dictionary.md)
 - [Bronze ingestion](docs/bronze_ingestion.md)
-- [Full-source loaded-cycle profile](docs/cycle_profile.md)
-- [Gold loaded-cycle build](docs/gold_cycle_build.md)
-- [Gold loaded-cycle inspection](docs/gold_cycle_inspection.md)
-- [Cycle-to-failure horizon contract](docs/failure_horizon_contract.md)
-- [Full-source failure-horizon profile](docs/failure_horizon_profile.md)
-- [Past-only motor-current feature contract](docs/temporal_feature_contract.md)
-- [Full-source motor-current feature profile](docs/temporal_feature_profile.md)
-- [Motor-current coverage-policy profile](docs/coverage_policy_profile.md)
-- [Motor-current feature eligibility contract](docs/feature_eligibility_contract.md)
-- [Full-source motor-current eligibility profile](docs/eligibility_profile.md)
-- [Gold feature-snapshot schema contract](docs/feature_snapshot_contract.md)
-- [Gold feature-snapshot build](docs/feature_snapshot_build.md)
-- [Chronological modelling-view contract](docs/evaluation_protocol.md)
-- [Full-source modelling-view profile](docs/modeling_view_profile.md)
-
-Dashboard instructions, a demo script, and evidence-based résumé bullets will be added only when
-their supporting phases are implemented.
+- [Gold cycle build](docs/gold_cycle_build.md)
+- [Feature snapshot v1](docs/feature_snapshot_contract.md)
+- [Feature snapshot v2](docs/feature_snapshot_v2_contract.md)
+- [Evaluation protocol](docs/evaluation_protocol.md)
+- [Chronological split evidence](docs/chronological_split_profile.md)
+- [Engineering baseline evidence](docs/engineering_baseline_profile.md)
+- [Directional baseline evidence](docs/directional_baseline_profile.md)
