@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — managed Bronze first run next**
+**Databricks migration — managed Bronze idempotency rerun next**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -10,7 +10,8 @@ wheel runtime are also verified, and the three Unity Catalog layer schemas are p
 current increment completes the first governed file boundary for the checksum-verified inputs. The
 managed Volume is deployed and independently verified, and its two landed inputs match their
 manifest-backed byte sizes and SHA-256 identities. The gated two-task Bronze job is also deployed,
-unscheduled, and verified to have an empty run history. No catalog-backed table has been created.
+unscheduled, and verified through its first successful write. Unity Catalog now contains separate
+managed telemetry and failure-reference Bronze tables with 1,516,948 and four rows respectively.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -494,13 +495,23 @@ success. The run history remained empty. Spark integration tests were not rerun 
 because the local WSL Java prerequisite was unavailable; the earlier complete-suite evidence above
 remains the latest full Spark verification.
 
+The first managed write attempts then exposed two Spark Connect compatibility differences while
+leaving the Bronze schema empty: serverless rejected explicit DataFrame persistence, then rejected
+the long-form `errorifexists` write-mode alias. The managed adapter was changed to avoid persistence
+and use the supported `error` alias, while the path-backed local adapter retained its existing disk
+cache. Each repair passed the 75 non-Spark tests, lint, formatting, wheel build, strict bundle
+validation, and a scoped one-job deployment plan. The subsequent job run completed both tasks and
+reported 1,516,948 telemetry inserts plus four failure-reference inserts from empty targets. An
+independent Unity Catalog inventory confirmed both managed Delta tables and their reconciled row
+statistics. The unchanged zero-insert rerun is intentionally a separate checkpoint.
+
 ## Not implemented
 
 - Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
   and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
-- CI workflow and production Databricks table-processing resources. The development Bronze-writing
-  job is deployed but has never been run, and no catalog-backed project table exists yet.
+- CI workflow and production Databricks table-processing resources. Development managed Bronze now
+  exists, but managed Silver and Gold table-processing resources do not.
 
 No predictive-model performance, failure-detection, warning-lead-time, false-alarm, or cost result
 has been measured.
@@ -511,12 +522,12 @@ The source contradictions documented in Phase 2 remain unresolved. Bronze delibe
 type conversion, sensor-range validation, deduplication, timestamp normalization, or source-value
 repair. Native Windows Spark is not the verified runtime because its Hadoop layer requires a
 separate Windows helper; Ubuntu WSL is the tested local path. Databricks bundle deployment and the
-serverless Python-wheel runtime are verified, but catalog-backed pipeline writes remain untested.
+serverless Python-wheel runtime are verified, and the first catalog-backed Bronze writes now pass.
 Silver output merges are insert-only: reclassifying an existing `record_id` after validation rules
 change will require an explicit versioned rebuild rather than silently moving records between tables.
 
 ## Next milestone
 
-Run the deployed bounded ingestion job to write and reconcile both fully qualified Bronze tables.
-Then run it unchanged and require zero inserts before managed Silver work begins. Do not commit
-credentials, local paths, deployment state, or ignored source data.
+Run the deployed ingestion job unchanged and require zero inserts with both table counts preserved
+before managed Silver work begins. Do not commit credentials, local paths, deployment state, or
+ignored source data.

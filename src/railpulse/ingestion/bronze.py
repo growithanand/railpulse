@@ -389,68 +389,63 @@ def merge_catalog_bronze_records(
 
     qualified_table = catalog_bronze_table(namespace, table_name)
     spark = frame.sparkSession
-    cached = frame.persist(StorageLevel.DISK_ONLY)
+    source_count = frame.count()
+    if source_count == 0:
+        raise BronzeIngestionError(f"{qualified_table} source contains no data rows")
+    _assert_source_keys_are_safe(frame, qualified_table)
 
-    try:
-        source_count = cached.count()
-        if source_count == 0:
-            raise BronzeIngestionError(f"{qualified_table} source contains no data rows")
-        _assert_source_keys_are_safe(cached, qualified_table)
+    target_exists = spark.catalog.tableExists(qualified_table)
+    before_count = spark.table(qualified_table).count() if target_exists else 0
 
-        target_exists = spark.catalog.tableExists(qualified_table)
-        before_count = spark.table(qualified_table).count() if target_exists else 0
-
-        if target_exists:
-            (
-                DeltaTable.forName(spark, qualified_table)
-                .alias("target")
-                .merge(
-                    cached.alias("source"),
-                    f"target.{RECORD_ID_FIELD} = source.{RECORD_ID_FIELD}",
-                )
-                .whenNotMatchedInsertAll()
-                .execute()
+    if target_exists:
+        (
+            DeltaTable.forName(spark, qualified_table)
+            .alias("target")
+            .merge(
+                frame.alias("source"),
+                f"target.{RECORD_ID_FIELD} = source.{RECORD_ID_FIELD}",
             )
-        else:
-            cached.write.format("delta").mode("errorifexists").saveAsTable(qualified_table)
+            .whenNotMatchedInsertAll()
+            .execute()
+        )
+    else:
+        frame.write.format("delta").mode("error").saveAsTable(qualified_table)
 
-        target = spark.table(qualified_table)
-        after_count = target.count()
-        inserted_count = after_count - before_count
-        unmatched_count = (
-            cached.select(RECORD_ID_FIELD)
-            .join(
-                target.select(RECORD_ID_FIELD),
-                on=RECORD_ID_FIELD,
-                how="left_anti",
-            )
-            .limit(1)
-            .count()
+    target = spark.table(qualified_table)
+    after_count = target.count()
+    inserted_count = after_count - before_count
+    unmatched_count = (
+        frame.select(RECORD_ID_FIELD)
+        .join(
+            target.select(RECORD_ID_FIELD),
+            on=RECORD_ID_FIELD,
+            how="left_anti",
+        )
+        .limit(1)
+        .count()
+    )
+
+    if inserted_count < 0 or inserted_count > source_count or unmatched_count:
+        raise BronzeIngestionError(
+            f"{qualified_table} reconciliation failed: source={source_count}, "
+            f"unmatched={unmatched_count}, before={before_count}, after={after_count}"
         )
 
-        if inserted_count < 0 or inserted_count > source_count or unmatched_count:
-            raise BronzeIngestionError(
-                f"{qualified_table} reconciliation failed: source={source_count}, "
-                f"unmatched={unmatched_count}, before={before_count}, after={after_count}"
-            )
-
-        return CatalogBronzeIngestionResult(
-            contract_version=CATALOG_BRONZE_CONTRACT_VERSION,
-            table_name=qualified_table,
-            source_sha256=source_sha256,
-            ingestion_batch_id=deterministic_batch_id(
-                dataset_version,
-                table_name,
-                source_sha256,
-            ),
-            source_row_count=source_count,
-            inserted_row_count=inserted_count,
-            matched_target_row_count=source_count,
-            target_row_count_before=before_count,
-            target_row_count_after=after_count,
-        )
-    finally:
-        cached.unpersist()
+    return CatalogBronzeIngestionResult(
+        contract_version=CATALOG_BRONZE_CONTRACT_VERSION,
+        table_name=qualified_table,
+        source_sha256=source_sha256,
+        ingestion_batch_id=deterministic_batch_id(
+            dataset_version,
+            table_name,
+            source_sha256,
+        ),
+        source_row_count=source_count,
+        inserted_row_count=inserted_count,
+        matched_target_row_count=source_count,
+        target_row_count_before=before_count,
+        target_row_count_after=after_count,
+    )
 
 
 def ingest_telemetry(

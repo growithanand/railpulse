@@ -25,15 +25,15 @@ reproduced their manifest-backed sizes and SHA-256 hashes.
 
 A two-task managed Bronze job is implemented, tested, and deployed. Its first task verifies the
 landed files; its second task can write the two allowlisted catalog tables only after verification
-succeeds. The deployed job is unscheduled and has never been run, so no catalog-backed Bronze table
-currently exists.
+succeeds. Its first successful managed run created and reconciled 1,516,948 telemetry rows and four
+failure-reference rows. An unchanged zero-insert rerun remains the next acceptance boundary.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
 | Source governance | Manifest, immutable paths, checksums, managed Volume | Complete |
 | Local pipeline | Verified through Gold v1/v2 snapshots and modelling-view profile | Complete |
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
-| Managed Bronze | Writer and gated job deployed; run history empty | Run, reconcile, and prove rerun |
+| Managed Bronze | First managed run reconciled both source-aligned tables | Prove zero-insert rerun |
 | Managed Silver/Gold | Local contracts already exist | Adapt storage to catalog tables |
 | Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
@@ -163,13 +163,14 @@ Completed managed steps:
 7. Implement and test an allowlisted Unity Catalog Bronze writer.
 8. Define and validate an unscheduled two-task Bronze workflow with a mandatory preflight gate.
 9. Deploy only that workflow and verify its empty run history without creating tables.
+10. Run the workflow successfully and reconcile 1,516,948 telemetry rows and four failure rows.
 
-The next controlled step is the first reviewed execution of that workflow because it creates:
+The managed workflow now owns:
 
 - `<catalog>.<bronze_schema>.telemetry_raw`
 - `<catalog>.<bronze_schema>.failure_reports_raw`
 
-After a first successful run, an identical rerun must report zero inserts before managed Silver or
+The next controlled step is an identical rerun. It must report zero inserts before managed Silver or
 Gold work begins.
 
 ## Roadmap to the portfolio demonstration

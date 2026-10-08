@@ -202,7 +202,10 @@ def test_duplicate_source_keys_fail_without_writing_a_table(
 
 
 @pytest.mark.spark
-def test_catalog_bronze_merge_is_insert_only_and_idempotent(spark: SparkSession) -> None:
+def test_catalog_bronze_merge_is_insert_only_and_idempotent(
+    spark: SparkSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     namespace = CatalogNamespace(
         catalog="spark_catalog",
         bronze_schema="railpulse_managed_bronze_test",
@@ -220,6 +223,11 @@ def test_catalog_bronze_merge_is_insert_only_and_idempotent(spark: SparkSession)
         dataset_version="fixture-v1",
         ingested_at=INGESTED_AT,
     )
+
+    def reject_persist(*args: object, **kwargs: object) -> None:
+        raise AssertionError("catalog-backed ingestion must not persist serverless DataFrames")
+
+    monkeypatch.setattr(type(frame), "persist", reject_persist)
 
     spark.sql(f"CREATE DATABASE IF NOT EXISTS {qualified_schema}").collect()
     try:

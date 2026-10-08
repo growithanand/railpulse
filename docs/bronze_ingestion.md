@@ -117,6 +117,11 @@ insert-only unmatched branch. After every run, Bronze verifies that every source
 target and reports the target count change. A no-op `MERGE` does not create an extra Delta
 transaction.
 
+The catalog-backed adapter avoids DataFrame persistence because Databricks serverless does not
+support that Spark Connect operation. Initial table creation uses the Spark Connect-supported
+`error` write-mode alias, preserving fail-if-present behavior. The local path-backed adapter keeps
+its disk cache because it runs through classic Spark rather than the managed serverless boundary.
+
 Full-source verification on 2026-09-02 produced:
 
 | Table | Source rows | Target rows after | Inserts on verified rerun |
@@ -126,6 +131,16 @@ Full-source verification on 2026-09-02 produced:
 
 The official files produced zero corrupt records. This is a structural Bronze observation, not a
 claim that all measurements or failure metadata are semantically valid.
+
+The first successful Databricks run on 2026-10-08 independently reported:
+
+| Managed table | Source rows | Inserted rows | Target rows after |
+| --- | ---: | ---: | ---: |
+| `workspace.railpulse_bronze.telemetry_raw` | 1,516,948 | 1,516,948 | 1,516,948 |
+| `workspace.railpulse_bronze.failure_reports_raw` | 4 | 4 | 4 |
+
+Unity Catalog inventory confirmed both objects as managed Delta tables. The identical managed rerun
+is a separate acceptance checkpoint and has not yet been claimed.
 
 ## Tests
 
@@ -138,4 +153,5 @@ Run the deterministic unit and Spark/Delta integration suite inside the configur
 Fixtures cover raw numeric-token preservation, source metadata, checksum rejection, malformed-row
 retention, duplicate-key rejection, separate failure provenance, first writes, and zero-insert
 reruns. A local catalog-backed integration test also proves that the managed adapter creates a
-named Delta table and produces zero inserts on an identical rerun.
+named Delta table and produces zero inserts on an identical rerun. Its persistence guard prevents
+reintroducing the serverless-incompatible cache operation.
