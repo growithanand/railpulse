@@ -2,14 +2,15 @@
 
 ## Current phase
 
-**Databricks migration — catalog-backed Bronze ingestion next**
+**Databricks migration — managed Bronze first run next**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
 wheel runtime are also verified, and the three Unity Catalog layer schemas are provisioned. The
 current increment completes the first governed file boundary for the checksum-verified inputs. The
 managed Volume is deployed and independently verified, and its two landed inputs match their
-manifest-backed byte sizes and SHA-256 identities.
+manifest-backed byte sizes and SHA-256 identities. The gated two-task Bronze job is also deployed,
+unscheduled, and verified to have an empty run history. No catalog-backed table has been created.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -484,14 +485,22 @@ before source access because named parameters were not parsed; the regression-te
 deployed, and the second run reconciled both sizes and SHA-256 identities successfully. A post-run
 catalog inventory remained empty and both source-file listings were unchanged.
 
+For the managed Bronze deployment checkpoint on 2026-10-08, all 75 non-Spark tests passed, Ruff
+lint and formatting checks passed, the current wheel built successfully, and strict bundle
+validation returned no errors or warnings. The scoped deployment plan contained one job creation,
+zero updates, and zero deletions. Post-deployment inspection confirmed an unscheduled, UI-locked
+two-task workflow: `ingest_bronze_tables` depends on `verify_landed_sources` and runs only after its
+success. The run history remained empty. Spark integration tests were not rerun at this checkpoint
+because the local WSL Java prerequisite was unavailable; the earlier complete-suite evidence above
+remains the latest full Spark verification.
+
 ## Not implemented
 
 - Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
   and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
-- CI workflow and production Databricks table-processing resources. The runtime preflight, schema
-  provisioner, and read-only source-preflight jobs are deployed; no catalog-backed table-writing job
-  exists yet.
+- CI workflow and production Databricks table-processing resources. The development Bronze-writing
+  job is deployed but has never been run, and no catalog-backed project table exists yet.
 
 No predictive-model performance, failure-detection, warning-lead-time, false-alarm, or cost result
 has been measured.
@@ -508,6 +517,6 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Make the successful read-only source preflight the required first task of a bounded catalog-backed
-ingestion job that writes fully qualified Bronze tables and reconciles the first managed run and an
-identical rerun. Do not commit credentials, local paths, deployment state, or ignored source data.
+Run the deployed bounded ingestion job to write and reconcile both fully qualified Bronze tables.
+Then run it unchanged and require zero inserts before managed Silver work begins. Do not commit
+credentials, local paths, deployment state, or ignored source data.

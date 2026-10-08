@@ -23,17 +23,17 @@ Databricks foundation is also live: the package runs on serverless compute, the 
 schemas exist, both source files are stored in a governed Volume, and a managed preflight job has
 reproduced their manifest-backed sizes and SHA-256 hashes.
 
-A two-task managed Bronze job is implemented, tested, committed, and accepted by bundle validation.
-Its first task verifies the landed files; its second task can write the two allowlisted catalog
-tables only after verification succeeds. That job has **not** been deployed or run yet, so no
-catalog-backed Bronze table currently exists.
+A two-task managed Bronze job is implemented, tested, and deployed. Its first task verifies the
+landed files; its second task can write the two allowlisted catalog tables only after verification
+succeeds. The deployed job is unscheduled and has never been run, so no catalog-backed Bronze table
+currently exists.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
 | Source governance | Manifest, immutable paths, checksums, managed Volume | Complete |
 | Local pipeline | Verified through Gold v1/v2 snapshots and modelling-view profile | Complete |
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
-| Managed Bronze | Writer and gated job definition validated | Deploy, run, and prove rerun |
+| Managed Bronze | Writer and gated job deployed; run history empty | Run, reconcile, and prove rerun |
 | Managed Silver/Gold | Local contracts already exist | Adapt storage to catalog tables |
 | Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
@@ -162,9 +162,9 @@ Completed managed steps:
 6. Run the deployed source-preflight job successfully without creating tables.
 7. Implement and test an allowlisted Unity Catalog Bronze writer.
 8. Define and validate an unscheduled two-task Bronze workflow with a mandatory preflight gate.
+9. Deploy only that workflow and verify its empty run history without creating tables.
 
-The next controlled step is to deploy that workflow without running it. Execution will then be
-reviewed separately because it creates:
+The next controlled step is the first reviewed execution of that workflow because it creates:
 
 - `<catalog>.<bronze_schema>.telemetry_raw`
 - `<catalog>.<bronze_schema>.failure_reports_raw`
