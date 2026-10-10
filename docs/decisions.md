@@ -178,3 +178,19 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   independent file listing confirmed that the Volume was empty immediately after deployment. A
   later controlled upload used the versioned paths without overwrite; remote sizes and independently
   downloaded SHA-256 values matched the manifest for both inputs.
+
+## ADR-017 — Allowlist managed Silver tables and fix their merge keys
+
+- **Status:** Accepted
+- **Decision:** Expose a catalog-backed Silver writer only for the existing telemetry accepted,
+  telemetry quarantine, telemetry quality-metrics, failure accepted, and failure quarantine
+  contracts. Record tables merge on `record_id`; the metrics table merges on `quality_batch_id`.
+- **Why:** A fixed table-to-key mapping prevents callers from directing validated data to arbitrary
+  catalog objects or selecting an unsafe merge key. It also keeps the managed boundary aligned with
+  the already verified local Silver contracts.
+- **Guardrail:** The managed writer is insert-only, reconciles counts and unmatched keys, creates an
+  empty contracted table when a valid output has no rows, and avoids DataFrame persistence for
+  Databricks serverless compatibility. Reclassifying an existing record after a validation-contract
+  change still requires an explicit versioned rebuild.
+- **Deployment boundary:** This decision adds a tested persistence adapter only. No Silver job is
+  declared or deployed, and no managed Silver table is created by this increment.

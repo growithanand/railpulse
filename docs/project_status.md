@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — managed Silver persistence next**
+**Databricks migration — managed Silver catalog persistence boundary**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -13,6 +13,8 @@ manifest-backed byte sizes and SHA-256 identities. The gated two-task Bronze job
 unscheduled, and verified through both its first successful write and an unchanged zero-insert
 rerun. Unity Catalog contains separate managed telemetry and failure-reference Bronze tables with
 1,516,948 and four rows respectively.
+The first managed Silver increment now provides an undeployed, allowlisted catalog writer for the
+five existing Silver outputs, with fixed merge keys and serverless-safe count reconciliation.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -149,6 +151,10 @@ contexts, or unsupported feature statuses occur.
   counts and reports each rejection reason independently.
 - A `silver.telemetry_quality_metrics` Delta table persists that summary under a deterministic
   source-batch and validation-contract identity, preserving earlier contract versions on rerun.
+- An undeployed catalog-backed Silver adapter now maps only the five existing Silver outputs to
+  fully qualified Unity Catalog names. It uses `record_id` for validated record tables and
+  `quality_batch_id` for telemetry metrics, supports empty contracted outputs, performs insert-only
+  reconciliation, and avoids serverless-incompatible DataFrame persistence.
 - Failure-event validation types source rows and timezone-free interval bounds, preserves report
   labels and ambiguous text, and rejects malformed, incomplete, duplicated, or reversed records.
 - Causal loaded-cycle boundary annotations use only current and predecessor `DV_eletric` states,
@@ -514,6 +520,13 @@ failure reference matched all four existing records and inserted zero. Before an
 therefore unchanged for both managed Delta tables. This closes the managed Bronze idempotency
 checkpoint without making a model or maintenance-impact claim.
 
+For the initial managed Silver persistence-boundary increment, all 77 non-Spark tests passed and
+all six Silver storage Spark/Delta integration tests passed in the verified WSL runtime. Ruff lint
+and formatting checks plus Python bytecode compilation also passed. The integration fixture proved
+first-write and zero-insert rerun counts, empty-output table creation, schema-type preservation, and
+the absence of serverless-incompatible DataFrame persistence. No bundle resource was declared or
+deployed, and no remote Silver table was created.
+
 ## Not implemented
 
 - Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
@@ -537,7 +550,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Adapt the verified Silver validation, quarantine, and quality outputs to allowlisted Unity Catalog
-tables. Begin with the catalog-backed persistence contract and deterministic tests before deploying
-or writing any managed Silver data. Do not commit credentials, local paths, deployment state, or
-ignored source data.
+Compose the managed telemetry persistence operation around the catalog adapter so accepted,
+quarantined, and quality-metric outputs reconcile as one complete validation result. Add focused
+tests before declaring or deploying a Silver job or writing managed Silver data. Do not commit
+credentials, local paths, deployment state, or ignored source data.

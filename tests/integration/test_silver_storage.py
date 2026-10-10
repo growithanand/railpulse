@@ -7,6 +7,7 @@ import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
+from railpulse.catalog import CatalogNamespace
 from railpulse.config import load_config
 from railpulse.ingestion.bronze import (
     file_sha256,
@@ -15,6 +16,7 @@ from railpulse.ingestion.bronze import (
 )
 from railpulse.validation.silver_failures import split_failure_events_by_quality
 from railpulse.validation.silver_storage import (
+    CATALOG_SILVER_CONTRACT_VERSION,
     FAILURE_ACCEPTED_TABLE,
     FAILURE_QUARANTINE_TABLE,
     QUALITY_BATCH_ID_FIELD,
@@ -23,6 +25,7 @@ from railpulse.validation.silver_storage import (
     TELEMETRY_QUARANTINE_TABLE,
     TELEMETRY_VALIDATION_VERSION,
     SilverTelemetryPersistenceError,
+    merge_catalog_silver_records,
     persist_failure_quality_split,
     persist_telemetry_quality_metrics,
     persist_telemetry_quality_split,
@@ -294,3 +297,64 @@ def test_failure_silver_tables_are_separate_reconciled_and_idempotent(
     assert quarantined_row.rejection_reasons == ["reversed_failure_interval"]
     assert quarantined_row.source_document_sha256 == SOURCE_DOCUMENT_SHA256
     assert accepted.select("record_id").intersect(quarantined.select("record_id")).count() == 0
+
+
+@pytest.mark.spark
+def test_catalog_silver_merge_is_allowlisted_idempotent_and_serverless_safe(
+    spark: SparkSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    namespace = CatalogNamespace(
+        catalog="spark_catalog",
+        bronze_schema="railpulse_managed_bronze_test",
+        silver_schema="railpulse_managed_silver_test",
+        gold_schema="railpulse_managed_gold_test",
+    )
+    qualified_schema = namespace.schema("silver")
+    accepted_table = namespace.table("silver", TELEMETRY_ACCEPTED_TABLE)
+    quarantine_table = namespace.table("silver", TELEMETRY_QUARANTINE_TABLE)
+    split = _validated_fixture(spark)
+    accepted = split.accepted
+    empty_quarantine = split.quarantined.where(F.lit(False))
+
+    def reject_persist(*args: object, **kwargs: object) -> None:
+        raise AssertionError("catalog-backed Silver writes must not persist serverless DataFrames")
+
+    monkeypatch.setattr(type(accepted), "persist", reject_persist)
+
+    spark.sql(f"CREATE DATABASE IF NOT EXISTS {qualified_schema}").collect()
+    try:
+        first = merge_catalog_silver_records(
+            accepted,
+            namespace,
+            table_name=TELEMETRY_ACCEPTED_TABLE,
+        )
+        second = merge_catalog_silver_records(
+            accepted,
+            namespace,
+            table_name=TELEMETRY_ACCEPTED_TABLE,
+        )
+        empty = merge_catalog_silver_records(
+            empty_quarantine,
+            namespace,
+            table_name=TELEMETRY_QUARANTINE_TABLE,
+        )
+
+        assert first.contract_version == CATALOG_SILVER_CONTRACT_VERSION
+        assert first.table_name == accepted_table
+        assert first.key_field == "record_id"
+        assert (first.source_record_count, first.inserted_record_count) == (2, 2)
+        assert (second.source_record_count, second.inserted_record_count) == (2, 0)
+        assert (second.target_record_count_before, second.target_record_count_after) == (2, 2)
+        assert spark.table(accepted_table).select("record_id").distinct().count() == 2
+
+        assert empty.table_name == quarantine_table
+        assert (empty.source_record_count, empty.inserted_record_count) == (0, 0)
+        quarantine = spark.table(quarantine_table)
+        assert quarantine.count() == 0
+        assert quarantine.schema.fieldNames() == empty_quarantine.schema.fieldNames()
+        assert [field.dataType for field in quarantine.schema] == [
+            field.dataType for field in empty_quarantine.schema
+        ]
+    finally:
+        spark.sql(f"DROP DATABASE IF EXISTS {qualified_schema} CASCADE").collect()

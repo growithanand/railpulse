@@ -12,6 +12,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.types import LongType, MapType, StringType, StructField, StructType
 
+from railpulse.catalog import CatalogNamespace
 from railpulse.config import RailPulseConfig
 from railpulse.ingestion.bronze import RECORD_ID_FIELD
 from railpulse.validation.silver_failures import FailureQualitySplit
@@ -30,6 +31,14 @@ TELEMETRY_QUALITY_TABLE = "telemetry_quality_metrics"
 TELEMETRY_VALIDATION_VERSION = "telemetry-validation-v2"
 QUALITY_BATCH_ID_FIELD = "quality_batch_id"
 TELEMETRY_LINEAGE_COLUMNS = ("dataset_version", "source_sha256", "ingestion_batch_id")
+CATALOG_SILVER_CONTRACT_VERSION = "databricks-silver-write-v1"
+_CATALOG_SILVER_KEY_FIELDS = {
+    TELEMETRY_ACCEPTED_TABLE: RECORD_ID_FIELD,
+    TELEMETRY_QUARANTINE_TABLE: RECORD_ID_FIELD,
+    FAILURE_ACCEPTED_TABLE: RECORD_ID_FIELD,
+    FAILURE_QUARANTINE_TABLE: RECORD_ID_FIELD,
+    TELEMETRY_QUALITY_TABLE: QUALITY_BATCH_ID_FIELD,
+}
 
 
 class SilverPersistenceError(RuntimeError):
@@ -50,6 +59,19 @@ class SilverTableWriteResult:
 
     table_name: str
     target_path: str
+    source_record_count: int
+    inserted_record_count: int
+    target_record_count_before: int
+    target_record_count_after: int
+
+
+@dataclass(frozen=True)
+class CatalogSilverWriteResult:
+    """Count reconciliation for one fully qualified Unity Catalog table write."""
+
+    contract_version: str
+    table_name: str
+    key_field: str
     source_record_count: int
     inserted_record_count: int
     target_record_count_before: int
@@ -88,6 +110,25 @@ def silver_table_path(config: RailPulseConfig, table_name: str) -> Path:
     """Resolve a local path corresponding to a logical Silver table."""
 
     return config.paths.delta / config.schemas.silver / table_name
+
+
+def catalog_silver_key_field(table_name: str) -> str:
+    """Return the fixed merge key for one supported managed Silver table."""
+
+    try:
+        return _CATALOG_SILVER_KEY_FIELDS[table_name]
+    except KeyError as error:
+        supported_tables = ", ".join(_CATALOG_SILVER_KEY_FIELDS)
+        raise SilverPersistenceError(
+            f"Unsupported managed Silver table {table_name!r}; expected one of {supported_tables}"
+        ) from error
+
+
+def catalog_silver_table(namespace: CatalogNamespace, table_name: str) -> str:
+    """Return one allowlisted, fully qualified managed Silver table name."""
+
+    catalog_silver_key_field(table_name)
+    return namespace.table("silver", table_name)
 
 
 def telemetry_quality_batch_id(
@@ -220,6 +261,113 @@ def _merge_silver_records(
         )
     finally:
         cached.unpersist()
+
+
+def _catalog_silver_error_type(
+    table_name: str,
+) -> type[SilverTelemetryPersistenceError] | type[SilverFailurePersistenceError]:
+    if table_name in (FAILURE_ACCEPTED_TABLE, FAILURE_QUARANTINE_TABLE):
+        return SilverFailurePersistenceError
+    return SilverTelemetryPersistenceError
+
+
+def _assert_catalog_silver_keys_are_safe(
+    frame: DataFrame,
+    *,
+    table_name: str,
+    key_field: str,
+    error_type: type[SilverPersistenceError],
+) -> int:
+    if key_field not in frame.columns:
+        raise error_type(f"{table_name} is missing merge key {key_field}")
+
+    source_count = frame.count()
+    if not source_count:
+        return 0
+
+    missing_key = frame.where(F.col(key_field).isNull() | (F.length(F.col(key_field)) == 0)).limit(
+        1
+    )
+    if missing_key.count():
+        raise error_type(f"{table_name} contains a missing {key_field}")
+
+    duplicate = (
+        frame.groupBy(key_field)
+        .count()
+        .where(F.col("count") > 1)
+        .select(key_field, "count")
+        .limit(1)
+        .collect()
+    )
+    if duplicate:
+        record = duplicate[0]
+        raise error_type(
+            f"{table_name} contains duplicate {key_field} {record[key_field]} "
+            f"({record['count']} records)"
+        )
+    return source_count
+
+
+def merge_catalog_silver_records(
+    frame: DataFrame,
+    namespace: CatalogNamespace,
+    *,
+    table_name: str,
+) -> CatalogSilverWriteResult:
+    """Insert unseen validated records into one allowlisted managed Silver table."""
+
+    qualified_table = catalog_silver_table(namespace, table_name)
+    key_field = catalog_silver_key_field(table_name)
+    error_type = _catalog_silver_error_type(table_name)
+    source_count = _assert_catalog_silver_keys_are_safe(
+        frame,
+        table_name=qualified_table,
+        key_field=key_field,
+        error_type=error_type,
+    )
+    spark = frame.sparkSession
+    target_exists = spark.catalog.tableExists(qualified_table)
+    before_count = spark.table(qualified_table).count() if target_exists else 0
+
+    if target_exists:
+        if source_count:
+            (
+                DeltaTable.forName(spark, qualified_table)
+                .alias("target")
+                .merge(
+                    frame.alias("source"),
+                    f"target.{key_field} = source.{key_field}",
+                )
+                .whenNotMatchedInsertAll()
+                .execute()
+            )
+    else:
+        frame.write.format("delta").mode("error").saveAsTable(qualified_table)
+
+    target = spark.table(qualified_table)
+    after_count = target.count()
+    inserted_count = after_count - before_count
+    unmatched_count = (
+        frame.select(key_field)
+        .join(target.select(key_field), on=key_field, how="left_anti")
+        .limit(1)
+        .count()
+    )
+    if inserted_count < 0 or inserted_count > source_count or unmatched_count:
+        raise error_type(
+            f"{qualified_table} reconciliation failed: source={source_count}, "
+            f"unmatched={unmatched_count}, before={before_count}, after={after_count}"
+        )
+
+    return CatalogSilverWriteResult(
+        contract_version=CATALOG_SILVER_CONTRACT_VERSION,
+        table_name=qualified_table,
+        key_field=key_field,
+        source_record_count=source_count,
+        inserted_record_count=inserted_count,
+        target_record_count_before=before_count,
+        target_record_count_after=after_count,
+    )
 
 
 def _persist_quality_records(
