@@ -26,14 +26,15 @@ reproduced their manifest-backed sizes and SHA-256 hashes.
 A two-task managed Bronze job is implemented, tested, and deployed. Its first task verifies the
 landed files; its second task can write the two allowlisted catalog tables only after verification
 succeeds. Its first successful managed run created and reconciled 1,516,948 telemetry rows and four
-failure-reference rows. An unchanged zero-insert rerun remains the next acceptance boundary.
+failure-reference rows. An unchanged managed rerun then matched every existing record, inserted
+zero rows, and preserved both table counts.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
 | Source governance | Manifest, immutable paths, checksums, managed Volume | Complete |
 | Local pipeline | Verified through Gold v1/v2 snapshots and modelling-view profile | Complete |
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
-| Managed Bronze | First managed run reconciled both source-aligned tables | Prove zero-insert rerun |
+| Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver/Gold | Local contracts already exist | Adapt storage to catalog tables |
 | Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
@@ -164,18 +165,20 @@ Completed managed steps:
 8. Define and validate an unscheduled two-task Bronze workflow with a mandatory preflight gate.
 9. Deploy only that workflow and verify its empty run history without creating tables.
 10. Run the workflow successfully and reconcile 1,516,948 telemetry rows and four failure rows.
+11. Redeploy from committed source and prove an identical rerun inserts zero rows.
 
 The managed workflow now owns:
 
 - `<catalog>.<bronze_schema>.telemetry_raw`
 - `<catalog>.<bronze_schema>.failure_reports_raw`
 
-The next controlled step is an identical rerun. It must report zero inserts before managed Silver or
-Gold work begins.
+The next controlled step is adapting the verified Silver validation and quality outputs to
+allowlisted Unity Catalog tables, beginning with a tested catalog-backed persistence boundary.
 
 ## Roadmap to the portfolio demonstration
 
-1. Materialize and reconcile the two managed Bronze tables.
+1. **Completed:** materialize and reconcile the two managed Bronze tables, including a zero-insert
+   rerun.
 2. Adapt the verified Silver accepted, quarantine, and quality outputs to Unity Catalog.
 3. Materialize Gold cycles, feature snapshots, horizons, and modelling views in Databricks.
 4. Track final candidate training and parameters with MLflow while keeping the test period sealed.

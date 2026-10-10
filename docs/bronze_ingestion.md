@@ -23,15 +23,16 @@ For the managed runtime, the same logical frames can now be written through the
 | `bronze.failure_reports_raw` | `<catalog>.<bronze_schema>.failure_reports_raw` |
 
 The adapter accepts a validated `CatalogNamespace`; it does not accept arbitrary table names. Its
-first write uses `errorifexists`, and subsequent writes use an insert-only Delta `MERGE` on
-`record_id`. It reports the fully qualified target plus before, inserted, and after counts.
+first write uses the Spark Connect-supported `error` mode, which fails if the target already exists.
+Subsequent writes use an insert-only Delta `MERGE` on `record_id`. It reports the fully qualified
+target plus before, inserted, and after counts.
 
 The bundle declares an unscheduled `railpulse-bronze-ingestion` job with two ordered tasks. The
 first runs the read-only `databricks-source-preflight-v1` size-and-hash reconciliation. The second
 runs only after that task succeeds, rebuilds the same manifest-backed Volume paths, reads both raw
 schemas, and invokes the allowlisted catalog adapter. A failed preflight therefore prevents table
-writes. The job definition is not deployed by this increment, so no remote table is created or
-modified until deployment and execution receive separate review.
+writes. The job is deployed in the development workspace without a schedule; deployment and each
+manual execution remain separate reviewed actions.
 
 ## Runtime
 
@@ -140,7 +141,16 @@ The first successful Databricks run on 2026-10-08 independently reported:
 | `workspace.railpulse_bronze.failure_reports_raw` | 4 | 4 | 4 |
 
 Unity Catalog inventory confirmed both objects as managed Delta tables. The identical managed rerun
-is a separate acceptance checkpoint and has not yet been claimed.
+on 2026-10-08 then reported:
+
+| Managed table | Source rows | Matched rows | Inserted rows | Target rows before | Target rows after |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `workspace.railpulse_bronze.telemetry_raw` | 1,516,948 | 1,516,948 | 0 | 1,516,948 | 1,516,948 |
+| `workspace.railpulse_bronze.failure_reports_raw` | 4 | 4 | 0 | 4 | 4 |
+
+Both tasks terminated successfully: the preflight reconfirmed the landed file sizes and hashes,
+and the writer preserved both target counts. This closes the managed Bronze idempotency acceptance
+checkpoint; replaying the unchanged contracted inputs does not duplicate records.
 
 ## Tests
 

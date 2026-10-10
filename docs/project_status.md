@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — managed Bronze idempotency rerun next**
+**Databricks migration — managed Silver persistence next**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -10,8 +10,9 @@ wheel runtime are also verified, and the three Unity Catalog layer schemas are p
 current increment completes the first governed file boundary for the checksum-verified inputs. The
 managed Volume is deployed and independently verified, and its two landed inputs match their
 manifest-backed byte sizes and SHA-256 identities. The gated two-task Bronze job is also deployed,
-unscheduled, and verified through its first successful write. Unity Catalog now contains separate
-managed telemetry and failure-reference Bronze tables with 1,516,948 and four rows respectively.
+unscheduled, and verified through both its first successful write and an unchanged zero-insert
+rerun. Unity Catalog contains separate managed telemetry and failure-reference Bronze tables with
+1,516,948 and four rows respectively.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -503,7 +504,15 @@ cache. Each repair passed the 75 non-Spark tests, lint, formatting, wheel build,
 validation, and a scoped one-job deployment plan. The subsequent job run completed both tasks and
 reported 1,516,948 telemetry inserts plus four failure-reference inserts from empty targets. An
 independent Unity Catalog inventory confirmed both managed Delta tables and their reconciled row
-statistics. The unchanged zero-insert rerun is intentionally a separate checkpoint.
+statistics.
+
+The managed Bronze acceptance rerun on 2026-10-08 was deployed from committed source after strict
+bundle validation. Its scoped plan updated one job, selected no other resources, and added or
+deleted nothing. Both workflow tasks terminated successfully. Source preflight reproduced the same
+two file identities; telemetry matched all 1,516,948 existing records and inserted zero, while the
+failure reference matched all four existing records and inserted zero. Before and after counts were
+therefore unchanged for both managed Delta tables. This closes the managed Bronze idempotency
+checkpoint without making a model or maintenance-impact claim.
 
 ## Not implemented
 
@@ -528,6 +537,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Run the deployed ingestion job unchanged and require zero inserts with both table counts preserved
-before managed Silver work begins. Do not commit credentials, local paths, deployment state, or
+Adapt the verified Silver validation, quarantine, and quality outputs to allowlisted Unity Catalog
+tables. Begin with the catalog-backed persistence contract and deterministic tests before deploying
+or writing any managed Silver data. Do not commit credentials, local paths, deployment state, or
 ignored source data.
