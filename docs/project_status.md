@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — managed Silver telemetry persistence composition**
+**Databricks migration — managed Silver failure-event persistence composition**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -17,6 +17,8 @@ The first managed Silver increment now provides an undeployed, allowlisted catal
 five existing Silver outputs, with fixed merge keys and serverless-safe count reconciliation.
 An undeployed managed telemetry operation now composes accepted, quarantined, and deterministic
 quality-summary outputs from the same validated frame and reconciles all three writes.
+An undeployed managed failure-event operation now composes accepted and quarantined outputs from
+one prevalidated frame and reconciles both writes.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -161,6 +163,9 @@ contexts, or unsupported feature statuses occur.
   source lineage, and reconciled quality counts before writing. It then writes accepted, quarantine,
   and quality-metric tables through the allowlisted adapter and makes interrupted multi-table work
   safe to retry through deterministic insert-only keys.
+- An undeployed managed failure-event persistence operation prevalidates record keys and rejection
+  reasons before writing, then reconciles accepted and quarantined source counts with the complete
+  validated input. Deterministic insert-only keys make interrupted two-table work safe to retry.
 - Failure-event validation types source rows and timezone-free interval bounds, preserves report
   labels and ambiguous text, and rejects malformed, incomplete, duplicated, or reversed records.
 - Causal loaded-cycle boundary annotations use only current and predecessor `DV_eletric` states,
@@ -541,6 +546,13 @@ zero into all three tables and preserved the same quality-batch identity. The se
 no DataFrame cache operation. No bundle resource was declared or deployed, and no remote Silver
 table was created.
 
+For the managed failure-event composition increment, all 77 non-Spark tests passed and all eight
+Silver storage Spark/Delta integration tests passed in WSL. Ruff lint and formatting checks plus
+Python bytecode compilation also passed. The focused managed test proved reconciled first writes of
+one accepted and one quarantined failure record; an identical rerun inserted zero into both tables.
+The serverless path called no DataFrame cache operation. No bundle resource was declared or
+deployed, and no remote Silver table was created.
+
 ## Not implemented
 
 - Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
@@ -564,7 +576,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Compose the managed failure-event persistence operation around the catalog adapter so accepted and
-quarantined failure records reconcile as one complete validation result. Add focused tests before
-declaring or deploying a Silver job or writing managed Silver data. Do not commit credentials,
-local paths, deployment state, or ignored source data.
+Define the smallest runnable Silver job boundary that reads the two managed Bronze tables, applies
+the existing validators, and invokes the reviewed managed telemetry and failure persistence
+operations. Keep bundle declaration, deployment, and remote Silver writes behind separate review
+gates. Do not commit credentials, local paths, deployment state, or ignored source data.

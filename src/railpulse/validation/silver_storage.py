@@ -33,6 +33,7 @@ QUALITY_BATCH_ID_FIELD = "quality_batch_id"
 TELEMETRY_LINEAGE_COLUMNS = ("dataset_version", "source_sha256", "ingestion_batch_id")
 CATALOG_SILVER_CONTRACT_VERSION = "databricks-silver-write-v1"
 CATALOG_TELEMETRY_PERSISTENCE_CONTRACT_VERSION = "databricks-silver-telemetry-persistence-v1"
+CATALOG_FAILURE_PERSISTENCE_CONTRACT_VERSION = "databricks-silver-failure-persistence-v1"
 _CATALOG_SILVER_KEY_FIELDS = {
     TELEMETRY_ACCEPTED_TABLE: RECORD_ID_FIELD,
     TELEMETRY_QUARANTINE_TABLE: RECORD_ID_FIELD,
@@ -91,6 +92,16 @@ class CatalogTelemetryPersistenceResult:
     quality_batch_id: str
     metrics: TelemetryQualityMetrics
     quality: CatalogSilverWriteResult
+
+
+@dataclass(frozen=True)
+class CatalogFailurePersistenceResult:
+    """Reconciled managed writes for one complete failure-event validation result."""
+
+    contract_version: str
+    total_record_count: int
+    accepted: CatalogSilverWriteResult
+    quarantined: CatalogSilverWriteResult
 
 
 @dataclass(frozen=True)
@@ -656,4 +667,56 @@ def persist_catalog_telemetry_outputs(
         quality_batch_id=quality_batch_id,
         metrics=metrics,
         quality=quality_write,
+    )
+
+
+def persist_catalog_failure_outputs(
+    split: FailureQualitySplit,
+    namespace: CatalogNamespace,
+) -> CatalogFailurePersistenceResult:
+    """Persist and reconcile all managed failure-event Silver outputs without caching."""
+
+    all_records = split.all_records
+    total_count = _assert_catalog_silver_keys_are_safe(
+        all_records,
+        table_name="Validated failure-event data",
+        key_field=RECORD_ID_FIELD,
+        error_type=SilverFailurePersistenceError,
+    )
+    if not total_count:
+        raise SilverFailurePersistenceError("Validated failure-event data contains no records")
+    if REJECTION_REASONS_FIELD not in all_records.columns:
+        raise SilverFailurePersistenceError(
+            f"Validated failure-event data is missing persistence column {REJECTION_REASONS_FIELD}"
+        )
+    if all_records.where(F.col(REJECTION_REASONS_FIELD).isNull()).limit(1).count():
+        raise SilverFailurePersistenceError(
+            f"Validated failure-event data contains null {REJECTION_REASONS_FIELD}"
+        )
+
+    reason_count = F.size(F.col(REJECTION_REASONS_FIELD))
+    accepted = all_records.where(reason_count == 0)
+    quarantined = all_records.where(reason_count > 0)
+    accepted_write = merge_catalog_silver_records(
+        accepted,
+        namespace,
+        table_name=FAILURE_ACCEPTED_TABLE,
+    )
+    quarantined_write = merge_catalog_silver_records(
+        quarantined,
+        namespace,
+        table_name=FAILURE_QUARANTINE_TABLE,
+    )
+    classified_count = accepted_write.source_record_count + quarantined_write.source_record_count
+    if classified_count != total_count:
+        raise SilverFailurePersistenceError(
+            "Managed failure-event outputs do not reconcile: "
+            f"total={total_count}, classified={classified_count}"
+        )
+
+    return CatalogFailurePersistenceResult(
+        contract_version=CATALOG_FAILURE_PERSISTENCE_CONTRACT_VERSION,
+        total_record_count=total_count,
+        accepted=accepted_write,
+        quarantined=quarantined_write,
     )

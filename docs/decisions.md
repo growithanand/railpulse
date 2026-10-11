@@ -209,3 +209,18 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   does not treat a retryable multi-table sequence as a cross-table transaction.
 - **Deployment boundary:** This increment composes managed telemetry outputs only. Failure-event
   composition, job orchestration, deployment, and remote Silver table creation remain separate.
+
+## ADR-019 — Make managed Silver failure events a prevalidated, rerunnable operation
+
+- **Status:** Accepted
+- **Decision:** Validate the complete failure-event frame and its classification column before
+  writing, then derive and persist accepted and quarantined records through the allowlisted catalog
+  adapter.
+- **Why:** The two Delta tables cannot share one transaction. Validating stable record identities and
+  classification inputs first catches deterministic errors before either write, while insert-only
+  merges make an interrupted operation safe to retry.
+- **Guardrail:** The operation reports success only when accepted and quarantined source counts
+  reconcile with the validated total. It performs no DataFrame caching on the serverless path and
+  does not claim cross-table transactional atomicity.
+- **Deployment boundary:** This increment composes managed failure-event outputs only. Job
+  orchestration, deployment, and remote Silver table creation remain separate.

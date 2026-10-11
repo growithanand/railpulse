@@ -16,6 +16,7 @@ from railpulse.ingestion.bronze import (
 )
 from railpulse.validation.silver_failures import split_failure_events_by_quality
 from railpulse.validation.silver_storage import (
+    CATALOG_FAILURE_PERSISTENCE_CONTRACT_VERSION,
     CATALOG_SILVER_CONTRACT_VERSION,
     CATALOG_TELEMETRY_PERSISTENCE_CONTRACT_VERSION,
     FAILURE_ACCEPTED_TABLE,
@@ -27,6 +28,7 @@ from railpulse.validation.silver_storage import (
     TELEMETRY_VALIDATION_VERSION,
     SilverTelemetryPersistenceError,
     merge_catalog_silver_records,
+    persist_catalog_failure_outputs,
     persist_catalog_telemetry_outputs,
     persist_failure_quality_split,
     persist_telemetry_quality_metrics,
@@ -418,5 +420,55 @@ def test_catalog_telemetry_outputs_reconcile_three_tables_on_rerun(
         assert quality_row.total_record_count == 3
         assert quality_row.accepted_record_count == 2
         assert quality_row.quarantined_record_count == 1
+    finally:
+        spark.sql(f"DROP DATABASE IF EXISTS {qualified_schema} CASCADE").collect()
+
+
+@pytest.mark.spark
+def test_catalog_failure_outputs_reconcile_two_tables_on_rerun(
+    spark: SparkSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    namespace = CatalogNamespace(
+        catalog="spark_catalog",
+        bronze_schema="railpulse_managed_bronze_test",
+        silver_schema="railpulse_managed_silver_failure_test",
+        gold_schema="railpulse_managed_gold_test",
+    )
+    qualified_schema = namespace.schema("silver")
+    accepted_table = namespace.table("silver", FAILURE_ACCEPTED_TABLE)
+    quarantine_table = namespace.table("silver", FAILURE_QUARANTINE_TABLE)
+    split = _validated_failure_fixture(spark)
+
+    def reject_persist(*args: object, **kwargs: object) -> None:
+        raise AssertionError("managed failure outputs must not persist serverless DataFrames")
+
+    monkeypatch.setattr(type(split.all_records), "persist", reject_persist)
+
+    spark.sql(f"CREATE DATABASE IF NOT EXISTS {qualified_schema}").collect()
+    try:
+        first = persist_catalog_failure_outputs(split, namespace)
+        second = persist_catalog_failure_outputs(split, namespace)
+
+        assert first.contract_version == CATALOG_FAILURE_PERSISTENCE_CONTRACT_VERSION
+        assert first.total_record_count == second.total_record_count == 2
+        assert (first.accepted.source_record_count, first.accepted.inserted_record_count) == (1, 1)
+        assert (first.quarantined.source_record_count, first.quarantined.inserted_record_count) == (
+            1,
+            1,
+        )
+        assert (
+            second.accepted.inserted_record_count,
+            second.quarantined.inserted_record_count,
+        ) == (0, 0)
+
+        accepted = spark.table(accepted_table)
+        quarantined = spark.table(quarantine_table)
+        assert accepted.count() == quarantined.count() == 1
+        assert accepted.first().source_row == 1
+        quarantined_row = quarantined.first()
+        assert quarantined_row.source_row == 2
+        assert quarantined_row.rejection_reasons == ["reversed_failure_interval"]
+        assert quarantined_row.source_document_sha256 == SOURCE_DOCUMENT_SHA256
     finally:
         spark.sql(f"DROP DATABASE IF EXISTS {qualified_schema} CASCADE").collect()
