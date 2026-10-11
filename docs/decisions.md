@@ -239,3 +239,18 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   than a claim of cross-table atomicity.
 - **Deployment boundary:** This decision adds the packaged runner only. No bundle job resource is
   declared or deployed, and no remote managed Silver table is created.
+
+## ADR-021 — Gate managed Silver processing with the existing Bronze workflow
+
+- **Status:** Accepted
+- **Decision:** Declare a separate, unscheduled Silver workflow whose first task invokes the existing
+  managed Bronze workflow and whose second task runs the Silver wheel entry point only after the
+  Bronze run succeeds.
+- **Why:** Executable task ordering prevents Silver from accidentally reading stale Bronze data while
+  retaining one authoritative implementation of source preflight and Bronze ingestion. Keeping the
+  workflow unscheduled prevents automatic remote writes during the migration checkpoint.
+- **Guardrail:** Allow one concurrent Silver run, enable queueing, and use `ALL_SUCCESS` for the
+  Bronze-to-Silver gate. The resource must pass strict bundle validation and a scoped read-only plan
+  before deployment is considered.
+- **Deployment boundary:** This decision declares and validates the job resource only. Deployment,
+  execution, and creation of remote managed Silver tables remain separate review gates.

@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — resource-independent managed Silver job boundary**
+**Databricks migration — unscheduled managed Silver workflow declaration**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -21,6 +21,8 @@ An undeployed managed failure-event operation now composes accepted and quaranti
 one prevalidated frame and reconciles both writes.
 A packaged but undeployed Silver runner now reads both allowlisted managed Bronze tables, builds
 both validation plans before writing, and invokes the reviewed telemetry and failure operations.
+An undeployed, unscheduled Silver workflow now gates that runner behind a successful invocation of
+the existing managed Bronze workflow.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -171,6 +173,9 @@ contexts, or unsupported feature statuses occur.
 - A versioned `databricks_silver_processing` wheel entry point resolves both managed Bronze tables,
   reads and validates both sources before the first write, then returns nested reconciliation
   evidence from the managed telemetry and failure persistence operations.
+- An unscheduled two-task Silver workflow invokes the existing managed Bronze job, then runs the
+  packaged Silver entry point only after Bronze succeeds. It permits one concurrent run and queues
+  additional requests.
 - Failure-event validation types source rows and timezone-free interval bounds, preserves report
   labels and ambiguous text, and rejects malformed, incomplete, duplicated, or reversed records.
 - Causal loaded-cycle boundary annotations use only current and predecessor `DV_eletric` states,
@@ -566,6 +571,13 @@ confirms that both fully qualified Bronze tables are read before validation and 
 results are routed to the correct managed persistence operation. No bundle resource was declared or
 deployed, and no remote Silver table was created.
 
+For the unscheduled Silver workflow declaration, all 79 non-Spark tests passed together with Ruff,
+formatting, and bytecode checks. A fresh wheel built successfully and contained both the runner and
+its console entry point. Strict bundle validation completed without warnings or errors. The scoped
+read-only plan reported one Silver job creation, one update to the referenced Bronze job, zero
+deletions, zero unchanged selected resources, and four resources outside the selection. Nothing was
+deployed or run, and no remote Silver table was created.
+
 ## Not implemented
 
 - Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
@@ -589,7 +601,8 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Declare an unscheduled Databricks Silver workflow that runs the reviewed wheel entry point after the
-managed Bronze workflow has succeeded. Validate its bundle plan and packaged wheel before any
-deployment or remote Silver write. Keep deployment and the first managed run behind separate review
-gates. Do not commit credentials, local paths, deployment state, or ignored source data.
+Review and commit the validated Silver workflow declaration. After that checkpoint, inspect a fresh
+scoped plan and separately approve its one Silver-job creation plus referenced Bronze-job update
+before deployment. Do not run the workflow as part of deployment. Keep the first managed Silver run
+and its remote table writes behind a separate review gate. Do not commit credentials, local paths,
+deployment state, or ignored source data.

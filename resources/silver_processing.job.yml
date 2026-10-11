@@ -1,0 +1,31 @@
+resources:
+  jobs:
+    silver_processing:
+      name: railpulse-silver-processing
+      description: Refresh managed Bronze, then validate and reconcile all managed Silver tables.
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      tasks:
+        - task_key: refresh_bronze
+          run_job_task:
+            job_id: ${resources.jobs.bronze_ingestion.id}
+        - task_key: process_silver_tables
+          depends_on:
+            - task_key: refresh_bronze
+          run_if: ALL_SUCCESS
+          environment_key: default
+          python_wheel_task:
+            package_name: railpulse
+            entry_point: databricks_silver_processing
+            named_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              gold_schema: ${var.gold_schema}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl
