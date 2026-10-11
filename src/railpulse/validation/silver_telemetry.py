@@ -375,6 +375,8 @@ def _count_when(condition: Column) -> Column:
 
 def collect_telemetry_quality_metrics(
     split: TelemetryQualitySplit,
+    *,
+    cache_intermediate: bool = True,
 ) -> TelemetryQualityMetrics:
     """Materialize reconciled row and rejection-reason counts for a quality split."""
 
@@ -385,7 +387,9 @@ def collect_telemetry_quality_metrics(
             "Validated telemetry is missing quality-metric columns: " + ", ".join(missing_columns)
         )
 
-    quality = split.all_records.select(*sorted(required_columns)).persist(StorageLevel.DISK_ONLY)
+    quality = split.all_records.select(*sorted(required_columns))
+    if cache_intermediate:
+        quality = quality.persist(StorageLevel.DISK_ONLY)
     try:
         reason_count = F.size(F.col(REJECTION_REASONS_FIELD))
         summary = quality.agg(
@@ -402,7 +406,8 @@ def collect_telemetry_quality_metrics(
             .collect()
         )
     finally:
-        quality.unpersist()
+        if cache_intermediate:
+            quality.unpersist()
 
     total_count = int(summary.total_record_count)
     accepted_count = int(summary.accepted_record_count)

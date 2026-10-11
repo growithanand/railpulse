@@ -17,6 +17,7 @@ from railpulse.ingestion.bronze import (
 from railpulse.validation.silver_failures import split_failure_events_by_quality
 from railpulse.validation.silver_storage import (
     CATALOG_SILVER_CONTRACT_VERSION,
+    CATALOG_TELEMETRY_PERSISTENCE_CONTRACT_VERSION,
     FAILURE_ACCEPTED_TABLE,
     FAILURE_QUARANTINE_TABLE,
     QUALITY_BATCH_ID_FIELD,
@@ -26,6 +27,7 @@ from railpulse.validation.silver_storage import (
     TELEMETRY_VALIDATION_VERSION,
     SilverTelemetryPersistenceError,
     merge_catalog_silver_records,
+    persist_catalog_telemetry_outputs,
     persist_failure_quality_split,
     persist_telemetry_quality_metrics,
     persist_telemetry_quality_split,
@@ -356,5 +358,65 @@ def test_catalog_silver_merge_is_allowlisted_idempotent_and_serverless_safe(
         assert [field.dataType for field in quarantine.schema] == [
             field.dataType for field in empty_quarantine.schema
         ]
+    finally:
+        spark.sql(f"DROP DATABASE IF EXISTS {qualified_schema} CASCADE").collect()
+
+
+@pytest.mark.spark
+def test_catalog_telemetry_outputs_reconcile_three_tables_on_rerun(
+    spark: SparkSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    namespace = CatalogNamespace(
+        catalog="spark_catalog",
+        bronze_schema="railpulse_managed_bronze_test",
+        silver_schema="railpulse_managed_silver_telemetry_test",
+        gold_schema="railpulse_managed_gold_test",
+    )
+    qualified_schema = namespace.schema("silver")
+    accepted_table = namespace.table("silver", TELEMETRY_ACCEPTED_TABLE)
+    quarantine_table = namespace.table("silver", TELEMETRY_QUARANTINE_TABLE)
+    quality_table = namespace.table("silver", TELEMETRY_QUALITY_TABLE)
+    split = _validated_fixture(spark)
+
+    def reject_persist(*args: object, **kwargs: object) -> None:
+        raise AssertionError("managed telemetry outputs must not persist serverless DataFrames")
+
+    monkeypatch.setattr(type(split.all_records), "persist", reject_persist)
+
+    spark.sql(f"CREATE DATABASE IF NOT EXISTS {qualified_schema}").collect()
+    try:
+        first = persist_catalog_telemetry_outputs(split, namespace)
+        second = persist_catalog_telemetry_outputs(split, namespace)
+
+        assert first.contract_version == CATALOG_TELEMETRY_PERSISTENCE_CONTRACT_VERSION
+        assert first.validation_version == TELEMETRY_VALIDATION_VERSION
+        assert first.total_record_count == second.total_record_count == 3
+        assert (first.accepted.source_record_count, first.accepted.inserted_record_count) == (2, 2)
+        assert (first.quarantined.source_record_count, first.quarantined.inserted_record_count) == (
+            1,
+            1,
+        )
+        assert (first.quality.source_record_count, first.quality.inserted_record_count) == (1, 1)
+        assert (
+            second.accepted.inserted_record_count,
+            second.quarantined.inserted_record_count,
+            second.quality.inserted_record_count,
+        ) == (0, 0, 0)
+        assert first.quality_batch_id == second.quality_batch_id
+        assert first.metrics.total_record_count == 3
+        assert first.metrics.accepted_record_count == 2
+        assert first.metrics.quarantined_record_count == 1
+        assert first.metrics.rejection_reason_counts == {"out_of_range_tp2": 1}
+
+        assert spark.table(accepted_table).count() == 2
+        assert spark.table(quarantine_table).count() == 1
+        quality = spark.table(quality_table)
+        assert quality.count() == 1
+        quality_row = quality.first()
+        assert quality_row[QUALITY_BATCH_ID_FIELD] == first.quality_batch_id
+        assert quality_row.total_record_count == 3
+        assert quality_row.accepted_record_count == 2
+        assert quality_row.quarantined_record_count == 1
     finally:
         spark.sql(f"DROP DATABASE IF EXISTS {qualified_schema} CASCADE").collect()

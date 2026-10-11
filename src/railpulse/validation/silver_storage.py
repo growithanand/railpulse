@@ -32,6 +32,7 @@ TELEMETRY_VALIDATION_VERSION = "telemetry-validation-v2"
 QUALITY_BATCH_ID_FIELD = "quality_batch_id"
 TELEMETRY_LINEAGE_COLUMNS = ("dataset_version", "source_sha256", "ingestion_batch_id")
 CATALOG_SILVER_CONTRACT_VERSION = "databricks-silver-write-v1"
+CATALOG_TELEMETRY_PERSISTENCE_CONTRACT_VERSION = "databricks-silver-telemetry-persistence-v1"
 _CATALOG_SILVER_KEY_FIELDS = {
     TELEMETRY_ACCEPTED_TABLE: RECORD_ID_FIELD,
     TELEMETRY_QUARANTINE_TABLE: RECORD_ID_FIELD,
@@ -76,6 +77,20 @@ class CatalogSilverWriteResult:
     inserted_record_count: int
     target_record_count_before: int
     target_record_count_after: int
+
+
+@dataclass(frozen=True)
+class CatalogTelemetryPersistenceResult:
+    """Reconciled managed writes for one complete telemetry validation result."""
+
+    contract_version: str
+    validation_version: str
+    total_record_count: int
+    accepted: CatalogSilverWriteResult
+    quarantined: CatalogSilverWriteResult
+    quality_batch_id: str
+    metrics: TelemetryQualityMetrics
+    quality: CatalogSilverWriteResult
 
 
 @dataclass(frozen=True)
@@ -501,16 +516,18 @@ def _telemetry_quality_schema() -> StructType:
     )
 
 
-def persist_telemetry_quality_metrics(
+def _telemetry_quality_summary(
     split: TelemetryQualitySplit,
-    config: RailPulseConfig,
-) -> TelemetryQualityPersistenceResult:
-    """Collect and persist one deterministic telemetry quality summary."""
-
+    *,
+    cache_intermediate: bool,
+) -> tuple[str, TelemetryQualityMetrics, DataFrame]:
     dataset_version, source_sha256, ingestion_batch_id = _single_telemetry_lineage(
         split.all_records
     )
-    metrics = collect_telemetry_quality_metrics(split)
+    metrics = collect_telemetry_quality_metrics(
+        split,
+        cache_intermediate=cache_intermediate,
+    )
     quality_batch_id = telemetry_quality_batch_id(
         dataset_version=dataset_version,
         source_sha256=source_sha256,
@@ -532,6 +549,19 @@ def persist_telemetry_quality_metrics(
         [row],
         schema=_telemetry_quality_schema(),
     )
+    return quality_batch_id, metrics, summary
+
+
+def persist_telemetry_quality_metrics(
+    split: TelemetryQualitySplit,
+    config: RailPulseConfig,
+) -> TelemetryQualityPersistenceResult:
+    """Collect and persist one deterministic telemetry quality summary."""
+
+    quality_batch_id, metrics, summary = _telemetry_quality_summary(
+        split,
+        cache_intermediate=True,
+    )
     write = _merge_silver_records(
         summary,
         silver_table_path(config, TELEMETRY_QUALITY_TABLE),
@@ -544,4 +574,86 @@ def persist_telemetry_quality_metrics(
         validation_version=TELEMETRY_VALIDATION_VERSION,
         metrics=metrics,
         write=write,
+    )
+
+
+def persist_catalog_telemetry_outputs(
+    split: TelemetryQualitySplit,
+    namespace: CatalogNamespace,
+) -> CatalogTelemetryPersistenceResult:
+    """Persist and reconcile all managed telemetry Silver outputs without caching."""
+
+    all_records = split.all_records
+    total_count = _assert_catalog_silver_keys_are_safe(
+        all_records,
+        table_name="Validated telemetry",
+        key_field=RECORD_ID_FIELD,
+        error_type=SilverTelemetryPersistenceError,
+    )
+    if not total_count:
+        raise SilverTelemetryPersistenceError("Validated telemetry contains no records")
+    if REJECTION_REASONS_FIELD not in all_records.columns:
+        raise SilverTelemetryPersistenceError(
+            f"Validated telemetry is missing persistence column {REJECTION_REASONS_FIELD}"
+        )
+    if all_records.where(F.col(REJECTION_REASONS_FIELD).isNull()).limit(1).count():
+        raise SilverTelemetryPersistenceError(
+            f"Validated telemetry contains null {REJECTION_REASONS_FIELD}"
+        )
+
+    quality_batch_id, metrics, quality_summary = _telemetry_quality_summary(
+        split,
+        cache_intermediate=False,
+    )
+    if metrics.total_record_count != total_count:
+        raise SilverTelemetryPersistenceError(
+            "Managed telemetry quality metrics do not reconcile: "
+            f"validated={total_count}, metrics={metrics.total_record_count}"
+        )
+
+    reason_count = F.size(F.col(REJECTION_REASONS_FIELD))
+    accepted = all_records.where(reason_count == 0)
+    quarantined = all_records.where(reason_count > 0)
+
+    accepted_write = merge_catalog_silver_records(
+        accepted,
+        namespace,
+        table_name=TELEMETRY_ACCEPTED_TABLE,
+    )
+    quarantined_write = merge_catalog_silver_records(
+        quarantined,
+        namespace,
+        table_name=TELEMETRY_QUARANTINE_TABLE,
+    )
+    classified_count = accepted_write.source_record_count + quarantined_write.source_record_count
+    if classified_count != total_count:
+        raise SilverTelemetryPersistenceError(
+            "Managed telemetry outputs do not reconcile: "
+            f"total={total_count}, classified={classified_count}"
+        )
+    if (
+        accepted_write.source_record_count != metrics.accepted_record_count
+        or quarantined_write.source_record_count != metrics.quarantined_record_count
+    ):
+        raise SilverTelemetryPersistenceError(
+            "Managed telemetry outputs disagree with quality metrics: "
+            f"accepted={accepted_write.source_record_count}/"
+            f"{metrics.accepted_record_count}, quarantined="
+            f"{quarantined_write.source_record_count}/{metrics.quarantined_record_count}"
+        )
+
+    quality_write = merge_catalog_silver_records(
+        quality_summary,
+        namespace,
+        table_name=TELEMETRY_QUALITY_TABLE,
+    )
+    return CatalogTelemetryPersistenceResult(
+        contract_version=CATALOG_TELEMETRY_PERSISTENCE_CONTRACT_VERSION,
+        validation_version=TELEMETRY_VALIDATION_VERSION,
+        total_record_count=total_count,
+        accepted=accepted_write,
+        quarantined=quarantined_write,
+        quality_batch_id=quality_batch_id,
+        metrics=metrics,
+        quality=quality_write,
     )

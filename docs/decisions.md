@@ -194,3 +194,18 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   change still requires an explicit versioned rebuild.
 - **Deployment boundary:** This decision adds a tested persistence adapter only. No Silver job is
   declared or deployed, and no managed Silver table is created by this increment.
+
+## ADR-018 — Make managed Silver telemetry a prevalidated, rerunnable multi-table operation
+
+- **Status:** Accepted
+- **Decision:** Derive accepted and quarantined telemetry plus its deterministic quality summary
+  from one validated frame, verify their identities and counts before writing, then persist the
+  three allowlisted tables through insert-only per-table Delta transactions.
+- **Why:** Delta transactions are atomic for one table, not across three tables. Complete
+  prevalidation catches deterministic data errors before the first write, while stable keys make an
+  identical retry safe if an infrastructure failure interrupts the operation between tables.
+- **Guardrail:** The operation reports success only after all three writes reconcile with the same
+  total and quality counts. It disables intermediate DataFrame caching on the serverless path and
+  does not treat a retryable multi-table sequence as a cross-table transaction.
+- **Deployment boundary:** This increment composes managed telemetry outputs only. Failure-event
+  composition, job orchestration, deployment, and remote Silver table creation remain separate.

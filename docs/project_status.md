@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — managed Silver catalog persistence boundary**
+**Databricks migration — managed Silver telemetry persistence composition**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -15,6 +15,8 @@ rerun. Unity Catalog contains separate managed telemetry and failure-reference B
 1,516,948 and four rows respectively.
 The first managed Silver increment now provides an undeployed, allowlisted catalog writer for the
 five existing Silver outputs, with fixed merge keys and serverless-safe count reconciliation.
+An undeployed managed telemetry operation now composes accepted, quarantined, and deterministic
+quality-summary outputs from the same validated frame and reconciles all three writes.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -155,6 +157,10 @@ contexts, or unsupported feature statuses occur.
   fully qualified Unity Catalog names. It uses `record_id` for validated record tables and
   `quality_batch_id` for telemetry metrics, supports empty contracted outputs, performs insert-only
   reconciliation, and avoids serverless-incompatible DataFrame persistence.
+- An undeployed managed telemetry persistence operation prevalidates record keys, rejection reasons,
+  source lineage, and reconciled quality counts before writing. It then writes accepted, quarantine,
+  and quality-metric tables through the allowlisted adapter and makes interrupted multi-table work
+  safe to retry through deterministic insert-only keys.
 - Failure-event validation types source rows and timezone-free interval bounds, preserves report
   labels and ambiguous text, and rejects malformed, incomplete, duplicated, or reversed records.
 - Causal loaded-cycle boundary annotations use only current and predecessor `DV_eletric` states,
@@ -527,6 +533,14 @@ first-write and zero-insert rerun counts, empty-output table creation, schema-ty
 the absence of serverless-incompatible DataFrame persistence. No bundle resource was declared or
 deployed, and no remote Silver table was created.
 
+For the managed telemetry composition increment, all 77 non-Spark tests passed and all seven Silver
+storage Spark/Delta integration tests passed in WSL. Ruff lint and formatting checks plus Python
+bytecode compilation also passed. The focused managed test proved reconciled first writes of two
+accepted fixture rows, one quarantined row, and one quality-summary row; an identical rerun inserted
+zero into all three tables and preserved the same quality-batch identity. The serverless path called
+no DataFrame cache operation. No bundle resource was declared or deployed, and no remote Silver
+table was created.
+
 ## Not implemented
 
 - Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
@@ -550,7 +564,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Compose the managed telemetry persistence operation around the catalog adapter so accepted,
-quarantined, and quality-metric outputs reconcile as one complete validation result. Add focused
-tests before declaring or deploying a Silver job or writing managed Silver data. Do not commit
-credentials, local paths, deployment state, or ignored source data.
+Compose the managed failure-event persistence operation around the catalog adapter so accepted and
+quarantined failure records reconcile as one complete validation result. Add focused tests before
+declaring or deploying a Silver job or writing managed Silver data. Do not commit credentials,
+local paths, deployment state, or ignored source data.
