@@ -224,3 +224,18 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   does not claim cross-table transactional atomicity.
 - **Deployment boundary:** This increment composes managed failure-event outputs only. Job
   orchestration, deployment, and remote Silver table creation remain separate.
+
+## ADR-020 — Keep the first managed Silver job boundary resource-independent
+
+- **Status:** Accepted
+- **Decision:** Provide a versioned Python-wheel entry point that reads both allowlisted managed
+  Bronze tables, constructs both validation splits before writing, and invokes the reviewed managed
+  telemetry and failure persistence operations.
+- **Why:** A resource-independent runner makes the complete Bronze-to-Silver execution path testable
+  before a Databricks workflow is declared or remote Silver data is changed. Reading and validating
+  both inputs first also catches missing tables and structural schema errors before the first write.
+- **Guardrail:** The five Delta outputs remain separate transactions. An infrastructure failure can
+  leave a partial run, so recovery is an identical retry using the deterministic merge keys rather
+  than a claim of cross-table atomicity.
+- **Deployment boundary:** This decision adds the packaged runner only. No bundle job resource is
+  declared or deployed, and no remote managed Silver table is created.
