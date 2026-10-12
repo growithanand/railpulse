@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — unscheduled managed Silver workflow declaration**
+**Databricks migration — managed Silver workflow deployed, first run gated**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -13,16 +13,16 @@ manifest-backed byte sizes and SHA-256 identities. The gated two-task Bronze job
 unscheduled, and verified through both its first successful write and an unchanged zero-insert
 rerun. Unity Catalog contains separate managed telemetry and failure-reference Bronze tables with
 1,516,948 and four rows respectively.
-The first managed Silver increment now provides an undeployed, allowlisted catalog writer for the
+The first managed Silver increment now provides an allowlisted catalog writer for the
 five existing Silver outputs, with fixed merge keys and serverless-safe count reconciliation.
-An undeployed managed telemetry operation now composes accepted, quarantined, and deterministic
+The managed telemetry operation composes accepted, quarantined, and deterministic
 quality-summary outputs from the same validated frame and reconciles all three writes.
-An undeployed managed failure-event operation now composes accepted and quarantined outputs from
+The managed failure-event operation composes accepted and quarantined outputs from
 one prevalidated frame and reconciles both writes.
-A packaged but undeployed Silver runner now reads both allowlisted managed Bronze tables, builds
+A packaged Silver runner reads both allowlisted managed Bronze tables, builds
 both validation plans before writing, and invokes the reviewed telemetry and failure operations.
-An undeployed, unscheduled Silver workflow now gates that runner behind a successful invocation of
-the existing managed Bronze workflow.
+A deployed, unscheduled Silver workflow now gates that runner behind a successful invocation of the
+existing managed Bronze workflow. It has not been run and no managed Silver table exists yet.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -173,9 +173,9 @@ contexts, or unsupported feature statuses occur.
 - A versioned `databricks_silver_processing` wheel entry point resolves both managed Bronze tables,
   reads and validates both sources before the first write, then returns nested reconciliation
   evidence from the managed telemetry and failure persistence operations.
-- An unscheduled two-task Silver workflow invokes the existing managed Bronze job, then runs the
-  packaged Silver entry point only after Bronze succeeds. It permits one concurrent run and queues
-  additional requests.
+- A deployed, unscheduled two-task Silver workflow invokes the existing managed Bronze job, then
+  runs the packaged Silver entry point only after Bronze succeeds. It permits one concurrent run,
+  queues additional requests, and currently has no run history.
 - Failure-event validation types source rows and timezone-free interval bounds, preserves report
   labels and ambiguous text, and rejects malformed, incomplete, duplicated, or reversed records.
 - Causal loaded-cycle boundary annotations use only current and predecessor `DV_eletric` states,
@@ -575,16 +575,25 @@ For the unscheduled Silver workflow declaration, all 79 non-Spark tests passed t
 formatting, and bytecode checks. A fresh wheel built successfully and contained both the runner and
 its console entry point. Strict bundle validation completed without warnings or errors. The scoped
 read-only plan reported one Silver job creation, one update to the referenced Bronze job, zero
-deletions, zero unchanged selected resources, and four resources outside the selection. Nothing was
-deployed or run, and no remote Silver table was created.
+deletions, zero unchanged selected resources, and four resources outside the selection. At that
+declaration checkpoint, nothing had been deployed or run and no remote Silver table existed.
+
+For the managed Silver deployment checkpoint on 2026-10-12, the final strict validation and scoped
+plan reproduced the reviewed one-create, one-update, zero-delete scope. Deployment created the
+unscheduled Silver workflow, updated the existing Bronze workflow to the same newly packaged wheel,
+uploaded 12 bundle files, and deleted nothing. A remote read confirmed the expected two-task graph,
+Bronze job reference, `ALL_SUCCESS` gate, serverless wheel environment, queueing, and one-run
+concurrency limit. Its run history was empty after deployment. The workflow was not executed and no
+managed Silver table was created; an independent Unity Catalog listing confirmed the Silver schema
+remained empty.
 
 ## Not implemented
 
 - Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
   and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
-- CI workflow and production Databricks table-processing resources. Development managed Bronze now
-  exists, but managed Silver and Gold table-processing resources do not.
+- CI workflow and production Databricks table-processing resources. Development managed Bronze and
+  an unrun managed Silver workflow now exist, but managed Gold table-processing resources do not.
 
 No predictive-model performance, failure-detection, warning-lead-time, false-alarm, or cost result
 has been measured.
@@ -601,8 +610,8 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Review and commit the validated Silver workflow declaration. After that checkpoint, inspect a fresh
-scoped plan and separately approve its one Silver-job creation plus referenced Bronze-job update
-before deployment. Do not run the workflow as part of deployment. Keep the first managed Silver run
-and its remote table writes behind a separate review gate. Do not commit credentials, local paths,
-deployment state, or ignored source data.
+Prepare the first controlled managed Silver run with a pre-run catalog inventory and explicit
+expected output contracts. Run only after separate approval, then independently verify the five
+managed Silver tables, accepted/quarantine reconciliation, telemetry quality metrics, and the Bronze
+zero-insert refresh. Do not commit credentials, local paths, deployment state, or ignored source
+data.

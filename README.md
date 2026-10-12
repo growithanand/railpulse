@@ -29,13 +29,18 @@ succeeds. Its first successful managed run created and reconciled 1,516,948 tele
 failure-reference rows. An unchanged managed rerun then matched every existing record, inserted
 zero rows, and preserved both table counts.
 
+An unscheduled managed Silver workflow is also deployed but has not been run. It invokes the
+verified Bronze workflow first, then runs the packaged telemetry and failure validation boundary
+only after Bronze succeeds. No managed Silver table has been created yet.
+
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
 | Source governance | Manifest, immutable paths, checksums, managed Volume | Complete |
 | Local pipeline | Verified through Gold v1/v2 snapshots and modelling-view profile | Complete |
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
-| Managed Silver/Gold | Local contracts already exist | Adapt storage to catalog tables |
+| Managed Silver | Catalog writers, runner, and gated workflow are deployed but unrun | Controlled first run and table reconciliation |
+| Managed Gold | Local contracts already exist | Adapt Gold storage to catalog tables |
 | Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
@@ -166,20 +171,23 @@ Completed managed steps:
 9. Deploy only that workflow and verify its empty run history without creating tables.
 10. Run the workflow successfully and reconcile 1,516,948 telemetry rows and four failure rows.
 11. Redeploy from committed source and prove an identical rerun inserts zero rows.
+12. Implement and test allowlisted, retry-safe managed Silver persistence and its packaged runner.
+13. Deploy the unscheduled Bronze-gated Silver workflow and verify that deployment starts no run.
 
 The managed workflow now owns:
 
 - `<catalog>.<bronze_schema>.telemetry_raw`
 - `<catalog>.<bronze_schema>.failure_reports_raw`
 
-The next controlled step is adapting the verified Silver validation and quality outputs to
-allowlisted Unity Catalog tables, beginning with a tested catalog-backed persistence boundary.
+The next controlled step is the first managed Silver run, followed by an independent inventory and
+count reconciliation of all five Silver tables. That run remains a separate approval gate.
 
 ## Roadmap to the portfolio demonstration
 
 1. **Completed:** materialize and reconcile the two managed Bronze tables, including a zero-insert
    rerun.
-2. Adapt the verified Silver accepted, quarantine, and quality outputs to Unity Catalog.
+2. **In progress:** run and reconcile the deployed managed Silver workflow for accepted,
+   quarantine, and quality outputs.
 3. Materialize Gold cycles, feature snapshots, horizons, and modelling views in Databricks.
 4. Track final candidate training and parameters with MLflow while keeping the test period sealed.
 5. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at

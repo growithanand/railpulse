@@ -254,3 +254,7 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   before deployment is considered.
 - **Deployment boundary:** This decision declares and validates the job resource only. Deployment,
   execution, and creation of remote managed Silver tables remain separate review gates.
+- **Evidence:** The reviewed deployment created the unscheduled Silver job, updated only the
+  referenced Bronze job's wheel dependency, and deleted nothing. A remote read confirmed the
+  Bronze-gated two-task graph, serverless environment, queueing, one-run concurrency limit, and
+  empty Silver run history. The workflow was not executed and created no Silver table.
