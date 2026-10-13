@@ -22,7 +22,9 @@ one prevalidated frame and reconciles both writes.
 A packaged Silver runner reads both allowlisted managed Bronze tables, builds
 both validation plans before writing, and invokes the reviewed telemetry and failure operations.
 A deployed, unscheduled Silver workflow now gates that runner behind a successful invocation of the
-existing managed Bronze workflow. It has not been run and no managed Silver table exists yet.
+existing managed Bronze workflow. It has not been run and no managed Silver table exists yet. A
+reviewed first-run contract now freezes the remote baseline, five expected table counts, telemetry
+quality evidence, independent post-run checks, and retry procedure before execution.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -159,15 +161,15 @@ contexts, or unsupported feature statuses occur.
   counts and reports each rejection reason independently.
 - A `silver.telemetry_quality_metrics` Delta table persists that summary under a deterministic
   source-batch and validation-contract identity, preserving earlier contract versions on rerun.
-- An undeployed catalog-backed Silver adapter now maps only the five existing Silver outputs to
+- A catalog-backed Silver adapter maps only the five existing Silver outputs to
   fully qualified Unity Catalog names. It uses `record_id` for validated record tables and
   `quality_batch_id` for telemetry metrics, supports empty contracted outputs, performs insert-only
   reconciliation, and avoids serverless-incompatible DataFrame persistence.
-- An undeployed managed telemetry persistence operation prevalidates record keys, rejection reasons,
+- A managed telemetry persistence operation prevalidates record keys, rejection reasons,
   source lineage, and reconciled quality counts before writing. It then writes accepted, quarantine,
   and quality-metric tables through the allowlisted adapter and makes interrupted multi-table work
   safe to retry through deterministic insert-only keys.
-- An undeployed managed failure-event persistence operation prevalidates record keys and rejection
+- A managed failure-event persistence operation prevalidates record keys and rejection
   reasons before writing, then reconciles accepted and quarantined source counts with the complete
   validated input. Deterministic insert-only keys make interrupted two-table work safe to retry.
 - A versioned `databricks_silver_processing` wheel entry point resolves both managed Bronze tables,
@@ -587,6 +589,14 @@ concurrency limit. Its run history was empty after deployment. The workflow was 
 managed Silver table was created; an independent Unity Catalog listing confirmed the Silver schema
 remained empty.
 
+For the managed Silver pre-run checkpoint on 2026-10-13, a fresh read-only inventory confirmed that
+the two Bronze sources remain managed Delta tables with 1,516,948 telemetry rows and four failure
+rows, the Silver schema still contains zero tables, and the deployed Silver workflow still has zero
+runs. The reviewed run contract records expected first-run counts of 1,516,948 accepted telemetry
+rows, zero telemetry quarantine rows, one quality-metrics row with 354 material forward gaps, four
+accepted failure rows, and zero failure quarantine rows. No workflow was started and no remote
+table was changed.
+
 ## Not implemented
 
 - Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
@@ -610,8 +620,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Prepare the first controlled managed Silver run with a pre-run catalog inventory and explicit
-expected output contracts. Run only after separate approval, then independently verify the five
-managed Silver tables, accepted/quarantine reconciliation, telemetry quality metrics, and the Bronze
-zero-insert refresh. Do not commit credentials, local paths, deployment state, or ignored source
-data.
+Review the [first managed Silver run contract](managed_silver_first_run.md). Run only after separate
+approval, then independently verify the five managed Silver tables, accepted/quarantine
+reconciliation, telemetry quality metrics, and the Bronze zero-insert refresh. Do not commit
+credentials, local paths, deployment state, or ignored source data.

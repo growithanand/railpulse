@@ -179,8 +179,9 @@ The managed workflow now owns:
 - `<catalog>.<bronze_schema>.telemetry_raw`
 - `<catalog>.<bronze_schema>.failure_reports_raw`
 
-The next controlled step is the first managed Silver run, followed by an independent inventory and
-count reconciliation of all five Silver tables. That run remains a separate approval gate.
+The [first managed Silver run contract](docs/managed_silver_first_run.md) records the refreshed
+pre-run baseline, exact expected outputs, independent checks, and retry policy. Execution remains a
+separate approval gate.
 
 ## Roadmap to the portfolio demonstration
 
@@ -287,6 +288,7 @@ rather than precise estimates of generalization or maintenance impact.
 - [Dataset manifest](docs/dataset_manifest.json)
 - [Data contract](docs/data_contract.md)
 - [Bronze ingestion](docs/bronze_ingestion.md)
+- [First managed Silver run](docs/managed_silver_first_run.md)
 - [Gold cycle build](docs/gold_cycle_build.md)
 - [Feature snapshot v1](docs/feature_snapshot_contract.md)
 - [Feature snapshot v2](docs/feature_snapshot_v2_contract.md)
