@@ -283,6 +283,12 @@ contexts, or unsupported feature statuses occur.
 - The full-source version 2 build materializes 15,766 rows from the immutable version 1 table and
   Gold cycle context. Its identical rerun inserts zero rows and reports all 15,766 rows unchanged;
   a column-for-column source comparison confirms version 1 remains at 15,766 unchanged rows.
+- A separate [version 2 modelling-view schema](modeling_view_v2_contract.md) now preserves the
+  original five model inputs and adds current-cycle duration, previous-cycle duration, and previous
+  idle time from the immutable version 2 snapshot. Context identifiers and statuses remain metadata,
+  unavailable context has an explicit future exclusion reason, the selected chronological split
+  remains unchanged, and failure labels remain outside the model-input list. The Spark builder and
+  full-source profile are separate increments.
 
 Official local Bronze evidence:
 
