@@ -59,8 +59,12 @@ guards, then adds version 2 snapshot and cycle-context validation. It selects th
 order, changes a row to trainable only when context is available, and emits exclusion reasons in the
 contracted order. Inputs are never modified, and extra columns are not carried into the view.
 
+The [read-only full-source profile](modeling_view_v2_profile.md) rebuilds the verified two-hour
+horizons, joins the immutable version 2 snapshot, reconciles every row and exclusion reason, and
+records the effect of requiring complete cycle context without writing a table.
+
 ## Scope boundary
 
-The fixed schema, Spark builder, and focused fixture tests are implemented. The full-source
-population profile, model fitting, threshold selection, held-out test evaluation, persistence, and
+The fixed schema, Spark builder, focused fixture tests, and full-source population profile are
+implemented. Model fitting, threshold selection, held-out test evaluation, persistence, and
 Databricks deployment are separate reviewable increments. No model-performance claim is made.

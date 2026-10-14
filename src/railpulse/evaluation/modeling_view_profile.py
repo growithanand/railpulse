@@ -138,6 +138,22 @@ class FullSourceModelingViewInputs:
     accepted_telemetry_record_count: int
 
 
+@dataclass(frozen=True)
+class FullSourceModelingViewSources:
+    """Rebuilt horizons and source metadata shared by modelling-view versions."""
+
+    horizons: DataFrame
+    failure_rows: tuple[Row, ...]
+    label_observation_end: str
+    dataset_version: str
+    telemetry_source_sha256: str
+    telemetry_ingestion_batch_id: str
+    failure_source_sha256: str
+    failure_source_document_sha256: str
+    failure_ingestion_batch_id: str
+    accepted_telemetry_record_count: int
+
+
 _PROFILE_COLUMNS = {
     "loaded_cycle_id",
     "modeling_view_version",
@@ -153,6 +169,9 @@ _PROFILE_COLUMNS = {
 def collect_modeling_view_summary(
     view: DataFrame,
     failure_rows: tuple[Row, ...],
+    *,
+    modeling_view_version: str = MODELING_VIEW_VERSION,
+    exclusion_reason_order: tuple[str, ...] = MODELING_EXCLUSION_REASON_ORDER,
 ) -> ModelingViewSummary:
     """Reconcile row eligibility, observed labels, time coverage, and failure events."""
 
@@ -177,7 +196,7 @@ def collect_modeling_view_summary(
     excluded = F.col("modeling_row_status") == STATUS_EXCLUDED
     reasons = F.col("modeling_exclusion_reasons")
     invalid_row_semantics = view.where(
-        ~F.col("modeling_view_version").eqNullSafe(F.lit(MODELING_VIEW_VERSION))
+        ~F.col("modeling_view_version").eqNullSafe(F.lit(modeling_view_version))
         | (trainable & ((F.size(reasons) != 0) | F.col("prediction_timestamp").isNull()))
         | (excluded & (F.size(reasons) == 0))
     ).limit(1)
@@ -192,7 +211,7 @@ def collect_modeling_view_summary(
         .collect()
     )
     reasons_by_name = {row.reason: int(row["count"]) for row in reason_rows}
-    unexpected_reasons = set(reasons_by_name) - set(MODELING_EXCLUSION_REASON_ORDER)
+    unexpected_reasons = set(reasons_by_name) - set(exclusion_reason_order)
     if unexpected_reasons:
         raise ModelingViewProfileError(
             "Modelling view contains unexpected exclusion reasons: "
@@ -260,7 +279,7 @@ def collect_modeling_view_summary(
                 reason=reason,
                 cycle_count=reasons_by_name.get(reason, 0),
             )
-            for reason in MODELING_EXCLUSION_REASON_ORDER
+            for reason in exclusion_reason_order
         ),
         trainable_label_counts=tuple(
             ModelingLabelCount(status=status, cycle_count=labels_by_name.get(status, 0))
@@ -279,20 +298,17 @@ def collect_modeling_view_summary(
     )
 
 
-def build_full_source_modeling_view_inputs(
+def build_full_source_modeling_view_sources(
     spark: SparkSession,
     config: RailPulseConfig,
-) -> FullSourceModelingViewInputs:
-    """Rebuild the full-source modelling view once for read-only downstream profiles."""
+) -> FullSourceModelingViewSources:
+    """Rebuild full-source horizons and lineage shared by modelling-view versions."""
 
     telemetry_bronze = spark.read.format("delta").load(
         str(bronze_table_path(config, TELEMETRY_TABLE))
     )
     failure_bronze = spark.read.format("delta").load(str(bronze_table_path(config, FAILURE_TABLE)))
     cycles = spark.read.format("delta").load(str(gold_table_path(config, LOADED_CYCLES_TABLE)))
-    snapshots = spark.read.format("delta").load(
-        str(gold_table_path(config, FEATURE_SNAPSHOTS_TABLE))
-    )
     telemetry = split_telemetry_by_quality(telemetry_bronze).accepted
     failures = split_failure_events_by_quality(failure_bronze).accepted
     try:
@@ -323,15 +339,8 @@ def build_full_source_modeling_view_inputs(
         horizon_seconds=DEFAULT_FAILURE_HORIZON_SECONDS,
         observation_end=observation_end,
     )
-    view = build_modeling_view(
-        snapshots,
-        horizons,
-        failure_dataset_version=failure_dataset_version,
-        failure_source_sha256=failure_source_sha256,
-        failure_ingestion_batch_id=failure_ingestion_batch_id,
-    )
-    return FullSourceModelingViewInputs(
-        view=view,
+    return FullSourceModelingViewSources(
+        horizons=horizons,
         failure_rows=failure_rows,
         label_observation_end=_timestamp_text(observation_end),
         dataset_version=dataset_version,
@@ -341,6 +350,37 @@ def build_full_source_modeling_view_inputs(
         failure_source_document_sha256=failure_source_document_sha256,
         failure_ingestion_batch_id=failure_ingestion_batch_id,
         accepted_telemetry_record_count=telemetry_count,
+    )
+
+
+def build_full_source_modeling_view_inputs(
+    spark: SparkSession,
+    config: RailPulseConfig,
+) -> FullSourceModelingViewInputs:
+    """Rebuild the full-source modelling view once for read-only downstream profiles."""
+
+    sources = build_full_source_modeling_view_sources(spark, config)
+    snapshots = spark.read.format("delta").load(
+        str(gold_table_path(config, FEATURE_SNAPSHOTS_TABLE))
+    )
+    view = build_modeling_view(
+        snapshots,
+        sources.horizons,
+        failure_dataset_version=sources.dataset_version,
+        failure_source_sha256=sources.failure_source_sha256,
+        failure_ingestion_batch_id=sources.failure_ingestion_batch_id,
+    )
+    return FullSourceModelingViewInputs(
+        view=view,
+        failure_rows=sources.failure_rows,
+        label_observation_end=sources.label_observation_end,
+        dataset_version=sources.dataset_version,
+        telemetry_source_sha256=sources.telemetry_source_sha256,
+        telemetry_ingestion_batch_id=sources.telemetry_ingestion_batch_id,
+        failure_source_sha256=sources.failure_source_sha256,
+        failure_source_document_sha256=sources.failure_source_document_sha256,
+        failure_ingestion_batch_id=sources.failure_ingestion_batch_id,
+        accepted_telemetry_record_count=sources.accepted_telemetry_record_count,
     )
 
 

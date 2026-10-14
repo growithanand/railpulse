@@ -292,6 +292,7 @@ rather than precise estimates of generalization or maintenance impact.
 - [Gold cycle build](docs/gold_cycle_build.md)
 - [Feature snapshot v1](docs/feature_snapshot_contract.md)
 - [Feature snapshot v2](docs/feature_snapshot_v2_contract.md)
+- [Modelling-view v2 profile](docs/modeling_view_v2_profile.md)
 - [Evaluation protocol](docs/evaluation_protocol.md)
 - [Chronological split evidence](docs/chronological_split_profile.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)

@@ -289,8 +289,11 @@ contexts, or unsupported feature statuses occur.
   unavailable context has an explicit future exclusion reason, the selected chronological split
   remains unchanged, and failure labels remain outside the model-input list. Its tested Spark
   builder reuses the version 1 key, lineage, horizon, and prediction-boundary guards, adds explicit
-  v2 snapshot and context validation, and keeps incomplete-context rows as ordered exclusions. The
-  full-source profile remains a separate increment.
+  v2 snapshot and context validation, and keeps incomplete-context rows as ordered exclusions.
+- Its [read-only full-source profile](modeling_view_v2_profile.md) reconciles all 15,766 rows into
+  15,272 trainable and 494 excluded rows. Requiring complete cycle context excludes 141 rows that
+  were trainable in version 1, while retaining all 22 positive labels and the same three represented
+  failure events. This is population evidence only; no model or threshold has been selected.
 
 Official local Bronze evidence:
 
