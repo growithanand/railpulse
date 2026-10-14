@@ -52,8 +52,15 @@ examples. Other exclusion reasons retain their version 1 ordering.
 - July test rows remain sealed while the expanded candidate and its thresholds are designed.
 - Any later preprocessing parameters must be fitted on training rows only.
 
-## Scope of this increment
+## Implemented builder
 
-The fixed schema constants and their unit tests are implemented. The Spark builder, full-source
+The Spark builder reuses the verified version 1 key, horizon, lineage, and prediction-boundary
+guards, then adds version 2 snapshot and cycle-context validation. It selects the fixed v2 column
+order, changes a row to trainable only when context is available, and emits exclusion reasons in the
+contracted order. Inputs are never modified, and extra columns are not carried into the view.
+
+## Scope boundary
+
+The fixed schema, Spark builder, and focused fixture tests are implemented. The full-source
 population profile, model fitting, threshold selection, held-out test evaluation, persistence, and
 Databricks deployment are separate reviewable increments. No model-performance claim is made.

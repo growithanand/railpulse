@@ -287,8 +287,10 @@ contexts, or unsupported feature statuses occur.
   original five model inputs and adds current-cycle duration, previous-cycle duration, and previous
   idle time from the immutable version 2 snapshot. Context identifiers and statuses remain metadata,
   unavailable context has an explicit future exclusion reason, the selected chronological split
-  remains unchanged, and failure labels remain outside the model-input list. The Spark builder and
-  full-source profile are separate increments.
+  remains unchanged, and failure labels remain outside the model-input list. Its tested Spark
+  builder reuses the version 1 key, lineage, horizon, and prediction-boundary guards, adds explicit
+  v2 snapshot and context validation, and keeps incomplete-context rows as ordered exclusions. The
+  full-source profile remains a separate increment.
 
 Official local Bronze evidence:
 
