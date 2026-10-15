@@ -32,5 +32,16 @@ not model inputs.
 - Keep alert-threshold selection separate from this feature-set comparison.
 
 The fixed comparison version is `cycle-context-logistic-candidate-comparison-v1`. The next small
-increment can implement the training-only fitting and validation-only metric collection against
-this reviewed contract.
+increment can fit the two candidates and collect the validation-only metric against this reviewed
+contract.
+
+## Implemented development-data guard
+
+`prepare_model_candidate_development_data` now enforces the comparison boundary before fitting. It
+selects trainable version 2 rows strictly before 2020-07-01, validates finite values for all eight
+permitted inputs, reconciles target labels, requires unique cycle IDs, and requires both labels in
+the training and validation partitions. Its returned frames contain only the cycle ID, prediction
+timestamp, target, and permitted model inputs; failure metadata and other columns are removed.
+
+The guard deliberately validates feature and label values only inside the development period. A
+change to a July test value therefore cannot change development validation or summaries.
