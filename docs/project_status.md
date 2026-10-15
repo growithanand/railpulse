@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — managed Silver workflow deployed, first run gated**
+**Databricks migration — managed Silver workflow deployed, first run quota-blocked**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -25,6 +25,11 @@ A deployed, unscheduled Silver workflow now gates that runner behind a successfu
 existing managed Bronze workflow. It has not been run and no managed Silver table exists yet. A
 reviewed first-run contract now freezes the remote baseline, five expected table counts, telemetry
 quality evidence, independent post-run checks, and retry procedure before execution.
+The first execution was approved and attempted on 2026-10-15, but Databricks rejected the request
+before creating a run because new organization runs are temporarily disabled. A post-attempt check
+confirmed that the Silver workflow still has no run history and the Silver schema still has no
+tables. The deployed workflow and its inputs remain unchanged; this is an account-level compute
+availability gate rather than a RailPulse task failure.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -607,6 +612,15 @@ runs. The reviewed run contract records expected first-run counts of 1,516,948 a
 rows, zero telemetry quarantine rows, one quality-metrics row with 354 material forward gaps, four
 accepted failure rows, and zero failure quarantine rows. No workflow was started and no remote
 table was changed.
+
+On 2026-10-15, the reviewed Silver workflow start was attempted from the committed bundle. The
+workspace API rejected it before assigning a run ID with the message that new organization runs are
+temporarily disabled. Independent post-attempt checks again found zero Silver workflow runs and an
+empty `workspace.railpulse_silver` schema, so no Bronze refresh or Silver write began. Databricks
+Free Edition documents this behavior as a compute-usage gate that can remain active for the rest of
+the day, or longer in exceptional cases. The correct retry is the unchanged full gated workflow
+after compute access resumes; bypassing the Bronze dependency or altering the reviewed job would not
+address the account-level block.
 
 ## Not implemented
 

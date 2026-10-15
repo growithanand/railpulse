@@ -28,6 +28,22 @@ recorded in the project status. Starting Silver will first invoke Bronze again; 
 files and deterministic record identifiers have not changed, that refresh is expected to match all
 existing rows and insert zero.
 
+## Blocked execution attempt
+
+The reviewed first run was approved and attempted on 2026-10-15. Databricks rejected the request
+before creating a run with the message that triggering new organization runs is temporarily
+disabled. A separate post-attempt inventory confirmed both safety conditions:
+
+- the deployed Silver workflow still has no run history;
+- `workspace.railpulse_silver` still contains no tables.
+
+No task started, the Bronze workflow was not invoked, and no managed table changed. This is an
+account-level compute availability gate, not a failure inside either RailPulse task. Databricks
+[documents](https://docs.databricks.com/aws/en/getting-started/free-edition-limitations) that Free
+Edition compute can become unavailable after quota use while existing data and settings remain
+preserved. Retry the same full workflow only after new runs are enabled again; do not bypass the
+Bronze dependency or change the five expected outputs in response to this gate.
+
 ## Expected first-run outputs
 
 The expected values below come from the complete-source local validation using
