@@ -36,6 +36,11 @@ reviewed Silver tables, 1,516,948 accepted telemetry rows, four accepted failure
 quarantine outputs, one reconciled quality-summary row, and complete unique identifiers in both
 accepted tables.
 
+The first managed Gold workflow has now completed the full Bronze-to-Silver gate and materialized
+`loaded_cycles` as managed Delta storage. Its write reconciled 15,766 deterministic cycle rows from
+an empty target. Independent SQL confirmed 15,766 non-null unique cycle IDs, 243,638 loaded
+observations, the expected four boundary/censoring groups, and zero structural-invariant violations.
+
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
 | Source governance | Manifest, immutable paths, checksums, managed Volume | Complete |
@@ -43,7 +48,7 @@ accepted tables.
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
-| Managed Gold | Local contracts already exist | Adapt Gold storage to catalog tables |
+| Managed Gold | First managed `loaded_cycles` run independently reconciled | Extend managed Gold to feature, horizon, and modelling tables |
 | Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
@@ -179,6 +184,9 @@ Completed managed steps:
 14. Run the reviewed Silver workflow successfully through its Bronze dependency.
 15. Independently reconcile all five Silver tables, the telemetry quality summary, and accepted
     record identifiers.
+16. Implement and test the allowlisted managed Gold cycle writer and packaged runner.
+17. Deploy the unscheduled Silver-gated Gold workflow without starting compute.
+18. Run the full workflow and independently reconcile 15,766 managed loaded cycles.
 
 The managed workflows now own:
 
@@ -189,10 +197,13 @@ The managed workflows now own:
 - `<catalog>.<silver_schema>.telemetry_quality_metrics`
 - `<catalog>.<silver_schema>.failure_events_accepted`
 - `<catalog>.<silver_schema>.failure_events_quarantine`
+- `<catalog>.<gold_schema>.loaded_cycles`
 
 The [first managed Silver run record](docs/managed_silver_first_run.md) preserves the pre-run
 baseline and quota-blocked attempt alongside the successful execution, observed outputs,
 independent checks, and retry policy.
+The [first managed Gold run record](docs/managed_gold_first_run.md) preserves the reviewed baseline,
+deployment boundary, successful execution, independent SQL reconciliation, and pending rerun policy.
 
 ## Roadmap to the portfolio demonstration
 
@@ -200,8 +211,8 @@ independent checks, and retry policy.
    rerun.
 2. **Completed:** run and reconcile the deployed managed Silver workflow for accepted,
    quarantine, and quality outputs.
-3. **In progress:** materialize Gold cycles, feature snapshots, horizons, and modelling views in
-   Databricks.
+3. **In progress:** extend the verified managed `loaded_cycles` table to feature snapshots, failure
+   horizons, and modelling views in Databricks.
 4. Track final candidate training and parameters with MLflow while keeping the test period sealed.
 5. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
    the failure-event level.

@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — managed Silver workflow deployed and independently validated**
+**Databricks migration — first managed Gold table independently validated**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -31,6 +31,12 @@ telemetry rows, zero telemetry quarantine rows, one quality-summary row, four ac
 and zero failure quarantine rows. The quality row used `telemetry-validation-v2`, reported 354
 material forward gaps and no rejection reasons, and reconciled accepted plus quarantined records to
 the total. Accepted telemetry and failure identifiers were non-null and unique.
+The unscheduled managed Gold workflow is also deployed and has completed its first approved run
+through the full Bronze-to-Silver dependency chain. The upstream unchanged merges inserted zero
+rows. Gold then inserted 15,766 deterministic `loaded_cycles` rows from an empty target. Independent
+SQL confirmed a managed Delta table with all nine contracted columns, non-null unique cycle IDs,
+243,638 loaded observations, 15,703 observed durations, 63 right-censored cycles, the four expected
+boundary/censoring groups, and zero structural-invariant violations.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -204,8 +210,8 @@ contexts, or unsupported feature statuses occur.
   writer without introducing a second cycle contract.
 - An unscheduled two-task Gold workflow declaration invokes the existing managed Silver job, then
   runs the packaged Gold entry point only after Silver succeeds. It permits one concurrent run,
-  queues additional requests, and passes strict development bundle validation. The workflow is now
-  deployed with no run history; no Gold table has been created.
+  queues additional requests, and passes strict development bundle validation. The workflow is
+  deployed and its first complete run materialized and reconciled 15,766 managed loaded cycles.
 - A reproducible full-source Gold command profiles and persists the same cycle snapshot, reports
   source and contract identity, and reconciles logical merge outcomes on first write and rerun.
 - A checked-in Gold SQL query and read-only runner reconcile start/stop censoring groups, loaded
@@ -653,14 +659,24 @@ deployed: one Gold job was created, the Bronze and Silver wheel references were 
 resource or file was deleted. Independent readback confirmed the expected two-task configuration,
 no schedule, no run history, and an empty Gold schema. No workflow was executed.
 
+The first approved Gold execution then completed successfully on 2026-10-16. Its nested Bronze and
+Silver work found the sources unchanged and inserted zero upstream rows. The Gold write reported
+15,766 source and inserted cycles, zero updates, zero unchanged cycles, and a target change from zero
+to 15,766 rows. A separate Databricks SQL statement confirmed exactly one managed Delta table with
+the nine reviewed columns; total, non-null-ID, and distinct-ID counts of 15,766; 243,638 loaded
+observations; 15,703 durations; 63 right-censored cycles; all four expected start/censoring groups;
+and zero counts for all seven structural-invariant violations. Spark emitted the documented global
+window performance warning for this single-compressor dataset, but the Gold processing task
+completed successfully. The unchanged managed rerun remains a separate compute-consuming approval.
+
 ## Not implemented
 
 - Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
   and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
-- CI workflow and production Databricks table-processing resources. Development managed Bronze and
-  independently validated managed Silver workflows now exist. The managed Gold workflow is deployed
-  but has not been executed.
+- CI workflow and production Databricks table-processing resources. Development managed Bronze,
+  Silver, and first-table Gold workflows now exist and have independently validated managed runs.
+  Later managed Gold products and the unchanged Gold idempotency rerun remain pending.
 
 No predictive-model performance, failure-detection, warning-lead-time, false-alarm, or cost result
 has been measured.
@@ -677,7 +693,8 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-After explicit approval, start the complete deployed Gold workflow and monitor the nested
-Bronze-to-Silver gate plus Gold task to completion. Then run the independent managed Gold SQL checks
-before considering an unchanged idempotency rerun. Do not commit credentials, local paths,
-deployment state, or ignored source data.
+Commit the verified managed Gold first-run evidence. Then extend the managed Gold layer to the next
+reviewed product—failure horizons or temporal feature snapshots—while preserving the current table
+and contracts. The unchanged full-workflow idempotency rerun remains useful but must receive separate
+approval because it repeats the Bronze-to-Silver chain and consumes compute. Do not commit
+credentials, local paths, deployment state, or ignored source data.

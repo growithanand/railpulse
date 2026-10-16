@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This document freezes the review contract for the first catalog-backed Gold execution. Deployment
-and execution remain separate approvals: the workflow is deployed and unscheduled, but it has not
-been started.
+This document preserves the review contract and verified evidence for the first catalog-backed Gold
+execution. Deployment and execution were treated as separate approvals: the workflow was first
+deployed without a run, then started manually after review.
 
 The workflow has two ordered tasks:
 
@@ -119,25 +119,57 @@ databricks bundle run -t dev gold_cycle_processing
 
 Do not bypass `refresh_silver` or invoke the wheel entry point directly for the first-run checkpoint.
 
+## Verified first execution
+
+The complete gated workflow succeeded on 2026-10-16. It took approximately 9 minutes 26 seconds:
+the nested Bronze and Silver refresh completed successfully, followed by approximately 49 seconds
+for Gold task setup and execution. The unchanged upstream inputs produced zero new Bronze or Silver
+rows. Silver remained reconciled at 1,516,948 accepted telemetry rows, zero telemetry quarantine
+rows, one quality row, four accepted failure events, and zero failure quarantine rows.
+
+The Gold runner emitted the reviewed contract identities and exact first-write reconciliation:
+
+| Field | Observed value |
+| --- | --- |
+| Processing contract | `databricks-gold-cycle-processing-v1` |
+| Cycle identity contract | `loaded-cycle-v1` |
+| Write contract | `databricks-gold-loaded-cycles-write-v1` |
+| Source table | `workspace.railpulse_silver.telemetry_accepted` |
+| Source cycles | 15,766 |
+| Inserted cycles | 15,766 |
+| Updated cycles | 0 |
+| Unchanged cycles | 0 |
+| Target before | 0 |
+| Target after | 15,766 |
+
 ## Independent post-run checks
 
-Execute [the managed Gold validation SQL](../sql/managed_gold_first_run_validation.sql) separately
-from the job output and confirm:
+[The managed Gold validation SQL](../sql/managed_gold_first_run_validation.sql) was executed
+separately from the job output. It confirmed:
 
-- The Gold parent workflow and both tasks succeed, including the nested Silver and Bronze runs.
+- The Gold parent workflow and both tasks succeeded, including the nested Silver and Bronze runs.
 - The Gold schema contains exactly `loaded_cycles` and no unexpected table.
 - The table is managed Delta storage with all nine contracted columns.
 - Total, non-null ID, and unique ID counts all equal 15,766.
-- Loaded observations, durations, right-censoring, and the four start/censoring groups match the
-  expected reconciliation above.
-- Every structural-invariant violation count returned by the SQL is zero.
+- The table contains 243,638 loaded observations, 15,703 observed durations, and 63 right-censored
+  cycles.
+- The four start/censoring groups match the reviewed counts: 167 left-censored settled cycles, 15
+  left-censored right-censored cycles, 15,536 observed settled cycles, and 48 observed
+  right-censored cycles.
+- All seven structural-invariant violation counts are zero.
 - The emitted runner evidence reports the three expected contract versions and first-write counts.
+
+Spark reported that the current global ordered window moved data to one partition. This is the
+known single-compressor implementation described in the Gold limitations, not a correctness
+failure; the Gold execution itself completed in approximately 42 seconds. A future multi-asset
+version must introduce an equipment key and partition the ordering by asset.
 
 ## Unchanged rerun and retry policy
 
 An unchanged second full run should report zero inserted cycles, zero updated cycles, 15,766
-unchanged cycles, and 15,766 target rows before and after. This is the required managed idempotency
-check.
+unchanged cycles, and 15,766 target rows before and after. This managed idempotency check remains
+pending and should be started only with separate approval because it reruns the full upstream chain
+and consumes compute.
 
 The Gold writer performs one Delta merge, but a job may still fail before the merge, after the merge,
 or during final reconciliation. Do not delete or manually edit the table as an immediate reaction.
@@ -149,6 +181,7 @@ settled cycle.
 
 ## Scope boundary
 
-Passing this checkpoint will prove managed Bronze-to-Gold loaded-cycle materialization and
-idempotent reconciliation for the development dataset. It will not prove failure prediction, model
-quality, warning lead time, maintenance impact, alert usefulness, or dashboard readiness.
+This checkpoint proves managed Bronze-to-Gold loaded-cycle materialization and first-write
+reconciliation for the development dataset. The unchanged managed rerun remains pending, and this
+checkpoint does not prove failure prediction, model quality, warning lead time, maintenance impact,
+alert usefulness, or dashboard readiness.

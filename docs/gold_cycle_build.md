@@ -80,7 +80,7 @@ write boundary compatible with Databricks serverless compute.
 This boundary is integration-tested against a local catalog. The packaged
 `databricks_gold_cycle_processing` runner reads the allowlisted managed Silver accepted-telemetry
 table, derives the versioned loaded cycles, and invokes the writer. Deployment review and the first
-managed Databricks execution remain separate future increments.
+managed Databricks execution were kept as separate reviewed increments.
 
 The checked-in Asset Bundle now declares an unscheduled `gold_cycle_processing` workflow. Its first
 task invokes the existing managed Silver workflow; its Gold wheel task can run only after that
@@ -88,9 +88,12 @@ upstream job succeeds. The workflow permits one active run, queues additional re
 same four catalog/schema parameters as the preceding layers, and invokes
 `databricks_gold_cycle_processing` on serverless environment version 4. Bundle validation against
 the configured development workspace passed on 2026-10-16. The reviewed resource was deployed that
-day, but it remains unscheduled, has no run history, and has not created a Gold table. Its expected
-first-write evidence, independent SQL checks, and retry policy are frozen in
-[the first managed Gold run contract](managed_gold_first_run.md).
+day and its first approved execution completed successfully through the full Bronze-to-Silver gate.
+It inserted and reconciled 15,766 rows in the managed `loaded_cycles` table. Independent SQL
+confirmed non-null unique cycle IDs, the expected boundary/censoring groups, and zero structural
+invariant violations. The unchanged managed rerun remains pending. The reviewed expectations,
+observed evidence, independent checks, and retry policy are preserved in
+[the first managed Gold run record](managed_gold_first_run.md).
 
 ## Limitations
 
@@ -98,7 +101,7 @@ first-write evidence, independent SQL checks, and retry policy are frozen in
   or bounded incremental transformation.
 - Segment-ID propagation uses a global ordered window for this single-compressor source. A
   multi-asset build requires an equipment key and partitioned ordering.
-- The verified full-source table is local path-backed Delta storage. The managed catalog writer,
-  packaged runner, and deployed job exist, but the workflow has not yet run in Databricks.
+- The local full-source table is path-backed Delta storage; the managed Databricks table now proves
+  the equivalent catalog-backed first write. The separate unchanged managed rerun is still pending.
 - Loaded-cycle semantics remain provisional operating evidence, not failure labels or proof of
   compressor health.
