@@ -68,13 +68,28 @@ right-censored segments. No row was quarantined under the current validation con
 The materialized table can be examined without another Bronze-to-Gold rebuild using the checked-in
 query and runner documented in [the Gold loaded-cycle inspection](gold_cycle_inspection.md).
 
+## Managed catalog write boundary
+
+The Gold persistence layer also provides an allowlisted managed-table writer for
+`<catalog>.<gold_schema>.loaded_cycles`. It applies the same stable cycle identity and monotonic
+merge rules as the local writer: new cycles are inserted, right-censored cycles may gain
+observations or close, and settled cycles cannot be rewritten or reopened. The result reconciles
+inserted, updated, unchanged, and before/after target counts without caching DataFrames, keeping the
+write boundary compatible with Databricks serverless compute.
+
+This boundary is integration-tested against a local catalog. The packaged
+`databricks_gold_cycle_processing` runner reads the allowlisted managed Silver accepted-telemetry
+table, derives the versioned loaded cycles, and invokes the writer. An Asset Bundle job, deployment
+review, and first managed Databricks execution remain separate future increments.
+
 ## Limitations
 
 - The build currently recomputes the complete validated snapshot from Bronze; it is not a streaming
   or bounded incremental transformation.
 - Segment-ID propagation uses a global ordered window for this single-compressor source. A
   multi-asset build requires an equipment key and partitioned ordering.
-- The verified table is local path-backed Delta storage. Databricks catalog registration,
-  deployment, and runtime compatibility have not been tested.
+- The verified full-source table is local path-backed Delta storage. The managed catalog writer and
+  packaged runner are implemented and locally tested, but their Databricks job, deployment, and
+  first managed run have not yet been completed.
 - Loaded-cycle semantics remain provisional operating evidence, not failure labels or proof of
   compressor health.

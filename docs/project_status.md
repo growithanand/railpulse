@@ -196,6 +196,12 @@ contexts, or unsupported feature statuses occur.
   records censoring and duration distributions without writing a Gold table.
 - A path-backed `gold.loaded_cycles` merge contract inserts new cycles, updates only open cycle
   state, preserves stable identifiers and start evidence, and rejects state regression before write.
+- A catalog-backed `gold.loaded_cycles` writer maps only that established Gold output to its fully
+  qualified Unity Catalog table, preserves the same monotonic merge rules, reconciles logical write
+  counts, and avoids serverless-incompatible DataFrame persistence.
+- A versioned `databricks_gold_cycle_processing` wheel entry point reads the allowlisted managed
+  Silver accepted-telemetry table, derives the established cycle snapshot, and invokes the managed
+  writer without introducing a second cycle contract.
 - A reproducible full-source Gold command profiles and persists the same cycle snapshot, reports
   source and contract identity, and reconciles logical merge outcomes on first write and rerun.
 - A checked-in Gold SQL query and read-only runner reconcile start/stop censoring groups, loaded
@@ -657,7 +663,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Adapt the first existing local Gold contract to managed Unity Catalog storage, beginning with one
-small output and preserving the established version, lineage, key, and rerun semantics. Keep the
-change independently testable before declaring or deploying a Gold workflow. Do not commit
-credentials, local paths, deployment state, or ignored source data.
+Declare one unscheduled Asset Bundle Gold workflow that gates the packaged loaded-cycle runner behind
+the successful managed Silver workflow. Review its identity, parameters, dependency, permissions,
+and expected first-run reconciliation before deployment. Do not commit credentials, local paths,
+deployment state, or ignored source data.

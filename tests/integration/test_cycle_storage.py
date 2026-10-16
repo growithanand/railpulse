@@ -16,11 +16,15 @@ from pyspark.sql.types import (
     TimestampNTZType,
 )
 
+from railpulse.catalog import CatalogNamespace
 from railpulse.config import RailPulseConfig, SchemaNames, StoragePaths
 from railpulse.features.cycle_storage import (
+    CATALOG_GOLD_CYCLE_CONTRACT_VERSION,
     LOADED_CYCLES_TABLE,
     GoldCyclePersistenceError,
+    catalog_gold_table,
     gold_table_path,
+    persist_catalog_loaded_cycles,
     persist_loaded_cycles,
 )
 from railpulse.features.cycles import (
@@ -189,3 +193,81 @@ def test_gold_cycle_merge_rejects_observation_count_regression(
     row = spark.read.format("delta").load(str(gold_table_path(config, LOADED_CYCLES_TABLE))).first()
     assert row.loaded_observation_count == 2
     assert row.is_right_censored is True
+
+
+@pytest.mark.spark
+def test_catalog_gold_cycle_merge_is_allowlisted_monotonic_and_serverless_safe(
+    spark: SparkSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    namespace = CatalogNamespace(
+        catalog="spark_catalog",
+        bronze_schema="railpulse_managed_bronze_test",
+        silver_schema="railpulse_managed_silver_test",
+        gold_schema="railpulse_managed_gold_cycle_test",
+    )
+    qualified_schema = namespace.schema("gold")
+    qualified_table = namespace.table("gold", LOADED_CYCLES_TABLE)
+    telemetry = _telemetry(spark)
+    open_snapshot = _cycle_snapshot(telemetry, 10)
+    extended_open_snapshot = _cycle_snapshot(telemetry, 20)
+    later_snapshot = _cycle_snapshot(telemetry, 40)
+
+    def reject_persist(*args: object, **kwargs: object) -> None:
+        raise AssertionError("catalog-backed Gold writes must not persist serverless DataFrames")
+
+    monkeypatch.setattr(type(open_snapshot), "persist", reject_persist)
+
+    with pytest.raises(GoldCyclePersistenceError, match="Unsupported managed Gold table"):
+        catalog_gold_table(namespace, "unexpected_table")
+
+    spark.sql(f"CREATE DATABASE IF NOT EXISTS {qualified_schema}").collect()
+    try:
+        first = persist_catalog_loaded_cycles(open_snapshot, namespace)
+        repeated_open = persist_catalog_loaded_cycles(open_snapshot, namespace)
+        extended_open = persist_catalog_loaded_cycles(extended_open_snapshot, namespace)
+        closed_and_extended = persist_catalog_loaded_cycles(later_snapshot, namespace)
+        repeated_later = persist_catalog_loaded_cycles(later_snapshot, namespace)
+
+        target = spark.table(qualified_table)
+        rows = {row.loaded_cycle_start_record_id: row for row in target.collect()}
+        closed = rows["first-start"]
+
+        assert first.contract_version == CATALOG_GOLD_CYCLE_CONTRACT_VERSION
+        assert first.table_name == qualified_table
+        assert first.key_field == "loaded_cycle_id"
+        assert (
+            first.source_cycle_count,
+            first.inserted_cycle_count,
+            first.updated_cycle_count,
+            first.unchanged_cycle_count,
+        ) == (1, 1, 0, 0)
+        assert (
+            repeated_open.inserted_cycle_count,
+            repeated_open.updated_cycle_count,
+            repeated_open.unchanged_cycle_count,
+        ) == (0, 0, 1)
+        assert (
+            extended_open.inserted_cycle_count,
+            extended_open.updated_cycle_count,
+            extended_open.unchanged_cycle_count,
+        ) == (0, 1, 0)
+        assert (
+            closed_and_extended.source_cycle_count,
+            closed_and_extended.inserted_cycle_count,
+            closed_and_extended.updated_cycle_count,
+            closed_and_extended.unchanged_cycle_count,
+        ) == (2, 1, 1, 0)
+        assert (
+            repeated_later.inserted_cycle_count,
+            repeated_later.updated_cycle_count,
+            repeated_later.unchanged_cycle_count,
+        ) == (0, 0, 2)
+        assert repeated_later.target_cycle_count_before == 2
+        assert repeated_later.target_cycle_count_after == 2
+        assert target.count() == 2
+        assert closed.loaded_cycle_stop_record_id == "first-stop"
+        assert closed.is_right_censored is False
+        assert rows["second-start"].is_right_censored is True
+    finally:
+        spark.sql(f"DROP DATABASE IF EXISTS {qualified_schema} CASCADE").collect()

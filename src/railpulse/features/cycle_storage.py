@@ -10,10 +10,12 @@ from pyspark import StorageLevel
 from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as F
 
+from railpulse.catalog import CatalogNamespace
 from railpulse.config import RailPulseConfig
 from railpulse.features.cycles import CYCLE_AGGREGATION_COLUMNS, LOADED_CYCLE_ID_VERSION
 
 LOADED_CYCLES_TABLE = "loaded_cycles"
+CATALOG_GOLD_CYCLE_CONTRACT_VERSION = "databricks-gold-loaded-cycles-write-v1"
 GOLD_CYCLE_COLUMNS = (
     "loaded_cycle_id",
     "loaded_cycle_start_record_id",
@@ -46,10 +48,35 @@ class GoldCycleWriteResult:
     target_cycle_count_after: int
 
 
+@dataclass(frozen=True)
+class CatalogGoldCycleWriteResult:
+    """Logical changes and reconciliation for one managed Gold cycle merge."""
+
+    contract_version: str
+    table_name: str
+    key_field: str
+    source_cycle_count: int
+    inserted_cycle_count: int
+    updated_cycle_count: int
+    unchanged_cycle_count: int
+    target_cycle_count_before: int
+    target_cycle_count_after: int
+
+
 def gold_table_path(config: RailPulseConfig, table_name: str) -> Path:
     """Resolve a local path corresponding to a logical Gold table."""
 
     return config.paths.delta / config.schemas.gold / table_name
+
+
+def catalog_gold_table(namespace: CatalogNamespace, table_name: str) -> str:
+    """Return the allowlisted fully qualified managed Gold table name."""
+
+    if table_name != LOADED_CYCLES_TABLE:
+        raise GoldCyclePersistenceError(
+            f"Unsupported managed Gold table {table_name!r}; expected {LOADED_CYCLES_TABLE}"
+        )
+    return namespace.table("gold", table_name)
 
 
 def _all_equal(columns: tuple[str, ...]) -> Column:
@@ -314,3 +341,107 @@ def persist_loaded_cycles(
             matched.unpersist()
         if source_cache_owned:
             source.unpersist()
+
+
+def persist_catalog_loaded_cycles(
+    cycles: DataFrame,
+    namespace: CatalogNamespace,
+) -> CatalogGoldCycleWriteResult:
+    """Merge one cycle snapshot into the allowlisted managed Gold table.
+
+    The catalog-backed writer applies the same monotonic update rules as the local path-backed
+    writer without persisting DataFrames, which keeps the boundary compatible with Databricks
+    serverless compute.
+    """
+
+    missing_columns = sorted(set(GOLD_CYCLE_COLUMNS) - set(cycles.columns))
+    if missing_columns:
+        raise GoldCyclePersistenceError(
+            "Loaded cycles are missing managed Gold persistence columns: "
+            + ", ".join(missing_columns)
+        )
+
+    qualified_table = catalog_gold_table(namespace, LOADED_CYCLES_TABLE)
+    source = (
+        cycles
+        if tuple(cycles.columns) == GOLD_CYCLE_COLUMNS
+        else cycles.select(*GOLD_CYCLE_COLUMNS)
+    )
+    source_count = _assert_cycle_rows_are_valid(source, label="Managed loaded-cycle source")
+    spark = cycles.sparkSession
+    target_exists = spark.catalog.tableExists(qualified_table)
+    before_count = 0
+    inserted_count = source_count
+    updated_count = 0
+
+    if target_exists:
+        target_frame = spark.table(qualified_table)
+        before_count = _assert_cycle_rows_are_valid(
+            target_frame,
+            label="Managed Gold cycle target",
+        )
+        target = target_frame.select(*GOLD_CYCLE_COLUMNS)
+        _assert_compatible_schemas(source, target)
+        matched = source.alias("source").join(
+            target.alias("target"),
+            F.col("source.loaded_cycle_id") == F.col("target.loaded_cycle_id"),
+            how="inner",
+        )
+        _assert_updates_are_monotonic(matched)
+        matched_count = matched.count()
+        inserted_count = source_count - matched_count
+        updated_count = matched.where(
+            F.col("target.is_right_censored") & ~_all_equal(GOLD_CYCLE_COLUMNS)
+        ).count()
+
+        if source_count:
+            (
+                DeltaTable.forName(spark, qualified_table)
+                .alias("target")
+                .merge(
+                    source.alias("source"),
+                    "target.loaded_cycle_id = source.loaded_cycle_id",
+                )
+                .whenMatchedUpdateAll(
+                    condition=(
+                        "target.is_right_censored = true AND "
+                        "(source.loaded_observation_count > target.loaded_observation_count OR "
+                        "source.is_right_censored = false)"
+                    )
+                )
+                .whenNotMatchedInsertAll()
+                .execute()
+            )
+    else:
+        source.write.format("delta").mode("error").saveAsTable(qualified_table)
+
+    final_target = spark.table(qualified_table)
+    after_count = final_target.count()
+    unmatched_or_different = (
+        source.alias("source")
+        .join(
+            final_target.alias("target"),
+            F.col("source.loaded_cycle_id") == F.col("target.loaded_cycle_id"),
+            how="left",
+        )
+        .where(F.col("target.loaded_cycle_id").isNull() | ~_all_equal(GOLD_CYCLE_COLUMNS))
+        .limit(1)
+        .count()
+    )
+    if after_count != before_count + inserted_count or unmatched_or_different:
+        raise GoldCyclePersistenceError(
+            f"{qualified_table} reconciliation failed: source={source_count}, "
+            f"inserted={inserted_count}, before={before_count}, after={after_count}"
+        )
+
+    return CatalogGoldCycleWriteResult(
+        contract_version=CATALOG_GOLD_CYCLE_CONTRACT_VERSION,
+        table_name=qualified_table,
+        key_field="loaded_cycle_id",
+        source_cycle_count=source_count,
+        inserted_cycle_count=inserted_count,
+        updated_cycle_count=updated_count,
+        unchanged_cycle_count=source_count - inserted_count - updated_count,
+        target_cycle_count_before=before_count,
+        target_cycle_count_after=after_count,
+    )
