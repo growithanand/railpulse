@@ -643,6 +643,14 @@ map. Separate identifier checks returned total, non-null, and distinct counts of
 accepted telemetry and four for accepted failure events. This closes the managed Silver execution
 and remote reconciliation checkpoint without making a model or maintenance-impact claim.
 
+Later on 2026-10-16, the declared Gold workflow passed bundle validation and a selected read-only
+deployment plan. The plan would create the Gold job, update the existing Bronze and Silver jobs only
+to reference the newly built wheel, delete nothing, and leave four unrelated resources outside the
+selection. A separate catalog inventory confirmed that `workspace.railpulse_gold` still contains no
+tables. The expected 15,766-row first write, independent SQL checks, unchanged-rerun evidence, and
+retry policy are now frozen in the managed Gold first-run contract. No Gold resource was deployed or
+executed.
+
 ## Not implemented
 
 - Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
@@ -667,6 +675,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Review the declared Gold workflow's scoped deployment plan and freeze its expected first-run table,
-row-count, identity, censoring, and retry checks before deployment. Do not commit credentials, local
-paths, deployment state, or ignored source data.
+Commit the reviewed managed Gold first-run contract, then generate one fresh scoped plan before any
+explicitly approved deployment. The plan must retain one job creation, no deletions, and no upstream
+behavioral changes beyond adoption of the new wheel. Do not commit credentials, local paths,
+deployment state, or ignored source data.

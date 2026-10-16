@@ -88,7 +88,8 @@ upstream job succeeds. The workflow permits one active run, queues additional re
 same four catalog/schema parameters as the preceding layers, and invokes
 `databricks_gold_cycle_processing` on serverless environment version 4. Bundle validation against
 the configured development workspace passed on 2026-10-16. The resource has not been deployed or
-executed.
+executed. Its reviewed plan, expected first-write evidence, independent SQL checks, and retry policy
+are frozen in [the first managed Gold run contract](managed_gold_first_run.md).
 
 ## Limitations
 
