@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — managed Silver workflow deployed, first run quota-blocked**
+**Databricks migration — managed Silver workflow deployed and independently validated**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -21,15 +21,16 @@ The managed failure-event operation composes accepted and quarantined outputs fr
 one prevalidated frame and reconciles both writes.
 A packaged Silver runner reads both allowlisted managed Bronze tables, builds
 both validation plans before writing, and invokes the reviewed telemetry and failure operations.
-A deployed, unscheduled Silver workflow now gates that runner behind a successful invocation of the
-existing managed Bronze workflow. It has not been run and no managed Silver table exists yet. A
-reviewed first-run contract now freezes the remote baseline, five expected table counts, telemetry
-quality evidence, independent post-run checks, and retry procedure before execution.
-The first execution was approved and attempted on 2026-10-15, but Databricks rejected the request
-before creating a run because new organization runs are temporarily disabled. A post-attempt check
-confirmed that the Silver workflow still has no run history and the Silver schema still has no
-tables. The deployed workflow and its inputs remain unchanged; this is an account-level compute
-availability gate rather than a RailPulse task failure.
+A deployed, unscheduled Silver workflow gates that runner behind a successful invocation of the
+existing managed Bronze workflow. The reviewed first-run contract froze the remote baseline, five
+expected table counts, telemetry quality evidence, independent post-run checks, and retry procedure
+before execution. An initial approved start was rejected safely by a temporary account-level
+compute gate on 2026-10-15. The unchanged workflow ran successfully on 2026-10-16. Independent
+read-only checks found exactly the five reviewed Silver tables and reconciled 1,516,948 accepted
+telemetry rows, zero telemetry quarantine rows, one quality-summary row, four accepted failure rows,
+and zero failure quarantine rows. The quality row used `telemetry-validation-v2`, reported 354
+material forward gaps and no rejection reasons, and reconciled accepted plus quarantined records to
+the total. Accepted telemetry and failure identifiers were non-null and unique.
 
 Bronze ingestion is implemented and verified against both official inputs. Silver now has typed
 telemetry, parsing and digital-domain validation, binary digital normalization, and duplicate source
@@ -182,7 +183,7 @@ contexts, or unsupported feature statuses occur.
   evidence from the managed telemetry and failure persistence operations.
 - A deployed, unscheduled two-task Silver workflow invokes the existing managed Bronze job, then
   runs the packaged Silver entry point only after Bronze succeeds. It permits one concurrent run,
-  queues additional requests, and currently has no run history.
+  queues additional requests, and has completed its first successful managed run.
 - Failure-event validation types source rows and timezone-free interval bounds, preserves report
   labels and ambiguous text, and rejects malformed, incomplete, duplicated, or reversed records.
 - Causal loaded-cycle boundary annotations use only current and predecessor `DV_eletric` states,
@@ -622,13 +623,24 @@ the day, or longer in exceptional cases. The correct retry is the unchanged full
 after compute access resumes; bypassing the Bronze dependency or altering the reviewed job would not
 address the account-level block.
 
+On 2026-10-16, compute access resumed and the unchanged deployed Silver workflow completed its
+first successful run. Independent Databricks SQL checks confirmed exactly the reviewed output
+counts: 1,516,948 rows in `telemetry_accepted`, zero in `telemetry_quarantine`, one in
+`telemetry_quality_metrics`, four in `failure_events_accepted`, and zero in
+`failure_events_quarantine`. The quality row reported `telemetry-validation-v2`, 1,516,948 total
+and accepted records, zero quarantined records, 354 material forward gaps, and an empty rejection
+map. Separate identifier checks returned total, non-null, and distinct counts of 1,516,948 for
+accepted telemetry and four for accepted failure events. This closes the managed Silver execution
+and remote reconciliation checkpoint without making a model or maintenance-impact claim.
+
 ## Not implemented
 
 - Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
   and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze and
-  an unrun managed Silver workflow now exist, but managed Gold table-processing resources do not.
+  independently validated managed Silver workflows now exist, but managed Gold table-processing
+  resources do not.
 
 No predictive-model performance, failure-detection, warning-lead-time, false-alarm, or cost result
 has been measured.
@@ -645,7 +657,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Review the [first managed Silver run contract](managed_silver_first_run.md). Run only after separate
-approval, then independently verify the five managed Silver tables, accepted/quarantine
-reconciliation, telemetry quality metrics, and the Bronze zero-insert refresh. Do not commit
+Adapt the first existing local Gold contract to managed Unity Catalog storage, beginning with one
+small output and preserving the established version, lineage, key, and rerun semantics. Keep the
+change independently testable before declaring or deploying a Gold workflow. Do not commit
 credentials, local paths, deployment state, or ignored source data.

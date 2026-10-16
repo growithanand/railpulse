@@ -29,9 +29,12 @@ succeeds. Its first successful managed run created and reconciled 1,516,948 tele
 failure-reference rows. An unchanged managed rerun then matched every existing record, inserted
 zero rows, and preserved both table counts.
 
-An unscheduled managed Silver workflow is also deployed but has not been run. It invokes the
-verified Bronze workflow first, then runs the packaged telemetry and failure validation boundary
-only after Bronze succeeds. No managed Silver table has been created yet.
+An unscheduled managed Silver workflow is also deployed and has completed its first successful
+run. It invoked the verified Bronze workflow first, then ran the packaged telemetry and failure
+validation boundary only after Bronze succeeded. Independent read-only checks confirmed all five
+reviewed Silver tables, 1,516,948 accepted telemetry rows, four accepted failure rows, empty
+quarantine outputs, one reconciled quality-summary row, and complete unique identifiers in both
+accepted tables.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -39,7 +42,7 @@ only after Bronze succeeds. No managed Silver table has been created yet.
 | Local pipeline | Verified through Gold v1/v2 snapshots and modelling-view profile | Complete |
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
-| Managed Silver | Catalog writers, runner, and gated workflow are deployed but unrun | Controlled first run and table reconciliation |
+| Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Local contracts already exist | Adapt Gold storage to catalog tables |
 | Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
@@ -173,23 +176,32 @@ Completed managed steps:
 11. Redeploy from committed source and prove an identical rerun inserts zero rows.
 12. Implement and test allowlisted, retry-safe managed Silver persistence and its packaged runner.
 13. Deploy the unscheduled Bronze-gated Silver workflow and verify that deployment starts no run.
+14. Run the reviewed Silver workflow successfully through its Bronze dependency.
+15. Independently reconcile all five Silver tables, the telemetry quality summary, and accepted
+    record identifiers.
 
-The managed workflow now owns:
+The managed workflows now own:
 
 - `<catalog>.<bronze_schema>.telemetry_raw`
 - `<catalog>.<bronze_schema>.failure_reports_raw`
+- `<catalog>.<silver_schema>.telemetry_accepted`
+- `<catalog>.<silver_schema>.telemetry_quarantine`
+- `<catalog>.<silver_schema>.telemetry_quality_metrics`
+- `<catalog>.<silver_schema>.failure_events_accepted`
+- `<catalog>.<silver_schema>.failure_events_quarantine`
 
-The [first managed Silver run contract](docs/managed_silver_first_run.md) records the refreshed
-pre-run baseline, exact expected outputs, independent checks, and retry policy. Execution remains a
-separate approval gate.
+The [first managed Silver run record](docs/managed_silver_first_run.md) preserves the pre-run
+baseline and quota-blocked attempt alongside the successful execution, observed outputs,
+independent checks, and retry policy.
 
 ## Roadmap to the portfolio demonstration
 
 1. **Completed:** materialize and reconcile the two managed Bronze tables, including a zero-insert
    rerun.
-2. **In progress:** run and reconcile the deployed managed Silver workflow for accepted,
+2. **Completed:** run and reconcile the deployed managed Silver workflow for accepted,
    quarantine, and quality outputs.
-3. Materialize Gold cycles, feature snapshots, horizons, and modelling views in Databricks.
+3. **In progress:** materialize Gold cycles, feature snapshots, horizons, and modelling views in
+   Databricks.
 4. Track final candidate training and parameters with MLflow while keeping the test period sealed.
 5. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
    the failure-event level.

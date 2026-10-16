@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This is the review contract for the first catalog-backed Silver execution. The run is intentionally
-separate from deployment: the workflow is deployed and unscheduled, but it must not be started until
-the baseline and expected outputs below have been reviewed and the run has been approved.
+This document preserves the review contract and observed evidence for the first catalog-backed
+Silver execution. The run remained separate from deployment: the workflow was deployed and
+unscheduled, and it was started only after the baseline and expected outputs below were reviewed.
 
 The workflow has two ordered tasks:
 
@@ -44,29 +44,30 @@ Edition compute can become unavailable after quota use while existing data and s
 preserved. Retry the same full workflow only after new runs are enabled again; do not bypass the
 Bronze dependency or change the five expected outputs in response to this gate.
 
-## Expected first-run outputs
+## Expected and observed first-run outputs
 
 The expected values below come from the complete-source local validation using
-`telemetry-validation-v2`. They are acceptance criteria for the managed run, not values that the
-managed run has already produced.
+`telemetry-validation-v2`. The successful managed run on 2026-10-16 matched every expected table
+count.
 
-| Managed Silver table | Merge key | Expected rows after the run |
-| --- | --- | ---: |
-| `workspace.railpulse_silver.telemetry_accepted` | `record_id` | 1,516,948 |
-| `workspace.railpulse_silver.telemetry_quarantine` | `record_id` | 0 |
-| `workspace.railpulse_silver.telemetry_quality_metrics` | `quality_batch_id` | 1 |
-| `workspace.railpulse_silver.failure_events_accepted` | `record_id` | 4 |
-| `workspace.railpulse_silver.failure_events_quarantine` | `record_id` | 0 |
+| Managed Silver table | Merge key | Expected rows | Observed rows |
+| --- | --- | ---: | ---: |
+| `workspace.railpulse_silver.telemetry_accepted` | `record_id` | 1,516,948 | 1,516,948 |
+| `workspace.railpulse_silver.telemetry_quarantine` | `record_id` | 0 | 0 |
+| `workspace.railpulse_silver.telemetry_quality_metrics` | `quality_batch_id` | 1 | 1 |
+| `workspace.railpulse_silver.failure_events_accepted` | `record_id` | 4 | 4 |
+| `workspace.railpulse_silver.failure_events_quarantine` | `record_id` | 0 | 0 |
 
-The single telemetry metrics row is expected to report:
+The single telemetry metrics row also matched the reviewed values:
 
-| Metric | Expected value |
-| --- | ---: |
-| Total telemetry records | 1,516,948 |
-| Accepted telemetry records | 1,516,948 |
-| Quarantined telemetry records | 0 |
-| Material forward gaps | 354 |
-| Rejection reasons | Empty |
+| Metric | Expected value | Observed value |
+| --- | ---: | ---: |
+| Validation version | `telemetry-validation-v2` | `telemetry-validation-v2` |
+| Total telemetry records | 1,516,948 | 1,516,948 |
+| Accepted telemetry records | 1,516,948 | 1,516,948 |
+| Quarantined telemetry records | 0 | 0 |
+| Material forward gaps | 354 | 354 |
+| Rejection reasons | Empty | Empty |
 
 Both reconciliations must hold:
 
@@ -78,9 +79,25 @@ failure accepted + failure quarantined = 4
 An empty quarantine result is still represented by a real Delta table with the contracted schema.
 It must not be interpreted as a missing output.
 
+## Verified execution on 2026-10-16
+
+After compute access resumed, the unchanged deployed workflow completed its first successful run.
+A separate read-only Unity Catalog inventory showed exactly the five reviewed Silver tables.
+Databricks SQL checks then established:
+
+- all five table counts matched the reviewed acceptance criteria above;
+- the telemetry quality row reconciled accepted plus quarantined records to its total;
+- the quality row reported 354 material forward gaps and no rejection reasons;
+- accepted telemetry returned 1,516,948 total, non-null, and distinct `record_id` values;
+- accepted failure events returned four total, non-null, and distinct `record_id` values.
+
+These observations close the managed Silver first-run checkpoint. They do not make a predictive
+model, failure-detection, warning-lead-time, maintenance-impact, or dashboard-readiness claim.
+
 ## Controlled execution
 
-After explicit approval, run the deployed bundle resource from the repository root:
+For a future explicitly approved rerun, invoke the deployed bundle resource from the repository
+root:
 
 ```powershell
 databricks bundle run -t dev silver_processing
@@ -107,7 +124,7 @@ inspection must confirm all of the following:
 - The emitted runner evidence names the two expected Bronze sources and reports first-run inserts
   equal to the new target counts.
 
-Only observed remote results should be added to the project status after these checks pass.
+The observed remote results from 2026-10-16 are recorded above and in the project status.
 
 ## Failure and retry policy
 
