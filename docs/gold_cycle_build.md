@@ -79,8 +79,16 @@ write boundary compatible with Databricks serverless compute.
 
 This boundary is integration-tested against a local catalog. The packaged
 `databricks_gold_cycle_processing` runner reads the allowlisted managed Silver accepted-telemetry
-table, derives the versioned loaded cycles, and invokes the writer. An Asset Bundle job, deployment
-review, and first managed Databricks execution remain separate future increments.
+table, derives the versioned loaded cycles, and invokes the writer. Deployment review and the first
+managed Databricks execution remain separate future increments.
+
+The checked-in Asset Bundle now declares an unscheduled `gold_cycle_processing` workflow. Its first
+task invokes the existing managed Silver workflow; its Gold wheel task can run only after that
+upstream job succeeds. The workflow permits one active run, queues additional requests, uses the
+same four catalog/schema parameters as the preceding layers, and invokes
+`databricks_gold_cycle_processing` on serverless environment version 4. Bundle validation against
+the configured development workspace passed on 2026-10-16. The resource has not been deployed or
+executed.
 
 ## Limitations
 
@@ -88,8 +96,8 @@ review, and first managed Databricks execution remain separate future increments
   or bounded incremental transformation.
 - Segment-ID propagation uses a global ordered window for this single-compressor source. A
   multi-asset build requires an equipment key and partitioned ordering.
-- The verified full-source table is local path-backed Delta storage. The managed catalog writer and
-  packaged runner are implemented and locally tested, but their Databricks job, deployment, and
-  first managed run have not yet been completed.
+- The verified full-source table is local path-backed Delta storage. The managed catalog writer,
+  packaged runner, and validated job declaration exist, but the workflow has not yet been deployed
+  or run in Databricks.
 - Loaded-cycle semantics remain provisional operating evidence, not failure labels or proof of
   compressor health.

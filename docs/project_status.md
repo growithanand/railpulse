@@ -202,6 +202,10 @@ contexts, or unsupported feature statuses occur.
 - A versioned `databricks_gold_cycle_processing` wheel entry point reads the allowlisted managed
   Silver accepted-telemetry table, derives the established cycle snapshot, and invokes the managed
   writer without introducing a second cycle contract.
+- An unscheduled two-task Gold workflow declaration invokes the existing managed Silver job, then
+  runs the packaged Gold entry point only after Silver succeeds. It permits one concurrent run,
+  queues additional requests, and passes strict development bundle validation; it has not been
+  deployed or executed.
 - A reproducible full-source Gold command profiles and persists the same cycle snapshot, reports
   source and contract identity, and reconciles logical merge outcomes on first write and rerun.
 - A checked-in Gold SQL query and read-only runner reconcile start/stop censoring groups, loaded
@@ -645,8 +649,8 @@ and remote reconciliation checkpoint without making a model or maintenance-impac
   and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze and
-  independently validated managed Silver workflows now exist, but managed Gold table-processing
-  resources do not.
+  independently validated managed Silver workflows now exist. The managed Gold workflow is declared
+  and bundle-validated but is not deployed or executed.
 
 No predictive-model performance, failure-detection, warning-lead-time, false-alarm, or cost result
 has been measured.
@@ -663,7 +667,6 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Declare one unscheduled Asset Bundle Gold workflow that gates the packaged loaded-cycle runner behind
-the successful managed Silver workflow. Review its identity, parameters, dependency, permissions,
-and expected first-run reconciliation before deployment. Do not commit credentials, local paths,
-deployment state, or ignored source data.
+Review the declared Gold workflow's scoped deployment plan and freeze its expected first-run table,
+row-count, identity, censoring, and retry checks before deployment. Do not commit credentials, local
+paths, deployment state, or ignored source data.
