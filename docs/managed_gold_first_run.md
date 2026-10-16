@@ -3,8 +3,8 @@
 ## Purpose
 
 This document freezes the review contract for the first catalog-backed Gold execution. Deployment
-and execution remain separate approvals: the workflow is declared and bundle-valid, but it has not
-been deployed or started.
+and execution remain separate approvals: the workflow is deployed and unscheduled, but it has not
+been started.
 
 The workflow has two ordered tasks:
 
@@ -36,7 +36,7 @@ A read-only Unity Catalog inventory on 2026-10-16 established:
 | --- | --- |
 | `workspace.railpulse_silver.telemetry_accepted` | 1,516,948 rows; IDs previously verified non-null and unique |
 | `workspace.railpulse_gold` | Empty; no managed Gold tables |
-| Gold workflow | Declared and bundle-valid; not deployed and no run history |
+| Gold workflow | Deployed and unscheduled; no run history |
 
 The managed Silver checkpoint also records zero telemetry quarantine rows, one quality row with 354
 material forward gaps, four accepted failure events, and zero failure quarantine rows. Starting the
@@ -79,17 +79,36 @@ snapshot:
 These groups must reconcile to 15,766 cycles, 243,638 loaded observations, 15,703 durations, and 63
 right-censored cycles. They describe visible operating boundaries, not equipment health or failure.
 
+## Verified deployment
+
+The reviewed selection was deployed on 2026-10-16. Databricks reported one Gold job created, the
+existing Bronze and Silver jobs updated to the new wheel, zero resource deletions, 27 files uploaded,
+and zero file deletions. Independent live readback confirmed:
+
+- the workflow remains bundle-managed, UI-locked, unscheduled, queue-enabled, and limited to one
+  concurrent run;
+- `refresh_silver` invokes the expected managed Silver job;
+- `process_gold_loaded_cycles` depends on that task with `ALL_SUCCESS`, uses serverless environment
+  version 4, invokes `databricks_gold_cycle_processing`, and receives the four reviewed namespace
+  parameters;
+- the workflow has no run history;
+- `workspace.railpulse_gold` still contains no tables.
+
+Deployment therefore changed configuration and uploaded artifacts only. It did not consume compute
+or materialize Gold data.
+
 ## Controlled deployment and execution
 
-After an explicitly approved fresh plan, deploy only through the checked-in bundle:
+The first deployment used the checked-in bundle command below after an explicitly approved fresh
+plan:
 
 ```powershell
 databricks bundle deploy -t dev --select jobs.gold_cycle_processing
 ```
 
-The selection includes the Gold job and its referenced Bronze/Silver dependencies. Confirm again
-that the only upstream change is the wheel dependency before approving deployment. Deployment must
-not start a run because the workflow has no schedule or trigger.
+The selection includes the Gold job and its referenced Bronze/Silver dependencies. Future
+deployments must confirm again that the only upstream change is the wheel dependency. Deployment
+does not start a run because the workflow has no schedule or trigger.
 
 After deployment is independently verified and execution is separately approved, run the complete
 gated workflow:

@@ -87,9 +87,10 @@ task invokes the existing managed Silver workflow; its Gold wheel task can run o
 upstream job succeeds. The workflow permits one active run, queues additional requests, uses the
 same four catalog/schema parameters as the preceding layers, and invokes
 `databricks_gold_cycle_processing` on serverless environment version 4. Bundle validation against
-the configured development workspace passed on 2026-10-16. The resource has not been deployed or
-executed. Its reviewed plan, expected first-write evidence, independent SQL checks, and retry policy
-are frozen in [the first managed Gold run contract](managed_gold_first_run.md).
+the configured development workspace passed on 2026-10-16. The reviewed resource was deployed that
+day, but it remains unscheduled, has no run history, and has not created a Gold table. Its expected
+first-write evidence, independent SQL checks, and retry policy are frozen in
+[the first managed Gold run contract](managed_gold_first_run.md).
 
 ## Limitations
 
@@ -98,7 +99,6 @@ are frozen in [the first managed Gold run contract](managed_gold_first_run.md).
 - Segment-ID propagation uses a global ordered window for this single-compressor source. A
   multi-asset build requires an equipment key and partitioned ordering.
 - The verified full-source table is local path-backed Delta storage. The managed catalog writer,
-  packaged runner, and validated job declaration exist, but the workflow has not yet been deployed
-  or run in Databricks.
+  packaged runner, and deployed job exist, but the workflow has not yet run in Databricks.
 - Loaded-cycle semantics remain provisional operating evidence, not failure labels or proof of
   compressor health.

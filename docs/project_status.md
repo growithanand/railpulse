@@ -204,8 +204,8 @@ contexts, or unsupported feature statuses occur.
   writer without introducing a second cycle contract.
 - An unscheduled two-task Gold workflow declaration invokes the existing managed Silver job, then
   runs the packaged Gold entry point only after Silver succeeds. It permits one concurrent run,
-  queues additional requests, and passes strict development bundle validation; it has not been
-  deployed or executed.
+  queues additional requests, and passes strict development bundle validation. The workflow is now
+  deployed with no run history; no Gold table has been created.
 - A reproducible full-source Gold command profiles and persists the same cycle snapshot, reports
   source and contract identity, and reconciles logical merge outcomes on first write and rerun.
 - A checked-in Gold SQL query and read-only runner reconcile start/stop censoring groups, loaded
@@ -648,8 +648,10 @@ deployment plan. The plan would create the Gold job, update the existing Bronze 
 to reference the newly built wheel, delete nothing, and leave four unrelated resources outside the
 selection. A separate catalog inventory confirmed that `workspace.railpulse_gold` still contains no
 tables. The expected 15,766-row first write, independent SQL checks, unchanged-rerun evidence, and
-retry policy are now frozen in the managed Gold first-run contract. No Gold resource was deployed or
-executed.
+retry policy are now frozen in the managed Gold first-run contract. The reviewed selection was then
+deployed: one Gold job was created, the Bronze and Silver wheel references were updated, and no
+resource or file was deleted. Independent readback confirmed the expected two-task configuration,
+no schedule, no run history, and an empty Gold schema. No workflow was executed.
 
 ## Not implemented
 
@@ -657,8 +659,8 @@ executed.
   and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze and
-  independently validated managed Silver workflows now exist. The managed Gold workflow is declared
-  and bundle-validated but is not deployed or executed.
+  independently validated managed Silver workflows now exist. The managed Gold workflow is deployed
+  but has not been executed.
 
 No predictive-model performance, failure-detection, warning-lead-time, false-alarm, or cost result
 has been measured.
@@ -675,7 +677,7 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Commit the reviewed managed Gold first-run contract, then generate one fresh scoped plan before any
-explicitly approved deployment. The plan must retain one job creation, no deletions, and no upstream
-behavioral changes beyond adoption of the new wheel. Do not commit credentials, local paths,
+After explicit approval, start the complete deployed Gold workflow and monitor the nested
+Bronze-to-Silver gate plus Gold task to completion. Then run the independent managed Gold SQL checks
+before considering an unchanged idempotency rerun. Do not commit credentials, local paths,
 deployment state, or ignored source data.
