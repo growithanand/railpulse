@@ -61,7 +61,9 @@ before `prediction_timestamp`. Random row-level splitting remains prohibited.
 The full-source join and label-distribution inspection are now documented in the
 [failure-horizon profile](failure_horizon_profile.md). An allowlisted managed persistence boundary
 now validates the fixed two-hour contract, inserts unseen cycle keys, treats identical reruns as
-no-ops, and rejects conflicting relabels. Its packaged runner, workflow deployment, and first table
-materialization remain separate reviewed increments, as do post-failure recovery exclusions and
-interval-endpoint sensitivity analysis. No health, warning-lead-time, or model-performance result is
-claimed by this contract alone.
+no-ops, and rejects conflicting relabels. A packaged managed runner now reads the existing cycle and
+accepted Silver tables, verifies one compatible lineage per Silver input, derives the observation
+boundary from accepted telemetry, applies this contract, and invokes the writer. Workflow
+declaration, deployment, and first table materialization remain separate reviewed increments, as do
+post-failure recovery exclusions and interval-endpoint sensitivity analysis. No health,
+warning-lead-time, or model-performance result is claimed by this contract alone.
