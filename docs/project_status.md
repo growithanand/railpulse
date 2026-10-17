@@ -218,6 +218,9 @@ contexts, or unsupported feature statuses occur.
   observations, and duration-tail statistics without creating health or failure labels.
 - A versioned two-hour cycle-to-failure horizon contract uses observed cycle stops, deterministic
   event matching, explicit in-failure exclusions, and observation-aware null labels.
+- An allowlisted managed `gold.failure_horizons` persistence boundary validates the fixed two-hour
+  version and target semantics, inserts unseen cycle keys without DataFrame caching, reconciles
+  identical reruns, and rejects conflicting changes to existing labels.
 - A read-only full-source horizon profile rebuilds accepted Silver views from Bronze, derives the
   label observation end, and reconciles every cycle status and failure-event match count.
 - A past-only 15-minute motor-current window uses event-time range semantics, exposes observed
@@ -671,8 +674,8 @@ completed successfully. The unchanged managed rerun remains a separate compute-c
 
 ## Not implemented
 
-- Persisted failure-horizon, temporal-feature, and eligibility data; additional sensor features;
-  and later Gold transformations.
+- Managed failure-horizon job orchestration and table materialization; persisted temporal-feature
+  and eligibility data; additional sensor features; and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and first-table Gold workflows now exist and have independently validated managed runs.
@@ -693,8 +696,9 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Commit the verified managed Gold first-run evidence. Then extend the managed Gold layer to the next
-reviewed product—failure horizons or temporal feature snapshots—while preserving the current table
-and contracts. The unchanged full-workflow idempotency rerun remains useful but must receive separate
+Add a packaged managed runner that reads `loaded_cycles`, accepted failure events, and the accepted
+telemetry observation boundary, applies the existing horizon contract, and invokes the reviewed
+`failure_horizons` writer. Workflow declaration, deployment, and execution remain later approval
+boundaries. The unchanged full-workflow idempotency rerun remains useful but must receive separate
 approval because it repeats the Bronze-to-Silver chain and consumes compute. Do not commit
 credentials, local paths, deployment state, or ignored source data.

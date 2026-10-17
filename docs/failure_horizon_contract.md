@@ -59,7 +59,9 @@ information is permitted only inside label construction; all sensor features mus
 before `prediction_timestamp`. Random row-level splitting remains prohibited.
 
 The full-source join and label-distribution inspection are now documented in the
-[failure-horizon profile](failure_horizon_profile.md). A persisted Gold boundary, past-only sensor
-windows, post-failure recovery exclusions, and interval-endpoint sensitivity analysis remain
-separate reviewed increments. No health, warning-lead-time, or model-performance result is claimed
-by this contract alone.
+[failure-horizon profile](failure_horizon_profile.md). An allowlisted managed persistence boundary
+now validates the fixed two-hour contract, inserts unseen cycle keys, treats identical reruns as
+no-ops, and rejects conflicting relabels. Its packaged runner, workflow deployment, and first table
+materialization remain separate reviewed increments, as do post-failure recovery exclusions and
+interval-endpoint sensitivity analysis. No health, warning-lead-time, or model-performance result is
+claimed by this contract alone.
