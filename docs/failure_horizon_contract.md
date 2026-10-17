@@ -66,6 +66,8 @@ accepted Silver tables, verifies one compatible lineage per Silver input, derive
 boundary from accepted telemetry, applies this contract, and invokes the writer. Workflow
 declaration now exists and passes development bundle validation: it refreshes the existing managed
 loaded-cycle workflow before running the horizon entry point, remains unscheduled, and allows only
-one active run. Deployment and first table materialization remain separate reviewed increments, as
-do post-failure recovery exclusions and interval-endpoint sensitivity analysis. No health,
-warning-lead-time, or model-performance result is claimed by this contract alone.
+one active run. Its selected read-only deployment plan contains one job creation, three upstream
+wheel-reference refreshes, and zero deletions; no existing task structure, parameters, concurrency,
+or scheduling would change. Deployment and first table materialization remain separate reviewed
+increments, as do post-failure recovery exclusions and interval-endpoint sensitivity analysis. No
+health, warning-lead-time, or model-performance result is claimed by this contract alone.

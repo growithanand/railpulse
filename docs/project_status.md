@@ -227,8 +227,8 @@ contexts, or unsupported feature statuses occur.
   managed writer. A local catalog integration test proves its first write and zero-insert rerun.
 - An unscheduled two-task failure-horizon workflow declaration invokes the existing Gold cycle job,
   then runs the packaged horizon entry point only after that dependency succeeds. It permits one
-  concurrent run, queues additional requests, and passes development bundle validation without a
-  deployment or compute run.
+  concurrent run and queues additional requests. Development bundle validation and a selected
+  read-only deployment plan pass without a deployment or compute run.
 - A read-only full-source horizon profile rebuilds accepted Silver views from Bronze, derives the
   label observation end, and reconciles every cycle status and failure-event match count.
 - A past-only 15-minute motor-current window uses event-time range semantics, exposes observed
@@ -680,6 +680,13 @@ and zero counts for all seven structural-invariant violations. Spark emitted the
 window performance warning for this single-compressor dataset, but the Gold processing task
 completed successfully. The unchanged managed rerun remains a separate compute-consuming approval.
 
+On 2026-10-17, the failure-horizon workflow passed a selected read-only deployment plan. The plan
+would create one unscheduled job, update the existing Bronze, Silver, and Gold-cycle jobs only to
+reference the newly built wheel, delete no resources, and leave four unrelated resources outside
+the selection. Detailed structured review confirmed that no existing task structure, parameters,
+concurrency setting, or schedule would change. No workspace resource was updated and no compute was
+started during this checkpoint.
+
 ## Not implemented
 
 - Managed failure-horizon workflow deployment and table materialization; persisted temporal-feature
@@ -704,9 +711,9 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Commit the validated, unscheduled failure-horizon workflow declaration. Then generate a fresh
-selected deployment plan and review every proposed resource change before any workspace update.
-Deployment and execution remain separate approval boundaries. The unchanged full-workflow
-idempotency rerun remains useful but must receive separate approval because it repeats the full
-Bronze-to-Gold cycle chain and consumes compute. Do not commit credentials, local paths, deployment
-state, or ignored source data.
+Commit the reviewed failure-horizon deployment-plan evidence. Then deploy only the reviewed
+selection without executing it, and independently confirm the new job remains unscheduled, has the
+expected two-task dependency, and has no run history. First execution remains a separate approval
+boundary because it invokes the full Bronze-to-Gold cycle chain and consumes compute. The unchanged
+full-workflow idempotency rerun also remains useful but requires separate approval. Do not commit
+credentials, local paths, deployment state, or ignored source data.
