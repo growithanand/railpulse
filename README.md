@@ -41,6 +41,12 @@ The first managed Gold workflow has now completed the full Bronze-to-Silver gate
 an empty target. Independent SQL confirmed 15,766 non-null unique cycle IDs, 243,638 loaded
 observations, the expected four boundary/censoring groups, and zero structural-invariant violations.
 
+The next managed Gold boundary is also ready: retry-safe two-hour failure-horizon persistence, its
+packaged runner, and an unscheduled workflow have been implemented, tested, reviewed, and deployed.
+Independent readback confirmed that the workflow refreshes `loaded_cycles` before deriving labels,
+permits one active run, and has no schedule or run history. Deployment did not start compute or
+create the pending `failure_horizons` table; its first run remains a separate checkpoint.
+
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
 | Source governance | Manifest, immutable paths, checksums, managed Volume | Complete |
@@ -48,7 +54,7 @@ observations, the expected four boundary/censoring groups, and zero structural-i
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
-| Managed Gold | First managed `loaded_cycles` run independently reconciled | Extend managed Gold to feature, horizon, and modelling tables |
+| Managed Gold | `loaded_cycles` reconciled; failure-horizon workflow deployed but not run | Run and reconcile horizons, then persist feature and modelling views |
 | Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
@@ -187,6 +193,9 @@ Completed managed steps:
 16. Implement and test the allowlisted managed Gold cycle writer and packaged runner.
 17. Deploy the unscheduled Silver-gated Gold workflow without starting compute.
 18. Run the full workflow and independently reconcile 15,766 managed loaded cycles.
+19. Implement and test retry-safe two-hour failure-horizon persistence and its packaged runner.
+20. Review and deploy the unscheduled Gold-cycle-gated failure-horizon workflow, then independently
+    confirm its configuration, empty run history, and absent target table without starting compute.
 
 The managed workflows now own:
 
@@ -204,6 +213,8 @@ baseline and quota-blocked attempt alongside the successful execution, observed 
 independent checks, and retry policy.
 The [first managed Gold run record](docs/managed_gold_first_run.md) preserves the reviewed baseline,
 deployment boundary, successful execution, independent SQL reconciliation, and pending rerun policy.
+The next managed step is the separately approved first failure-horizon run and independent
+reconciliation of its expected 15,766 cycle-label rows.
 
 ## Roadmap to the portfolio demonstration
 
@@ -211,8 +222,8 @@ deployment boundary, successful execution, independent SQL reconciliation, and p
    rerun.
 2. **Completed:** run and reconcile the deployed managed Silver workflow for accepted,
    quarantine, and quality outputs.
-3. **In progress:** extend the verified managed `loaded_cycles` table to feature snapshots, failure
-   horizons, and modelling views in Databricks.
+3. **In progress:** run and reconcile the deployed failure-horizon workflow, then extend managed
+   Gold to feature snapshots and modelling views in Databricks.
 4. Track final candidate training and parameters with MLflow while keeping the test period sealed.
 5. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
    the failure-event level.
@@ -313,6 +324,7 @@ rather than precise estimates of generalization or maintenance impact.
 - [Bronze ingestion](docs/bronze_ingestion.md)
 - [First managed Silver run](docs/managed_silver_first_run.md)
 - [Gold cycle build](docs/gold_cycle_build.md)
+- [Failure-horizon contract](docs/failure_horizon_contract.md)
 - [Feature snapshot v1](docs/feature_snapshot_contract.md)
 - [Feature snapshot v2](docs/feature_snapshot_v2_contract.md)
 - [Modelling-view v2 profile](docs/modeling_view_v2_profile.md)
