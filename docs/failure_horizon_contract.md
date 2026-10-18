@@ -68,6 +68,8 @@ declaration now exists and passes development bundle validation: it refreshes th
 loaded-cycle workflow before running the horizon entry point, remains unscheduled, and allows only
 one active run. Its selected read-only deployment plan contains one job creation, three upstream
 wheel-reference refreshes, and zero deletions; no existing task structure, parameters, concurrency,
-or scheduling would change. Deployment and first table materialization remain separate reviewed
-increments, as do post-failure recovery exclusions and interval-endpoint sensitivity analysis. No
-health, warning-lead-time, or model-performance result is claimed by this contract alone.
+or scheduling would change. The reviewed selection is now deployed, and independent readback
+confirms the expected two-task dependency, one-run concurrency limit, no schedule, and empty run
+history. First execution and table materialization remain a separate reviewed increment, as do
+post-failure recovery exclusions and interval-endpoint sensitivity analysis. No health,
+warning-lead-time, or model-performance result is claimed by this contract alone.

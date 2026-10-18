@@ -227,8 +227,8 @@ contexts, or unsupported feature statuses occur.
   managed writer. A local catalog integration test proves its first write and zero-insert rerun.
 - An unscheduled two-task failure-horizon workflow declaration invokes the existing Gold cycle job,
   then runs the packaged horizon entry point only after that dependency succeeds. It permits one
-  concurrent run and queues additional requests. Development bundle validation and a selected
-  read-only deployment plan pass without a deployment or compute run.
+  concurrent run and queues additional requests. Development bundle validation, selected plan
+  review, deployment, and independent configuration readback pass without a compute run.
 - A read-only full-source horizon profile rebuilds accepted Silver views from Bronze, derives the
   label observation end, and reconciles every cycle status and failure-event match count.
 - A past-only 15-minute motor-current window uses event-time range semantics, exposes observed
@@ -687,10 +687,18 @@ the selection. Detailed structured review confirmed that no existing task struct
 concurrency setting, or schedule would change. No workspace resource was updated and no compute was
 started during this checkpoint.
 
+On 2026-10-18, the reviewed selection was deployed without execution. One failure-horizon job was
+created, the Bronze, Silver, and Gold-cycle jobs received only the planned wheel-reference refresh,
+12 bundle files were uploaded, and no resource or file was deleted. Independent remote readback
+confirmed the new job is UI-locked and unscheduled, permits one concurrent run, queues additional
+requests, invokes the existing Gold-cycle job first, and runs the packaged horizon task only after
+that dependency succeeds. Its run history was empty, and the target `failure_horizons` table did not
+exist after deployment. No job compute was started.
+
 ## Not implemented
 
-- Managed failure-horizon workflow deployment and table materialization; persisted temporal-feature
-  and eligibility data; additional sensor features; and later Gold transformations.
+- Managed failure-horizon first execution and table materialization; persisted temporal-feature and
+  eligibility data; additional sensor features; and later Gold transformations.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and first-table Gold workflows now exist and have independently validated managed runs.
@@ -711,9 +719,8 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Commit the reviewed failure-horizon deployment-plan evidence. Then deploy only the reviewed
-selection without executing it, and independently confirm the new job remains unscheduled, has the
-expected two-task dependency, and has no run history. First execution remains a separate approval
-boundary because it invokes the full Bronze-to-Gold cycle chain and consumes compute. The unchanged
-full-workflow idempotency rerun also remains useful but requires separate approval. Do not commit
-credentials, local paths, deployment state, or ignored source data.
+Commit the verified failure-horizon deployment checkpoint. Then, with separate compute approval,
+run the full workflow once and independently reconcile the managed table against the frozen
+15,766-cycle label distribution and semantic invariants. The unchanged full-workflow idempotency
+rerun remains useful but requires another separate approval. Do not commit credentials, local
+paths, deployment state, or ignored source data.
