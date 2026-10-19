@@ -313,6 +313,17 @@ contexts, or unsupported feature statuses occur.
   immutable Delta writer inserts unseen keys, accepts identical reruns, rejects changed existing
   rows, and reconciles before and after counts. The existing `gold.feature_snapshots` schema and rows
   remain unchanged.
+- An allowlisted managed `gold.feature_snapshots_v2` persistence boundary now carries that same
+  insert-only contract into Unity Catalog. It requires one fixed source lineage, rejects lineage
+  mixing and conflicting existing rows, reconciles first writes and identical retries, and avoids
+  DataFrame caching for the serverless runtime. Focused Spark tests exercise the managed and local
+  writers together.
+- A managed feature-snapshot v2 runner now reads only governed `silver.telemetry_accepted` and
+  `gold.loaded_cycles`, constructs the approved past-only motor-current features, eligibility, and
+  cycle context, and writes through the catalog boundary. It never reads failure labels. Its result
+  records source lineage, fixed contract versions, eligibility counts, source populations, and
+  write reconciliation. A catalog-backed first-write and identical-rerun test passes without
+  DataFrame caching; bundle workflow deployment remains pending.
 - The full-source version 2 build materializes 15,766 rows from the immutable version 1 table and
   Gold cycle context. Its identical rerun inserts zero rows and reports all 15,766 rows unchanged;
   a column-for-column source comparison confirms version 1 remains at 15,766 unchanged rows.
@@ -707,8 +718,10 @@ interval checks. The validation warehouse was stopped immediately after the read
 
 ## Not implemented
 
-- Managed temporal-feature snapshots, eligibility data, and modelling views; additional sensor
-  features; and later Gold transformations. The unchanged failure-horizon rerun remains pending.
+- Databricks deployment and first-run validation of the managed feature snapshot; managed modelling
+  views, additional sensor features, and later Gold transformations. The feature-snapshot v2 runner
+  and persistence boundary are tested but have not written a Databricks table. The unchanged
+  failure-horizon rerun remains pending.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and the first two Gold-table workflows now exist and have independently validated managed
@@ -729,8 +742,8 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Commit the managed failure-horizon first-run record and reproducible validation SQL. Then begin the
-next small managed Gold increment by reviewing the existing local feature-snapshot contracts and
-selecting the minimum persistence boundary needed for a first Databricks feature table. The
-unchanged failure-horizon rerun remains useful but requires separate compute approval. Do not commit
-credentials, local paths, deployment state, or ignored source data.
+Add the tested feature-snapshot v2 command as one Databricks bundle task behind the existing managed
+Silver and loaded-cycle dependencies, then validate the bundle without deploying or starting
+compute. Deployment and the first managed write remain a separate approval-sized increment. The
+unchanged failure-horizon rerun remains useful but requires separate compute approval. Do not
+commit credentials, local paths, deployment state, or ignored source data.

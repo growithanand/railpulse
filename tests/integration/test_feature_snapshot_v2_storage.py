@@ -7,12 +7,16 @@ import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
+from railpulse.catalog import CatalogNamespace
 from railpulse.config import RailPulseConfig, SchemaNames, StoragePaths
 from railpulse.features.cycle_storage import gold_table_path
 from railpulse.features.feature_snapshot_v2 import build_feature_snapshot_v2
 from railpulse.features.feature_snapshot_v2_schema import FEATURE_SNAPSHOTS_V2_TABLE
 from railpulse.features.feature_snapshot_v2_storage import (
+    CATALOG_FEATURE_SNAPSHOT_V2_CONTRACT_VERSION,
     FeatureSnapshotV2PersistenceError,
+    catalog_feature_snapshot_v2_table,
+    persist_catalog_feature_snapshots_v2,
     persist_feature_snapshots_v2,
 )
 
@@ -33,6 +37,15 @@ def _test_config(tmp_path: Path) -> RailPulseConfig:
         schemas=SchemaNames(
             catalog="railpulse_test", bronze="bronze", silver="silver", gold="gold"
         ),
+    )
+
+
+def _catalog_namespace() -> CatalogNamespace:
+    return CatalogNamespace(
+        catalog="spark_catalog",
+        bronze_schema="railpulse_managed_bronze_test",
+        silver_schema="railpulse_managed_silver_test",
+        gold_schema="railpulse_managed_gold_snapshot_v2_test",
     )
 
 
@@ -214,3 +227,89 @@ def test_feature_snapshot_v2_merge_rejects_invalid_source_and_incompatible_targe
     target.write.format("delta").mode("overwrite").save(target_path)
     with pytest.raises(FeatureSnapshotV2PersistenceError, match="types differ for"):
         persist_feature_snapshots_v2(snapshots, config)
+
+
+@pytest.mark.spark
+def test_managed_feature_snapshot_v2_merge_is_allowlisted_immutable_and_serverless_safe(
+    spark: SparkSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    namespace = _catalog_namespace()
+    qualified_schema = namespace.schema("gold")
+    qualified_table = namespace.table("gold", FEATURE_SNAPSHOTS_V2_TABLE)
+    snapshots = _snapshots(spark)
+
+    def reject_persist(*args: object, **kwargs: object) -> None:
+        raise AssertionError("managed feature-snapshot v2 writes must not persist DataFrames")
+
+    monkeypatch.setattr(type(snapshots), "persist", reject_persist)
+
+    with pytest.raises(FeatureSnapshotV2PersistenceError, match="Unsupported managed"):
+        catalog_feature_snapshot_v2_table(namespace, "unexpected_table")
+
+    spark.sql(f"CREATE DATABASE IF NOT EXISTS {qualified_schema}").collect()
+    try:
+        first = persist_catalog_feature_snapshots_v2(snapshots, namespace)
+        repeated = persist_catalog_feature_snapshots_v2(snapshots, namespace)
+
+        target = spark.table(qualified_table)
+        assert first.contract_version == CATALOG_FEATURE_SNAPSHOT_V2_CONTRACT_VERSION
+        assert first.table_name == qualified_table
+        assert first.key_field == "loaded_cycle_id"
+        assert (
+            first.source_snapshot_count,
+            first.inserted_snapshot_count,
+            first.unchanged_snapshot_count,
+            first.target_snapshot_count_before,
+            first.target_snapshot_count_after,
+        ) == (2, 2, 0, 0, 2)
+        assert (
+            repeated.source_snapshot_count,
+            repeated.inserted_snapshot_count,
+            repeated.unchanged_snapshot_count,
+            repeated.target_snapshot_count_before,
+            repeated.target_snapshot_count_after,
+        ) == (2, 0, 2, 2, 2)
+        assert {row.loaded_cycle_id for row in target.collect()} == {"cycle-1", "cycle-2"}
+
+        different_lineage = snapshots.withColumn(
+            "loaded_cycle_id",
+            F.concat(F.lit("new-"), F.col("loaded_cycle_id")),
+        ).withColumn("telemetry_ingestion_batch_id", F.lit("different-batch"))
+        with pytest.raises(FeatureSnapshotV2PersistenceError, match="source lineage differs"):
+            persist_catalog_feature_snapshots_v2(different_lineage, namespace)
+
+        changed = snapshots.where(F.col("loaded_cycle_id") == "cycle-1").withColumn(
+            "cycle_context_previous_idle_seconds",
+            F.lit(999).cast("long"),
+        )
+        with pytest.raises(FeatureSnapshotV2PersistenceError, match="immutable target row"):
+            persist_catalog_feature_snapshots_v2(changed, namespace)
+
+        unchanged = spark.table(qualified_table).where(F.col("loaded_cycle_id") == "cycle-1")
+        assert unchanged.first().cycle_context_previous_idle_seconds == 800
+    finally:
+        spark.sql(f"DROP DATABASE IF EXISTS {qualified_schema} CASCADE").collect()
+
+
+@pytest.mark.spark
+def test_managed_feature_snapshot_v2_merge_rejects_invalid_source_rows(
+    spark: SparkSession,
+) -> None:
+    namespace = _catalog_namespace()
+    snapshots = _snapshots(spark)
+
+    with pytest.raises(FeatureSnapshotV2PersistenceError, match="missing managed Gold"):
+        persist_catalog_feature_snapshots_v2(snapshots.drop("cycle_context_status"), namespace)
+
+    with pytest.raises(FeatureSnapshotV2PersistenceError, match="contains no snapshot rows"):
+        persist_catalog_feature_snapshots_v2(snapshots.limit(0), namespace)
+
+    mixed_lineage = snapshots.withColumn(
+        "telemetry_ingestion_batch_id",
+        F.when(F.col("loaded_cycle_id") == "cycle-1", F.lit("different-batch")).otherwise(
+            F.col("telemetry_ingestion_batch_id")
+        ),
+    )
+    with pytest.raises(FeatureSnapshotV2PersistenceError, match=r"exactly one.*lineage"):
+        persist_catalog_feature_snapshots_v2(mixed_lineage, namespace)

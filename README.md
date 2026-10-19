@@ -226,7 +226,8 @@ the first-write evidence, exact label distribution, semantic checks, and pending
 2. **Completed:** run and reconcile the deployed managed Silver workflow for accepted,
    quarantine, and quality outputs.
 3. **Completed:** run and independently reconcile the managed two-hour failure-horizon table.
-4. **In progress:** extend managed Gold to point-in-time feature snapshots and modelling views.
+4. **In progress:** the managed point-in-time feature-snapshot runner and immutable Unity Catalog
+   write boundary are tested; bundle workflow deployment and the first managed run remain pending.
 5. Track final candidate training and parameters with MLflow while keeping the test period sealed.
 6. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
    the failure-event level.

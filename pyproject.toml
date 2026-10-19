@@ -21,6 +21,7 @@ databricks_bronze_ingestion = "railpulse.jobs.bronze_ingestion:main"
 databricks_silver_processing = "railpulse.jobs.silver_processing:main"
 databricks_gold_cycle_processing = "railpulse.jobs.gold_cycle_processing:main"
 databricks_gold_failure_horizon_processing = "railpulse.jobs.gold_failure_horizon_processing:main"
+databricks_gold_feature_snapshot_v2_processing = "railpulse.jobs.gold_feature_snapshot_v2_processing:main"
 
 [project.optional-dependencies]
 dev = [

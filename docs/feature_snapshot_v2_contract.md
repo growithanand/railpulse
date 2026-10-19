@@ -59,9 +59,18 @@ unseen cycle IDs, treats an identical rerun as unchanged, and rejects any attemp
 existing row. Source, inserted, unchanged, before, and after counts are reconciled after each Delta
 operation.
 
+`persist_catalog_feature_snapshots_v2` applies the same immutable contract to the allowlisted
+managed `gold.feature_snapshots_v2` table. The managed writer additionally requires one source
+lineage, refuses to mix that lineage with an existing target, and uses table-backed Delta operations
+without caching DataFrames so it remains compatible with the verified serverless runtime. Its
+result records the storage-contract version, fully qualified table, key field, and reconciliation
+counts.
+
 ## Deferred work
 
-The schema, in-memory builder, immutable Delta writer, and
+The schema, in-memory builder, local Delta writer, managed catalog persistence boundary, managed
+Silver/Gold-to-Gold construction runner, and
 [full-source build](feature_snapshot_v2_build.md) are tested. The local table contains 15,766
 reconciled rows, and an identical rerun inserts zero rows while the existing version 1 table remains
-unchanged. Databricks deployment and managed-table registration remain separate platform work.
+unchanged. The Databricks workflow deployment, first managed-table write, and independent SQL
+validation remain separate platform work.

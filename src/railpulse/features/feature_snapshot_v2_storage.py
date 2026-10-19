@@ -9,6 +9,7 @@ from pyspark import StorageLevel
 from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as F
 
+from railpulse.catalog import CatalogNamespace
 from railpulse.config import RailPulseConfig
 from railpulse.features.cycle_operating_context import (
     CYCLE_OPERATING_CONTEXT_VERSION,
@@ -40,6 +41,7 @@ _CONTEXT_STATUSES = (
     STATUS_INCOMPLETE_PREVIOUS,
     STATUS_INVALID_PREVIOUS_INTERVAL,
 )
+CATALOG_FEATURE_SNAPSHOT_V2_CONTRACT_VERSION = "databricks-gold-feature-snapshots-v2-write-v1"
 
 
 class FeatureSnapshotV2PersistenceError(RuntimeError):
@@ -57,6 +59,34 @@ class FeatureSnapshotV2WriteResult:
     unchanged_snapshot_count: int
     target_snapshot_count_before: int
     target_snapshot_count_after: int
+
+
+@dataclass(frozen=True)
+class CatalogFeatureSnapshotV2WriteResult:
+    """Count reconciliation for one immutable managed snapshot v2 merge."""
+
+    contract_version: str
+    table_name: str
+    key_field: str
+    source_snapshot_count: int
+    inserted_snapshot_count: int
+    unchanged_snapshot_count: int
+    target_snapshot_count_before: int
+    target_snapshot_count_after: int
+
+
+def catalog_feature_snapshot_v2_table(
+    namespace: CatalogNamespace,
+    table_name: str,
+) -> str:
+    """Return the allowlisted fully qualified managed snapshot v2 table name."""
+
+    if table_name != FEATURE_SNAPSHOTS_V2_TABLE:
+        raise FeatureSnapshotV2PersistenceError(
+            f"Unsupported managed feature-snapshot v2 table {table_name!r}; "
+            f"expected {FEATURE_SNAPSHOTS_V2_TABLE}"
+        )
+    return namespace.table("gold", table_name)
 
 
 def _all_equal(columns: tuple[str, ...]) -> Column:
@@ -166,6 +196,143 @@ def _assert_snapshot_rows_are_valid(frame: DataFrame, *, label: str) -> int:
     if frame.where(invalid_lineage).limit(1).count():
         raise FeatureSnapshotV2PersistenceError(f"{label} contains incomplete source lineage")
     return row_count
+
+
+def _snapshot_lineage(frame: DataFrame, *, label: str) -> tuple[object, ...]:
+    lineage_rows = frame.select(*FEATURE_SNAPSHOT_V2_LINEAGE_COLUMNS).distinct().limit(2).collect()
+    if len(lineage_rows) != 1:
+        raise FeatureSnapshotV2PersistenceError(
+            f"{label} must contain exactly one feature-snapshot v2 lineage"
+        )
+    return tuple(lineage_rows[0][column] for column in FEATURE_SNAPSHOT_V2_LINEAGE_COLUMNS)
+
+
+def persist_catalog_feature_snapshots_v2(
+    snapshots: DataFrame,
+    namespace: CatalogNamespace,
+) -> CatalogFeatureSnapshotV2WriteResult:
+    """Insert immutable version 2 snapshots into the allowlisted managed Gold table.
+
+    The managed table represents one lineage-bound, label-free feature snapshot. Identical retries
+    are no-ops; changing an existing cycle or mixing source lineages requires an explicit versioned
+    rebuild.
+    """
+
+    missing_columns = sorted(set(FEATURE_SNAPSHOT_V2_COLUMNS) - set(snapshots.columns))
+    if missing_columns:
+        raise FeatureSnapshotV2PersistenceError(
+            "Feature snapshots v2 are missing managed Gold persistence columns: "
+            + ", ".join(missing_columns)
+        )
+
+    qualified_table = catalog_feature_snapshot_v2_table(
+        namespace,
+        FEATURE_SNAPSHOTS_V2_TABLE,
+    )
+    source = snapshots.select(*FEATURE_SNAPSHOT_V2_COLUMNS)
+    source_count = _assert_snapshot_rows_are_valid(
+        source,
+        label="Managed feature-snapshot v2 source",
+    )
+    if not source_count:
+        raise FeatureSnapshotV2PersistenceError(
+            "Managed feature-snapshot v2 source contains no snapshot rows"
+        )
+    source_lineage = _snapshot_lineage(
+        source,
+        label="Managed feature-snapshot v2 source",
+    )
+    spark = snapshots.sparkSession
+    target_exists = spark.catalog.tableExists(qualified_table)
+    before_count = 0
+    inserted_count = source_count
+
+    if target_exists:
+        target_frame = spark.table(qualified_table)
+        _assert_compatible_schemas(source, target_frame)
+        target = target_frame.select(*FEATURE_SNAPSHOT_V2_COLUMNS)
+        before_count = _assert_snapshot_rows_are_valid(
+            target,
+            label="Managed feature-snapshot v2 target",
+        )
+        if not before_count:
+            raise FeatureSnapshotV2PersistenceError(
+                "Managed feature-snapshot v2 target contains no snapshot rows"
+            )
+        target_lineage = _snapshot_lineage(
+            target,
+            label="Managed feature-snapshot v2 target",
+        )
+        if source_lineage != target_lineage:
+            raise FeatureSnapshotV2PersistenceError(
+                "Managed feature-snapshot v2 source lineage differs from its immutable target"
+            )
+
+        matched = source.alias("source").join(
+            target.alias("target"),
+            F.col(f"source.{FEATURE_SNAPSHOT_V2_KEY_COLUMN}")
+            == F.col(f"target.{FEATURE_SNAPSHOT_V2_KEY_COLUMN}"),
+            how="inner",
+        )
+        conflict = (
+            matched.where(~_all_equal(FEATURE_SNAPSHOT_V2_COLUMNS))
+            .select(F.col(f"source.{FEATURE_SNAPSHOT_V2_KEY_COLUMN}").alias("key"))
+            .limit(1)
+            .first()
+        )
+        if conflict is not None:
+            raise FeatureSnapshotV2PersistenceError(
+                f"Feature snapshot v2 {conflict.key} conflicts with its immutable target row"
+            )
+        inserted_count = source_count - matched.count()
+
+        (
+            DeltaTable.forName(spark, qualified_table)
+            .alias("target")
+            .merge(
+                source.alias("source"),
+                f"target.{FEATURE_SNAPSHOT_V2_KEY_COLUMN} = "
+                f"source.{FEATURE_SNAPSHOT_V2_KEY_COLUMN}",
+            )
+            .whenNotMatchedInsertAll()
+            .execute()
+        )
+    else:
+        source.write.format("delta").mode("error").saveAsTable(qualified_table)
+
+    final_target = spark.table(qualified_table)
+    after_count = final_target.count()
+    unreconciled = (
+        source.alias("source")
+        .join(
+            final_target.alias("target"),
+            F.col(f"source.{FEATURE_SNAPSHOT_V2_KEY_COLUMN}")
+            == F.col(f"target.{FEATURE_SNAPSHOT_V2_KEY_COLUMN}"),
+            how="left",
+        )
+        .where(
+            F.col(f"target.{FEATURE_SNAPSHOT_V2_KEY_COLUMN}").isNull()
+            | ~_all_equal(FEATURE_SNAPSHOT_V2_COLUMNS)
+        )
+        .limit(1)
+        .count()
+    )
+    if after_count != before_count + inserted_count or unreconciled:
+        raise FeatureSnapshotV2PersistenceError(
+            f"{qualified_table} reconciliation failed: source={source_count}, "
+            f"inserted={inserted_count}, before={before_count}, after={after_count}"
+        )
+
+    return CatalogFeatureSnapshotV2WriteResult(
+        contract_version=CATALOG_FEATURE_SNAPSHOT_V2_CONTRACT_VERSION,
+        table_name=qualified_table,
+        key_field=FEATURE_SNAPSHOT_V2_KEY_COLUMN,
+        source_snapshot_count=source_count,
+        inserted_snapshot_count=inserted_count,
+        unchanged_snapshot_count=source_count - inserted_count,
+        target_snapshot_count_before=before_count,
+        target_snapshot_count_after=after_count,
+    )
 
 
 def persist_feature_snapshots_v2(
