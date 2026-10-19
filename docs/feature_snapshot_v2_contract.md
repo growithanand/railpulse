@@ -74,3 +74,18 @@ Silver/Gold-to-Gold construction runner, and
 reconciled rows, and an identical rerun inserts zero rows while the existing version 1 table remains
 unchanged. The Databricks workflow deployment, first managed-table write, and independent SQL
 validation remain separate platform work.
+
+## Managed workflow boundary
+
+The validated, unscheduled `gold_feature_snapshot_v2_processing` bundle job first invokes the
+existing managed loaded-cycle workflow. That upstream job already refreshes Bronze and Silver
+before reconciling `gold.loaded_cycles`. Only after the upstream job succeeds does the feature task
+invoke `databricks_gold_feature_snapshot_v2_processing` on serverless environment version 4. This
+keeps the dependency graph explicit without running the Silver workflow twice. The workflow has
+queueing enabled and allows only one concurrent run. Bundle validation passes; the resource has not
+yet been deployed or run.
+
+The resource-scoped bundle plan reports one job to create, three upstream jobs to update, zero
+resources to delete, and five unselected resources. The three updates are the transitive Bronze,
+Silver, and loaded-cycle workflow chain carried by the selected job and shared wheel artifact. This
+is an expected but material deployment scope, so deployment remains a separate reviewed action.

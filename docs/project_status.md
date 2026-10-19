@@ -323,7 +323,15 @@ contexts, or unsupported feature statuses occur.
   cycle context, and writes through the catalog boundary. It never reads failure labels. Its result
   records source lineage, fixed contract versions, eligibility counts, source populations, and
   write reconciliation. A catalog-backed first-write and identical-rerun test passes without
-  DataFrame caching; bundle workflow deployment remains pending.
+  DataFrame caching.
+- An unscheduled `gold_feature_snapshot_v2_processing` bundle workflow now gates the feature task
+  behind the existing loaded-cycle workflow, which already refreshes managed Silver. The feature
+  task uses the reviewed wheel entry point, four namespace parameters, serverless environment
+  version 4, queueing, and a one-run concurrency limit. Bundle validation passes. The workflow has
+  not been deployed or run. A resource-scoped bundle plan reports one job to create, three
+  transitive upstream jobs to update, zero resources to delete, and five resources not selected.
+  The planned upstream updates are Bronze, Silver, and loaded-cycle processing because the selected
+  workflow carries their nested dependency chain and shared wheel artifact.
 - The full-source version 2 build materializes 15,766 rows from the immutable version 1 table and
   Gold cycle context. Its identical rerun inserts zero rows and reports all 15,766 rows unchanged;
   a column-for-column source comparison confirms version 1 remains at 15,766 unchanged rows.
@@ -742,8 +750,9 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Add the tested feature-snapshot v2 command as one Databricks bundle task behind the existing managed
-Silver and loaded-cycle dependencies, then validate the bundle without deploying or starting
-compute. Deployment and the first managed write remain a separate approval-sized increment. The
-unchanged failure-horizon rerun remains useful but requires separate compute approval. Do not
-commit credentials, local paths, deployment state, or ignored source data.
+Commit the validated feature-snapshot workflow resource and its reviewed plan evidence. The next
+platform action is a separately approved deployment that will create the feature workflow and
+update its three transitive upstream jobs; it must not start the workflow automatically. The first
+managed feature run and validation remain another separate compute-bearing increment. The unchanged
+failure-horizon rerun also remains useful but requires compute approval. Do not commit credentials,
+local paths, deployment state, or ignored source data.
