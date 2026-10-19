@@ -164,12 +164,12 @@ known single-compressor implementation described in the Gold limitations, not a 
 failure; the Gold execution itself completed in approximately 42 seconds. A future multi-asset
 version must introduce an equipment key and partition the ordering by asset.
 
-## Unchanged rerun and retry policy
+## Verified unchanged rerun and retry policy
 
-An unchanged second full run should report zero inserted cycles, zero updated cycles, 15,766
-unchanged cycles, and 15,766 target rows before and after. This managed idempotency check remains
-pending and should be started only with separate approval because it reruns the full upstream chain
-and consumes compute.
+The managed loaded-cycle task ran again on 2026-10-19 as the required upstream dependency of the
+approved first failure-horizon workflow. It reported zero inserted cycles, zero updated cycles,
+15,766 unchanged cycles, and 15,766 target rows before and after. This closes the managed
+loaded-cycle idempotency checkpoint without requiring a standalone duplicate run.
 
 The Gold writer performs one Delta merge, but a job may still fail before the merge, after the merge,
 or during final reconciliation. Do not delete or manually edit the table as an immediate reaction.
@@ -181,7 +181,7 @@ settled cycle.
 
 ## Scope boundary
 
-This checkpoint proves managed Bronze-to-Gold loaded-cycle materialization and first-write
-reconciliation for the development dataset. The unchanged managed rerun remains pending, and this
-checkpoint does not prove failure prediction, model quality, warning lead time, maintenance impact,
-alert usefulness, or dashboard readiness.
+This checkpoint proves managed Bronze-to-Gold loaded-cycle materialization, first-write
+reconciliation, and an unchanged full-chain rerun for the development dataset. It does not prove
+failure prediction, model quality, warning lead time, maintenance impact, alert usefulness, or
+dashboard readiness.

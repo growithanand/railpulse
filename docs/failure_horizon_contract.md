@@ -3,8 +3,9 @@
 ## Scope
 
 `cycle-failure-horizon-v1` defines how RailPulse assigns a future failure-onset target to a loaded
-cycle. It is a pure Spark transformation over Gold cycles and accepted Silver failure events. This
-increment does not persist a new table, derive sensor features, or report full-source label counts.
+cycle. Its core is a pure Spark transformation over Gold cycles and accepted Silver failure events;
+the managed workflow now persists the contracted result separately. The contract does not derive
+sensor features or make a model-performance claim.
 
 The default evaluation horizon is two hours (`7,200` seconds), matching the project question. The
 transformation still requires the horizon to be supplied explicitly and records it on every row.
@@ -68,8 +69,11 @@ declaration now exists and passes development bundle validation: it refreshes th
 loaded-cycle workflow before running the horizon entry point, remains unscheduled, and allows only
 one active run. Its selected read-only deployment plan contains one job creation, three upstream
 wheel-reference refreshes, and zero deletions; no existing task structure, parameters, concurrency,
-or scheduling would change. The reviewed selection is now deployed, and independent readback
-confirms the expected two-task dependency, one-run concurrency limit, no schedule, and empty run
-history. First execution and table materialization remain a separate reviewed increment, as do
-post-failure recovery exclusions and interval-endpoint sensitivity analysis. No health,
-warning-lead-time, or model-performance result is claimed by this contract alone.
+or scheduling would change. The reviewed selection is deployed, and its first full execution has
+materialized 15,766 managed labels with the exact frozen status distribution. Independent SQL
+confirmed unique keys, one fixed version, horizon, and observation boundary, plus zero semantic or
+Silver-reference violations. The complete evidence is preserved in the
+[first managed failure-horizon run record](managed_failure_horizon_first_run.md). An unchanged
+managed rerun, post-failure recovery exclusions, and interval-endpoint sensitivity analysis remain
+separate work. No health, warning-lead-time, or model-performance result is claimed by this contract
+alone.

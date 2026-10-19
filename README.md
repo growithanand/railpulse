@@ -41,11 +41,11 @@ The first managed Gold workflow has now completed the full Bronze-to-Silver gate
 an empty target. Independent SQL confirmed 15,766 non-null unique cycle IDs, 243,638 loaded
 observations, the expected four boundary/censoring groups, and zero structural-invariant violations.
 
-The next managed Gold boundary is also ready: retry-safe two-hour failure-horizon persistence, its
-packaged runner, and an unscheduled workflow have been implemented, tested, reviewed, and deployed.
-Independent readback confirmed that the workflow refreshes `loaded_cycles` before deriving labels,
-permits one active run, and has no schedule or run history. Deployment did not start compute or
-create the pending `failure_horizons` table; its first run remains a separate checkpoint.
+The next managed Gold boundary has also completed its first run. The gated workflow refreshed every
+upstream layer without inserting or changing existing rows, then materialized 15,766 deterministic
+two-hour labels in `failure_horizons`. Independent SQL confirmed the frozen five-status distribution,
+unique cycle keys, fixed contract metadata, exact Silver failure references, and zero semantic
+violations.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -54,7 +54,7 @@ create the pending `failure_horizons` table; its first run remains a separate ch
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
-| Managed Gold | `loaded_cycles` reconciled; failure-horizon workflow deployed but not run | Run and reconcile horizons, then persist feature and modelling views |
+| Managed Gold | `loaded_cycles` and `failure_horizons` first runs independently reconciled | Persist feature and modelling views |
 | Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
@@ -196,6 +196,7 @@ Completed managed steps:
 19. Implement and test retry-safe two-hour failure-horizon persistence and its packaged runner.
 20. Review and deploy the unscheduled Gold-cycle-gated failure-horizon workflow, then independently
     confirm its configuration, empty run history, and absent target table without starting compute.
+21. Run the complete workflow and independently reconcile all 15,766 managed failure-horizon rows.
 
 The managed workflows now own:
 
@@ -207,14 +208,16 @@ The managed workflows now own:
 - `<catalog>.<silver_schema>.failure_events_accepted`
 - `<catalog>.<silver_schema>.failure_events_quarantine`
 - `<catalog>.<gold_schema>.loaded_cycles`
+- `<catalog>.<gold_schema>.failure_horizons`
 
 The [first managed Silver run record](docs/managed_silver_first_run.md) preserves the pre-run
 baseline and quota-blocked attempt alongside the successful execution, observed outputs,
 independent checks, and retry policy.
 The [first managed Gold run record](docs/managed_gold_first_run.md) preserves the reviewed baseline,
-deployment boundary, successful execution, independent SQL reconciliation, and pending rerun policy.
-The next managed step is the separately approved first failure-horizon run and independent
-reconciliation of its expected 15,766 cycle-label rows.
+deployment boundary, successful execution, independent SQL reconciliation, and verified unchanged
+rerun.
+The [first managed failure-horizon run record](docs/managed_failure_horizon_first_run.md) preserves
+the first-write evidence, exact label distribution, semantic checks, and pending rerun policy.
 
 ## Roadmap to the portfolio demonstration
 
@@ -222,13 +225,13 @@ reconciliation of its expected 15,766 cycle-label rows.
    rerun.
 2. **Completed:** run and reconcile the deployed managed Silver workflow for accepted,
    quarantine, and quality outputs.
-3. **In progress:** run and reconcile the deployed failure-horizon workflow, then extend managed
-   Gold to feature snapshots and modelling views in Databricks.
-4. Track final candidate training and parameters with MLflow while keeping the test period sealed.
-5. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
+3. **Completed:** run and independently reconcile the managed two-hour failure-horizon table.
+4. **In progress:** extend managed Gold to point-in-time feature snapshots and modelling views.
+5. Track final candidate training and parameters with MLflow while keeping the test period sealed.
+6. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
    the failure-event level.
-6. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
-7. Add a short reproducible demo path and evidence-based résumé bullets.
+7. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
+8. Add a short reproducible demo path and evidence-based résumé bullets.
 
 ## Technology
 
@@ -325,6 +328,7 @@ rather than precise estimates of generalization or maintenance impact.
 - [First managed Silver run](docs/managed_silver_first_run.md)
 - [Gold cycle build](docs/gold_cycle_build.md)
 - [Failure-horizon contract](docs/failure_horizon_contract.md)
+- [First managed failure-horizon run](docs/managed_failure_horizon_first_run.md)
 - [Feature snapshot v1](docs/feature_snapshot_contract.md)
 - [Feature snapshot v2](docs/feature_snapshot_v2_contract.md)
 - [Modelling-view v2 profile](docs/modeling_view_v2_profile.md)
