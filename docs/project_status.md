@@ -370,6 +370,12 @@ contexts, or unsupported feature statuses occur.
   keys, reconciles identical retries as unchanged, rejects changed rows or mixed source identities,
   and avoids DataFrame caching. Focused Spark/Delta tests pass for first-write, zero-insert rerun,
   conflict, lineage, invalid-state, and prediction-boundary cases.
+- A packaged modelling-view v2 runner now reads only the allowlisted managed feature-snapshot,
+  failure-horizon, and accepted failure-event tables. The accepted failure table supplies the source
+  identity intentionally absent from the horizon output. The runner requires matching feature and
+  failure dataset versions, builds and profiles the fixed view before writing, and emits structured
+  source, lineage, failure-event coverage, population, and immutable-write evidence. Four focused
+  unit tests and one managed-style Spark/Delta first-write/zero-insert-rerun test pass.
 
 Official local Bronze evidence:
 
@@ -751,9 +757,8 @@ interval checks. The validation warehouse was stopped immediately after the read
 
 ## Not implemented
 
-- The packaged managed modelling-view runner, workflow, deployment, and first write; additional
-  sensor features; and later Gold transformations. The unchanged failure-horizon rerun also remains
-  pending.
+- The managed modelling-view workflow, deployment, and first write; additional sensor features;
+  and later Gold transformations. The unchanged failure-horizon rerun also remains pending.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and the first three Gold-table workflows now exist and have independently validated
@@ -774,8 +779,8 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Commit the managed modelling-view persistence boundary and its focused tests. The next engineering
-increment is a packaged runner that reads the validated managed feature snapshots and failure
-horizons, builds the fixed version 2 modelling view, and writes only through this boundary. The
-unchanged failure-horizon rerun also remains useful but requires compute approval. Do not commit
-credentials, local paths, deployment state, or ignored source data.
+Commit the packaged managed modelling-view runner and its focused tests. The next engineering
+increment is an unscheduled bundle workflow that invokes the validated feature-snapshot workflow
+before running this entry point on serverless compute. Its resource-scoped plan must be reviewed
+before deployment. The unchanged failure-horizon rerun also remains useful but requires compute
+approval. Do not commit credentials, local paths, deployment state, or ignored source data.

@@ -78,9 +78,24 @@ does not cache DataFrames in the serverless runtime. Focused Spark/Delta tests c
 zero-insert rerun, lineage isolation, immutable-row conflict, invalid-state rejection, and boundary
 checks.
 
+## Managed processing runner
+
+`databricks_gold_modeling_view_v2_processing` reads the allowlisted managed
+`gold.feature_snapshots_v2` and `gold.failure_horizons` tables. It also reads
+`silver.failure_events_accepted` because the horizon table deliberately stores label outcomes but
+not the failure file's source identity. The runner requires one complete feature lineage and one
+complete failure-event lineage with matching dataset versions before building the view.
+
+Before writing, it profiles row statuses, ordered exclusion reasons, trainable labels, prediction
+time coverage, and positive-cycle references to accepted failure events. Its structured result
+records the three physical sources, both lineages, accepted and represented failure-event counts,
+the reconciled population summary, and immutable-write counts. Unit tests cover orchestration and
+failure paths, while a focused managed-style Spark/Delta test verifies a first write and zero-insert
+rerun through catalog tables.
+
 ## Scope boundary
 
-The fixed schema, Spark builder, focused fixture tests, full-source population profile, and managed
-persistence boundary are implemented. The packaged managed runner, Databricks workflow and first
-write, model fitting, threshold selection, and held-out test evaluation remain separate reviewable
-increments. No model-performance claim is made.
+The fixed schema, Spark builder, focused fixture tests, full-source population profile, managed
+persistence boundary, and packaged processing runner are implemented. The Databricks workflow and
+first managed write, model fitting, threshold selection, and held-out test evaluation remain
+separate reviewable increments. No model-performance claim is made.
