@@ -47,6 +47,11 @@ two-hour labels in `failure_horizons`. Independent SQL confirmed the frozen five
 unique cycle keys, fixed contract metadata, exact Silver failure references, and zero semantic
 violations.
 
+The managed `feature_snapshots_v2` workflow has completed both its first write and an identical
+rerun. The first run inserted and independently validated 15,766 point-in-time snapshots. The rerun
+inserted zero rows, matched all 15,766 existing snapshots as unchanged, and preserved the complete
+feature, eligibility, context, and source-lineage contract.
+
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
 | Source governance | Manifest, immutable paths, checksums, managed Volume | Complete |
@@ -54,7 +59,7 @@ violations.
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
-| Managed Gold | `loaded_cycles` and `failure_horizons` first runs independently reconciled | Persist feature and modelling views |
+| Managed Gold | Cycles, failure horizons, and feature snapshots independently reconciled | Persist the modelling view |
 | Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
@@ -226,8 +231,8 @@ the first-write evidence, exact label distribution, semantic checks, and pending
 2. **Completed:** run and reconcile the deployed managed Silver workflow for accepted,
    quarantine, and quality outputs.
 3. **Completed:** run and independently reconcile the managed two-hour failure-horizon table.
-4. **In progress:** the first managed point-in-time feature-snapshot run is independently validated;
-   its unchanged idempotency rerun remains pending.
+4. **Completed:** the managed point-in-time feature-snapshot first write and unchanged idempotency
+   rerun are independently reconciled.
 5. Track final candidate training and parameters with MLflow while keeping the test period sealed.
 6. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
    the failure-event level.

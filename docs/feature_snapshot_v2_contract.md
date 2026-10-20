@@ -73,7 +73,8 @@ Silver/Gold-to-Gold construction runner, and
 [full-source build](feature_snapshot_v2_build.md) are tested. The local table contains 15,766
 reconciled rows, and an identical rerun inserts zero rows while the existing version 1 table remains
 unchanged. The Databricks workflow is deployed, and its first managed write and independent SQL
-validation are complete. The managed unchanged rerun remains separate platform work.
+validation are complete. Its managed unchanged rerun also inserts zero rows, reports all 15,766
+source snapshots unchanged, and preserves the 15,766-row target.
 
 ## Managed workflow boundary
 
@@ -96,3 +97,9 @@ reproduced all feature, eligibility, reason, and cycle-context counts, confirmed
 and source lineage, found zero semantic or boundary violations, and found no failure, label, or
 target columns. The detailed evidence is preserved in the
 [first managed feature-snapshot v2 run record](managed_feature_snapshot_v2_first_run.md).
+
+The subsequent identical full-workflow rerun completed successfully. It refreshed the governed
+upstream dependency chain, read the same 1,516,948 accepted telemetry rows and 15,766 loaded cycles,
+inserted zero snapshots, matched all 15,766 source snapshots as unchanged, and retained 15,766
+target rows. This closes managed feature-snapshot idempotency without modifying the immutable
+contract or starting separate validation compute.

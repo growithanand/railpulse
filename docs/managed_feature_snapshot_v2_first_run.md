@@ -78,8 +78,22 @@ ordering is intentional because predecessor context spans the single compressor 
 completed successfully and every independent semantic check passed. The warning records a future
 scalability consideration rather than a correctness failure for this dataset.
 
-## Deferred retry
+## Idempotency rerun
 
-The first managed write is complete and independently validated. An identical full workflow rerun
-remains a separate compute-bearing action. It must report zero inserted rows and all 15,766 source
-snapshots unchanged before managed feature-snapshot idempotency is closed.
+On 2026-10-20, the identical full workflow completed successfully in approximately 6 minutes 35
+seconds. The upstream refresh took approximately 4 minutes 50 seconds, and the feature task took
+approximately 1 minute 41 seconds. The task read the same 1,516,948 accepted telemetry rows and
+15,766 loaded cycles and reported:
+
+| Measure | Count |
+| --- | ---: |
+| Source snapshots | 15,766 |
+| Inserted snapshots | 0 |
+| Unchanged snapshots | 15,766 |
+| Target rows before | 15,766 |
+| Target rows after | 15,766 |
+
+The eligibility distribution remained 15,418 eligible and 348 ineligible rows, with the same 63
+missing-prediction-boundary and 285 material-gap reasons. The fixed versions, 900-second feature
+window, 20-second gap threshold, and source lineage also remained unchanged. This closes managed
+feature-snapshot idempotency. No separate SQL warehouse was started for the rerun.

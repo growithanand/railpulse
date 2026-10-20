@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — managed feature snapshot independently validated**
+**Databricks migration — managed feature-snapshot idempotency verified**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -344,6 +344,11 @@ contexts, or unsupported feature statuses occur.
   with loaded cycles, 15,418 eligible and 348 ineligible rows, the expected feature and context
   distributions, one fixed contract and lineage, and zero violations across eight semantic,
   boundary, lineage, and label-isolation checks. The validation warehouse was stopped immediately.
+- On 2026-10-20, the identical managed workflow reran successfully in approximately 6 minutes 35
+  seconds. It read the same 1,516,948 accepted telemetry rows and 15,766 loaded cycles, inserted zero
+  snapshots, matched all 15,766 source snapshots as unchanged, and preserved 15,766 target rows.
+  Feature, eligibility, reason, context, fixed-version, threshold, and source-lineage values remained
+  unchanged. No separate SQL warehouse was started for this rerun.
 - The full-source version 2 build materializes 15,766 rows from the immutable version 1 table and
   Gold cycle context. Its identical rerun inserts zero rows and reports all 15,766 rows unchanged;
   a column-for-column source comparison confirms version 1 remains at 15,766 unchanged rows.
@@ -709,7 +714,8 @@ the nine reviewed columns; total, non-null-ID, and distinct-ID counts of 15,766;
 observations; 15,703 durations; 63 right-censored cycles; all four expected start/censoring groups;
 and zero counts for all seven structural-invariant violations. Spark emitted the documented global
 window performance warning for this single-compressor dataset, but the Gold processing task
-completed successfully. The unchanged managed rerun remains a separate compute-consuming approval.
+completed successfully. The later failure-horizon workflow refresh closed the unchanged managed
+cycle rerun on 2026-10-19.
 
 On 2026-10-17, the failure-horizon workflow passed a selected read-only deployment plan. The plan
 would create one unscheduled job, update the existing Bronze, Silver, and Gold-cycle jobs only to
@@ -738,8 +744,8 @@ interval checks. The validation warehouse was stopped immediately after the read
 
 ## Not implemented
 
-- The managed feature-snapshot unchanged rerun; managed modelling views, additional sensor features,
-  and later Gold transformations. The unchanged failure-horizon rerun also remains pending.
+- Managed modelling views, additional sensor features, and later Gold transformations. The
+  unchanged failure-horizon rerun also remains pending.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and the first three Gold-table workflows now exist and have independently validated
@@ -760,8 +766,8 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Commit the first managed feature-run record and reproducible validation SQL. The next platform
-action is a separately approved identical workflow rerun, which must insert zero rows and report all
-15,766 source snapshots unchanged before the feature layer is considered complete. The unchanged
-failure-horizon rerun also remains useful but requires compute approval. Do not commit credentials,
-local paths, deployment state, or ignored source data.
+Commit the managed feature-snapshot idempotency evidence. The next engineering increment is the
+managed modelling-view persistence boundary that joins the validated feature snapshots to the
+failure-horizon labels without changing either immutable source. The unchanged failure-horizon
+rerun also remains useful but requires compute approval. Do not commit credentials, local paths,
+deployment state, or ignored source data.
