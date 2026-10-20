@@ -72,8 +72,8 @@ The schema, in-memory builder, local Delta writer, managed catalog persistence b
 Silver/Gold-to-Gold construction runner, and
 [full-source build](feature_snapshot_v2_build.md) are tested. The local table contains 15,766
 reconciled rows, and an identical rerun inserts zero rows while the existing version 1 table remains
-unchanged. The Databricks workflow deployment, first managed-table write, and independent SQL
-validation remain separate platform work.
+unchanged. The Databricks workflow is deployed, and its first managed write and independent SQL
+validation are complete. The managed unchanged rerun remains separate platform work.
 
 ## Managed workflow boundary
 
@@ -82,10 +82,17 @@ existing managed loaded-cycle workflow. That upstream job already refreshes Bron
 before reconciling `gold.loaded_cycles`. Only after the upstream job succeeds does the feature task
 invoke `databricks_gold_feature_snapshot_v2_processing` on serverless environment version 4. This
 keeps the dependency graph explicit without running the Silver workflow twice. The workflow has
-queueing enabled and allows only one concurrent run. Bundle validation passes; the resource has not
-yet been deployed or run.
+queueing enabled and allows only one concurrent run. Bundle validation passes. Immediately after
+deployment, a read-only run-history check confirmed that deployment itself had not started compute.
 
-The resource-scoped bundle plan reports one job to create, three upstream jobs to update, zero
-resources to delete, and five unselected resources. The three updates are the transitive Bronze,
-Silver, and loaded-cycle workflow chain carried by the selected job and shared wheel artifact. This
-is an expected but material deployment scope, so deployment remains a separate reviewed action.
+The reviewed resource-scoped bundle plan reported one job to create, three upstream jobs to update,
+zero resources to delete, and five unselected resources. Deployment applied that exact scope: it
+created the feature workflow, updated the transitive Bronze, Silver, and loaded-cycle workflows,
+deleted nothing, and uploaded the shared wheel. No workflow was started.
+
+The subsequent approved first run completed successfully and inserted 15,766 snapshots into an
+empty managed Delta target. Independent SQL reconciled every key with managed loaded cycles,
+reproduced all feature, eligibility, reason, and cycle-context counts, confirmed one fixed contract
+and source lineage, found zero semantic or boundary violations, and found no failure, label, or
+target columns. The detailed evidence is preserved in the
+[first managed feature-snapshot v2 run record](managed_feature_snapshot_v2_first_run.md).

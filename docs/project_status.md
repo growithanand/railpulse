@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — first managed Gold table independently validated**
+**Databricks migration — managed feature snapshot independently validated**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -327,11 +327,23 @@ contexts, or unsupported feature statuses occur.
 - An unscheduled `gold_feature_snapshot_v2_processing` bundle workflow now gates the feature task
   behind the existing loaded-cycle workflow, which already refreshes managed Silver. The feature
   task uses the reviewed wheel entry point, four namespace parameters, serverless environment
-  version 4, queueing, and a one-run concurrency limit. Bundle validation passes. The workflow has
-  not been deployed or run. A resource-scoped bundle plan reports one job to create, three
+  version 4, queueing, and a one-run concurrency limit. Bundle validation passes. A resource-scoped
+  bundle plan reported one job to create, three
   transitive upstream jobs to update, zero resources to delete, and five resources not selected.
   The planned upstream updates are Bronze, Silver, and loaded-cycle processing because the selected
   workflow carries their nested dependency chain and shared wheel artifact.
+- The reviewed deployment applied that exact scope: the feature workflow was created, the three
+  transitive upstream jobs were updated, the shared wheel and bundle files were uploaded, and no
+  resource was deleted. A read-only workspace check immediately after deployment confirmed that
+  the development workflow existed with zero recorded runs, so deployment itself did not start
+  compute.
+- The approved first managed feature run then completed successfully in approximately 6 minutes 32
+  seconds. Its upstream refresh and feature tasks both succeeded. The feature task read 1,516,948
+  accepted telemetry rows and 15,766 loaded cycles, then inserted 15,766 snapshots into an empty
+  managed Delta table. Independent SQL confirmed 15,766 non-null unique keys, exact key equality
+  with loaded cycles, 15,418 eligible and 348 ineligible rows, the expected feature and context
+  distributions, one fixed contract and lineage, and zero violations across eight semantic,
+  boundary, lineage, and label-isolation checks. The validation warehouse was stopped immediately.
 - The full-source version 2 build materializes 15,766 rows from the immutable version 1 table and
   Gold cycle context. Its identical rerun inserts zero rows and reports all 15,766 rows unchanged;
   a column-for-column source comparison confirms version 1 remains at 15,766 unchanged rows.
@@ -726,14 +738,12 @@ interval checks. The validation warehouse was stopped immediately after the read
 
 ## Not implemented
 
-- Databricks deployment and first-run validation of the managed feature snapshot; managed modelling
-  views, additional sensor features, and later Gold transformations. The feature-snapshot v2 runner
-  and persistence boundary are tested but have not written a Databricks table. The unchanged
-  failure-horizon rerun remains pending.
+- The managed feature-snapshot unchanged rerun; managed modelling views, additional sensor features,
+  and later Gold transformations. The unchanged failure-horizon rerun also remains pending.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
-  Silver, and the first two Gold-table workflows now exist and have independently validated managed
-  runs. Later managed Gold products remain pending.
+  Silver, and the first three Gold-table workflows now exist and have independently validated
+  managed runs. Later managed Gold products remain pending.
 
 No predictive-model performance, failure-detection, warning-lead-time, false-alarm, or cost result
 has been measured.
@@ -750,9 +760,8 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Commit the validated feature-snapshot workflow resource and its reviewed plan evidence. The next
-platform action is a separately approved deployment that will create the feature workflow and
-update its three transitive upstream jobs; it must not start the workflow automatically. The first
-managed feature run and validation remain another separate compute-bearing increment. The unchanged
+Commit the first managed feature-run record and reproducible validation SQL. The next platform
+action is a separately approved identical workflow rerun, which must insert zero rows and report all
+15,766 source snapshots unchanged before the feature layer is considered complete. The unchanged
 failure-horizon rerun also remains useful but requires compute approval. Do not commit credentials,
 local paths, deployment state, or ignored source data.
