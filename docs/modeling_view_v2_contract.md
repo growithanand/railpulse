@@ -93,9 +93,28 @@ the reconciled population summary, and immutable-write counts. Unit tests cover 
 failure paths, while a focused managed-style Spark/Delta test verifies a first write and zero-insert
 rerun through catalog tables.
 
+## Managed workflow boundary
+
+The validated, unscheduled `gold_modeling_view_v2_processing` bundle job first invokes the existing
+managed feature-snapshot v2 workflow. Only after that workflow succeeds does the modelling-view task
+invoke `databricks_gold_modeling_view_v2_processing` on serverless environment version 4. Queueing
+is enabled, concurrent runs are limited to one, and the downstream task uses an `ALL_SUCCESS` gate.
+
+The already materialized immutable `gold.failure_horizons` table is read rather than rebuilt by a
+second nested upstream chain. The runner's one-to-one population, version, boundary, and lineage
+checks fail closed if that label table is no longer compatible with the refreshed snapshots. This
+avoids duplicating the complete Bronze-to-Gold refresh within one modelling-view run while keeping
+stale or mismatched inputs from being written.
+
+Strict bundle validation passes. The reviewed resource-scoped plan reports one job to create, four
+transitive upstream jobs to update only with the newly built shared wheel, zero resources to delete,
+and five resources outside the selection. No task graph, parameters, concurrency setting, or
+schedule on an existing job would change. The plan is read-only: no resource was deployed and no
+compute was started.
+
 ## Scope boundary
 
 The fixed schema, Spark builder, focused fixture tests, full-source population profile, managed
-persistence boundary, and packaged processing runner are implemented. The Databricks workflow and
-first managed write, model fitting, threshold selection, and held-out test evaluation remain
-separate reviewable increments. No model-performance claim is made.
+persistence boundary, packaged processing runner, and validated workflow definition are
+implemented. Workflow deployment, first managed write, model fitting, threshold selection, and
+held-out test evaluation remain separate reviewable increments. No model-performance claim is made.

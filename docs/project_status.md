@@ -376,6 +376,15 @@ contexts, or unsupported feature statuses occur.
   failure dataset versions, builds and profiles the fixed view before writing, and emits structured
   source, lineage, failure-event coverage, population, and immutable-write evidence. Four focused
   unit tests and one managed-style Spark/Delta first-write/zero-insert-rerun test pass.
+- An unscheduled `gold_modeling_view_v2_processing` bundle workflow now gates that runner behind the
+  existing feature-snapshot v2 workflow. Its modelling task uses the reviewed wheel entry point,
+  four namespace parameters, serverless environment version 4, queueing, an `ALL_SUCCESS` gate, and
+  a one-run concurrency limit. The immutable failure-horizon input is not rebuilt through a second
+  duplicate upstream chain; the runner rejects incompatible keys, versions, boundaries, or lineage.
+  Strict bundle validation passes. A resource-scoped plan reports one job to create, four transitive
+  upstream jobs to update only with the newly built wheel reference, zero resources to delete, and
+  five resources outside the selection. No existing task graph or schedule would change. Nothing
+  was deployed and no compute was started.
 
 Official local Bronze evidence:
 
@@ -757,8 +766,8 @@ interval checks. The validation warehouse was stopped immediately after the read
 
 ## Not implemented
 
-- The managed modelling-view workflow, deployment, and first write; additional sensor features;
-  and later Gold transformations. The unchanged failure-horizon rerun also remains pending.
+- The managed modelling-view workflow deployment and first write; additional sensor features; and
+  later Gold transformations. The unchanged failure-horizon rerun also remains pending.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and the first three Gold-table workflows now exist and have independently validated
@@ -779,8 +788,9 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Commit the packaged managed modelling-view runner and its focused tests. The next engineering
-increment is an unscheduled bundle workflow that invokes the validated feature-snapshot workflow
-before running this entry point on serverless compute. Its resource-scoped plan must be reviewed
-before deployment. The unchanged failure-horizon rerun also remains useful but requires compute
-approval. Do not commit credentials, local paths, deployment state, or ignored source data.
+Commit the declared and plan-reviewed modelling-view workflow. The next engineering increment is a
+scoped deployment of that unscheduled workflow followed by read-only configuration and empty-run-
+history checks. Deployment must not execute the job or start compute. The first managed write and
+its independent SQL validation remain a later explicit approval point. The unchanged
+failure-horizon rerun also remains useful but requires compute approval. Do not commit credentials,
+local paths, deployment state, or ignored source data.

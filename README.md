@@ -56,7 +56,10 @@ An allowlisted persistence boundary for `gold.modeling_view_v2` is also implemen
 locally. It validates the feature and failure lineages, prediction-boundary and row-eligibility
 semantics, and immutable cycle-key merges. A packaged runner now reads the managed feature
 snapshots and failure horizons plus accepted failure-event lineage, builds the fixed view, and
-writes only through that boundary. A Databricks workflow has not yet been added.
+writes only through that boundary. An unscheduled, feature-snapshot-gated Databricks workflow is
+declared and passes strict bundle validation. Its reviewed resource-scoped plan would create one
+job, refresh only the shared wheel reference on four transitive upstream jobs, and delete nothing;
+deployment and execution remain separate approval points.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -65,7 +68,7 @@ writes only through that boundary. A Databricks workflow has not yet been added.
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
-| Managed Gold | Source products reconciled; modelling-view runner tested locally | Add the managed modelling-view workflow |
+| Managed Gold | Modelling-view workflow declared, validated, and plan-reviewed | Deploy the reviewed workflow without running it |
 | Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 

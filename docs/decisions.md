@@ -258,3 +258,21 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   referenced Bronze job's wheel dependency, and deleted nothing. A remote read confirmed the
   Bronze-gated two-task graph, serverless environment, queueing, one-run concurrency limit, and
   empty Silver run history. The workflow was not executed and created no Silver table.
+
+## ADR-022 — Gate managed modelling-view v2 processing with feature snapshots
+
+- **Status:** Accepted
+- **Decision:** Declare a separate, unscheduled modelling-view v2 workflow whose first task invokes
+  the existing managed feature-snapshot v2 workflow and whose second task runs the modelling-view
+  wheel entry point only after that upstream workflow succeeds.
+- **Why:** The feature workflow already owns the complete Bronze-to-Silver-to-cycle refresh and the
+  label-free snapshot build. Reusing it keeps one authoritative feature path. The immutable
+  failure-horizon table is consumed directly instead of launching a second duplicate upstream
+  chain; the runner's population, version, boundary, and lineage checks reject incompatible inputs.
+- **Guardrail:** Allow one concurrent run, enable queueing, use `ALL_SUCCESS`, and keep the workflow
+  unscheduled. Strict bundle validation and a selected read-only plan must pass before deployment.
+- **Deployment boundary:** This decision declares and validates the workflow only. Deployment,
+  execution, and creation of `gold.modeling_view_v2` remain separate review gates.
+- **Evidence:** The selected plan would create one job, update four transitive upstream jobs only to
+  reference the newly built wheel, delete no resources, and leave five resources unselected. No
+  existing task graph, parameters, concurrency setting, or schedule would change.

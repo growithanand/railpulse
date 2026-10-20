@@ -1,0 +1,31 @@
+resources:
+  jobs:
+    gold_modeling_view_v2_processing:
+      name: railpulse-gold-modeling-view-v2-processing
+      description: Refresh managed feature snapshots v2, then build and reconcile the chronological modelling view v2.
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      tasks:
+        - task_key: refresh_feature_snapshots_v2
+          run_job_task:
+            job_id: ${resources.jobs.gold_feature_snapshot_v2_processing.id}
+        - task_key: process_gold_modeling_view_v2
+          depends_on:
+            - task_key: refresh_feature_snapshots_v2
+          run_if: ALL_SUCCESS
+          environment_key: default
+          python_wheel_task:
+            package_name: railpulse
+            entry_point: databricks_gold_modeling_view_v2_processing
+            named_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              gold_schema: ${var.gold_schema}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl
