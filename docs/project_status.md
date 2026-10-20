@@ -363,6 +363,13 @@ contexts, or unsupported feature statuses occur.
   15,272 trainable and 494 excluded rows. Requiring complete cycle context excludes 141 rows that
   were trainable in version 1, while retaining all 22 positive labels and the same three represented
   failure events. This is population evidence only; no model or threshold has been selected.
+- An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
+  feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
+  failure lineage; one label-observation boundary; supported target and row-status semantics;
+  ordered exclusion reasons; and feature-window alignment. Its immutable merge inserts unseen cycle
+  keys, reconciles identical retries as unchanged, rejects changed rows or mixed source identities,
+  and avoids DataFrame caching. Focused Spark/Delta tests pass for first-write, zero-insert rerun,
+  conflict, lineage, invalid-state, and prediction-boundary cases.
 
 Official local Bronze evidence:
 
@@ -744,8 +751,9 @@ interval checks. The validation warehouse was stopped immediately after the read
 
 ## Not implemented
 
-- Managed modelling views, additional sensor features, and later Gold transformations. The
-  unchanged failure-horizon rerun also remains pending.
+- The packaged managed modelling-view runner, workflow, deployment, and first write; additional
+  sensor features; and later Gold transformations. The unchanged failure-horizon rerun also remains
+  pending.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and the first three Gold-table workflows now exist and have independently validated
@@ -766,8 +774,8 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Commit the managed feature-snapshot idempotency evidence. The next engineering increment is the
-managed modelling-view persistence boundary that joins the validated feature snapshots to the
-failure-horizon labels without changing either immutable source. The unchanged failure-horizon
-rerun also remains useful but requires compute approval. Do not commit credentials, local paths,
-deployment state, or ignored source data.
+Commit the managed modelling-view persistence boundary and its focused tests. The next engineering
+increment is a packaged runner that reads the validated managed feature snapshots and failure
+horizons, builds the fixed version 2 modelling view, and writes only through this boundary. The
+unchanged failure-horizon rerun also remains useful but requires compute approval. Do not commit
+credentials, local paths, deployment state, or ignored source data.

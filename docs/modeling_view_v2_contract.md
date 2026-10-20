@@ -63,8 +63,24 @@ The [read-only full-source profile](modeling_view_v2_profile.md) rebuilds the ve
 horizons, joins the immutable version 2 snapshot, reconciles every row and exclusion reason, and
 records the effect of requiring complete cycle context without writing a table.
 
+## Managed persistence boundary
+
+`persist_catalog_modeling_view_v2` writes only to the allowlisted `gold.modeling_view_v2` table. It
+requires the fixed feature, eligibility, context, horizon, and modelling-view versions; one complete
+feature lineage; one complete failure lineage; and one label-observation boundary. It also verifies
+the dataset relationship, supported statuses, target semantics, ordered exclusion reasons, and
+feature-window alignment before writing.
+
+The managed table is immutable by `loaded_cycle_id`. New keys may be inserted, an identical rerun
+is reconciled as unchanged, and any changed existing row or mixed source identity is rejected. The
+writer compares logical Spark types, reconciles source/inserted/unchanged/before/after counts, and
+does not cache DataFrames in the serverless runtime. Focused Spark/Delta tests cover its first write,
+zero-insert rerun, lineage isolation, immutable-row conflict, invalid-state rejection, and boundary
+checks.
+
 ## Scope boundary
 
-The fixed schema, Spark builder, focused fixture tests, and full-source population profile are
-implemented. Model fitting, threshold selection, held-out test evaluation, persistence, and
-Databricks deployment are separate reviewable increments. No model-performance claim is made.
+The fixed schema, Spark builder, focused fixture tests, full-source population profile, and managed
+persistence boundary are implemented. The packaged managed runner, Databricks workflow and first
+write, model fitting, threshold selection, and held-out test evaluation remain separate reviewable
+increments. No model-performance claim is made.
