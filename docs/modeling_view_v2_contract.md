@@ -112,9 +112,21 @@ and five resources outside the selection. No task graph, parameters, concurrency
 schedule on an existing job would change. The plan is read-only: no resource was deployed and no
 compute was started.
 
+On 2026-10-22, the selected deployment uploaded 14 bundle files and updated the four existing jobs'
+shared wheel references before Databricks rejected creation of the new job with an account-level
+inactive-organization error. An exact-name, read-only job lookup returned no modelling-view job.
+After workspace sign-in was restored, an unchanged selected retry created the job, refreshed the
+same four upstream wheel references, uploaded four changed bundle files, and deleted nothing.
+Independent readback confirmed exactly two tasks, the feature-snapshot job dependency, the reviewed
+wheel entry point and four namespace parameters, serverless environment version 4, `ALL_SUCCESS`,
+queueing, a one-run concurrency limit, no schedule, and zero runs. A read-only Catalog lookup also
+confirmed that `gold.modeling_view_v2` does not exist. Deployment therefore started no compute and
+wrote no table.
+
 ## Scope boundary
 
 The fixed schema, Spark builder, focused fixture tests, full-source population profile, managed
 persistence boundary, packaged processing runner, and validated workflow definition are
-implemented. Workflow deployment, first managed write, model fitting, threshold selection, and
-held-out test evaluation remain separate reviewable increments. No model-performance claim is made.
+implemented. The workflow is deployed but has never run. Its first managed write, model fitting,
+threshold selection, and held-out test evaluation remain separate reviewable increments. No
+model-performance claim is made.

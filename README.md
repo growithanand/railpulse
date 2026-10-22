@@ -59,7 +59,14 @@ snapshots and failure horizons plus accepted failure-event lineage, builds the f
 writes only through that boundary. An unscheduled, feature-snapshot-gated Databricks workflow is
 declared and passes strict bundle validation. Its reviewed resource-scoped plan would create one
 job, refresh only the shared wheel reference on four transitive upstream jobs, and delete nothing;
-deployment and execution remain separate approval points.
+deployment and execution remain separate approval points. A selected deployment attempt on
+2026-10-22 uploaded the reviewed bundle and refreshed those four wheel references, but Databricks
+rejected creation of the new job because the workspace organization is not active. A read-only
+lookup confirmed that the modelling-view job did not exist. After workspace sign-in was restored,
+an unchanged retry created the job and refreshed the same four wheel references without deleting
+anything. Independent readback confirmed the reviewed two-task graph, serverless environment,
+queueing, one-run concurrency limit, no schedule, zero runs, and an absent target table. No workflow
+ran and no compute started.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -68,7 +75,7 @@ deployment and execution remain separate approval points.
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
-| Managed Gold | Modelling-view workflow declared, validated, and plan-reviewed | Deploy the reviewed workflow without running it |
+| Managed Gold | Modelling-view workflow deployed and independently verified with zero runs | Freeze and review the first managed-write contract |
 | Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 

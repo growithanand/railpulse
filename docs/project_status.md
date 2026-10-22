@@ -384,7 +384,18 @@ contexts, or unsupported feature statuses occur.
   Strict bundle validation passes. A resource-scoped plan reports one job to create, four transitive
   upstream jobs to update only with the newly built wheel reference, zero resources to delete, and
   five resources outside the selection. No existing task graph or schedule would change. Nothing
-  was deployed and no compute was started.
+  was deployed and no compute was started at the plan-review checkpoint.
+- On 2026-10-22, a selected deployment uploaded 14 bundle files and refreshed the shared wheel
+  reference on the four reviewed upstream jobs. Databricks then rejected creation of the new
+  modelling-view job because the workspace organization is not active. A read-only exact-name
+  lookup returned no such job, so it has no configuration or run history to inspect. No workflow
+  was executed and no compute was started. After workspace sign-in was restored, the unchanged
+  selected retry created the modelling-view job, refreshed the same four shared wheel references,
+  uploaded four changed bundle files, and deleted nothing. Independent readback confirmed the
+  reviewed two-task dependency graph, wheel entry point, four namespace parameters, serverless
+  environment version 4, `ALL_SUCCESS`, queueing, one-run concurrency, no schedule, and zero runs.
+  A final read-only Catalog lookup confirmed that `gold.modeling_view_v2` is absent. Deployment
+  therefore created no table and started no compute.
 
 Official local Bronze evidence:
 
@@ -788,9 +799,8 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Commit the declared and plan-reviewed modelling-view workflow. The next engineering increment is a
-scoped deployment of that unscheduled workflow followed by read-only configuration and empty-run-
-history checks. Deployment must not execute the job or start compute. The first managed write and
-its independent SQL validation remain a later explicit approval point. The unchanged
-failure-horizon rerun also remains useful but requires compute approval. Do not commit credentials,
-local paths, deployment state, or ignored source data.
+Commit the modelling-view deployment record. Then freeze the first-run baseline, expected population
+and status counts, independent SQL validation, and retry procedure before seeking approval to run
+the workflow. The first managed write remains a separate explicit compute and table-mutation gate.
+The unchanged failure-horizon rerun also remains useful but requires compute approval. Do not commit
+credentials, local paths, deployment state, or ignored source data.

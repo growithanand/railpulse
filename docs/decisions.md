@@ -275,4 +275,10 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   execution, and creation of `gold.modeling_view_v2` remain separate review gates.
 - **Evidence:** The selected plan would create one job, update four transitive upstream jobs only to
   reference the newly built wheel, delete no resources, and leave five resources unselected. No
-  existing task graph, parameters, concurrency setting, or schedule would change.
+  existing task graph, parameters, concurrency setting, or schedule would change. The first selected
+  deployment refreshed those wheel references but the account-level inactive-organization gate
+  rejected creation of the new job. A read-only lookup confirmed the job remained absent, and no
+  workflow or compute was started. After sign-in was restored, an unchanged retry created the job
+  and changed only those wheel references. Independent readback confirmed the reviewed two-task
+  graph, serverless environment, queue and concurrency controls, no schedule, zero runs, and an
+  absent target table.
