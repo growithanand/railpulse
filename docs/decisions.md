@@ -307,3 +307,34 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   coefficients, intercepts, and optimizer iterations for later MLflow logging. Focused contract and
   Spark tests pass. No full-source fit, MLflow run, candidate selection, or performance claim has
   been made.
+
+## ADR-024 — Track one comparison parent with two nested candidate runs
+
+- **Status:** Accepted
+- **Decision:** Log the fixed comparison contract once in a parent MLflow run and log each of the
+  two reviewed feature sets in its own nested child run.
+- **Why:** The parent preserves the shared split, estimator, code, dataset, and source-lineage
+  identity, while the child runs keep each candidate's inputs and validation evidence independently
+  inspectable without duplicating the complete contract.
+- **Guardrail:** Validate all evidence before starting a run. Log only train/validation counts,
+  validation AUPRC, iterations, coefficients, and intercepts; do not log test evidence, predictions,
+  alert thresholds, a registered model, or an automatic winner.
+- **Evidence boundary:** Ten focused tracking and contract tests pass using an in-memory
+  MLflow-compatible recorder. No remote MLflow experiment, full-source fit, candidate selection, or
+  model-performance claim has been made.
+
+## ADR-025 — Derive experiment lineage only from development rows
+
+- **Status:** Accepted
+- **Decision:** Make the managed comparison runner read only the allowlisted version 2 modelling
+  table and derive its tracking identity from trainable rows strictly before the sealed test period.
+  Require the experiment name and code version as explicit runner inputs.
+- **Why:** The experiment record must identify the exact managed sources and code without allowing
+  July test values or lineage to influence development metadata.
+- **Guardrail:** Reject missing boundary columns, zero or mixed development identities, incompatible
+  SHA-256 or version fields, and all downstream development, comparison, or tracking contract
+  failures before recording MLflow evidence.
+- **Evidence boundary:** Three unit tests and three Spark tests cover routing, explicit arguments,
+  error propagation, pre-test context isolation, mixed-lineage rejection, and missing-column
+  rejection. The entry point is not yet present in a Databricks workflow, and no compute or remote
+  experiment has been started.

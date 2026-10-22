@@ -2,7 +2,12 @@
 
 ## Current phase
 
-**Databricks migration — managed modelling-view idempotency verified**
+**Model candidate comparison — managed runner implemented locally**
+
+The current frontier is a packaged runner that reads the allowlisted managed modelling view,
+derives one pre-test tracking identity, fits the two fixed development-only candidates, and sends
+their approved evidence to the MLflow boundary. Its Databricks workflow has not been declared,
+deployed, or run, and no remote experiment exists yet.
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -373,8 +378,21 @@ contexts, or unsupported feature statuses occur.
   eight permitted inputs from the selected train and validation periods. A new comparison engine
   fits both reviewed candidates in fixed order and returns auditable partition counts, validation
   AUPRC, coefficients, intercepts, and iteration counts without exposing a test frame or selecting a
-  winner. Six contract unit tests and six focused Spark tests pass. The full-source run and MLflow
-  logging remain separate increments, so no candidate-performance result is claimed yet.
+  winner. Six contract unit tests and six focused Spark tests pass.
+- A guarded MLflow tracking boundary now validates the fixed comparison result and its source,
+  ingestion, dataset, feature-snapshot, code, and label-observation identities before opening any
+  run. It records one parent contract run and two nested candidate runs containing only reviewed
+  train/validation counts, estimator parameters, validation AUPRC, iterations, intercepts, and
+  coefficients. Ten focused tracking and contract tests pass against an in-memory MLflow-compatible
+  recorder. No remote MLflow experiment or full-source fit has run, so no candidate-performance
+  result is claimed yet.
+- A packaged managed comparison runner now resolves only the allowlisted `gold.modeling_view_v2`
+  table, requires explicit experiment and code-version inputs, derives one complete tracking
+  identity from trainable rows before the sealed test boundary, prepares the restricted development
+  frames, fits both candidates, and hands their evidence to MLflow. Test-period lineage changes do
+  not affect the collected context; mixed development lineage and missing boundary columns fail
+  closed. Three unit tests and three Spark tests cover the runner boundary. No Databricks workflow
+  has been declared or executed for it.
 - An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
   feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
   failure lineage; one label-observation boundary; supported target and row-status semantics;
@@ -816,8 +834,8 @@ interval checks. The validation warehouse was stopped immediately after the read
 
 - Additional sensor features and later Gold transformations. The unchanged failure-horizon rerun
   also remains pending.
-- The full-source candidate comparison, MLflow runs, alert evaluation, dashboard, streaming, and
-  policy simulation.
+- The Databricks comparison workflow, full-source candidate comparison, remote MLflow runs, alert
+  evaluation, dashboard, streaming, and policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and the current Gold-table workflows now exist and have verified managed runs. The latest
   modelling-view write has also passed its independent SQL audit; later Gold products remain
@@ -839,9 +857,10 @@ change will require an explicit versioned rebuild rather than silently moving re
 ## Next milestone
 
 Record and review the successful modelling-view first write, independent SQL audit, unchanged
-zero-insert rerun, and guarded logistic candidate-comparison engine. Next, add an MLflow tracking
-boundary that logs the fixed contract, split, population counts, estimator parameters, validation
-AUPRC, and coefficient evidence without exposing or scoring the sealed test period. A full-source
-run remains a separate compute gate. The unchanged failure-horizon rerun also remains useful but
-requires compute approval. Do not commit credentials, local paths, deployment state, or ignored
-source data.
+zero-insert rerun, guarded logistic candidate-comparison engine, and tested MLflow tracking
+boundary. The managed runner now reads the allowlisted modelling view, executes the fixed
+comparison, and passes its approved evidence to MLflow without exposing or scoring the sealed test
+period. Next, declare its unscheduled Databricks workflow, validate the bundle, and review a
+resource-scoped plan before any deployment. Running the full-source comparison remains a separate
+compute gate. The unchanged failure-horizon rerun also remains useful but requires compute
+approval. Do not commit credentials, local paths, deployment state, or ignored source data.

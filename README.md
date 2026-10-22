@@ -73,8 +73,8 @@ SQL warehouse.
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
-| Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Begin MLflow-tracked candidate training |
-| Modelling | Baselines, drift evidence, and guarded candidate-comparison engine | Add MLflow tracking and run the full-source comparison |
+| Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Declare and review the comparison workflow |
+| Modelling | Guarded comparison, MLflow tracking, and managed runner boundaries | Deploy separately, then run the full-source comparison |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -187,7 +187,12 @@ The modelling work is intentionally conservative:
   separate immutable version 2 feature snapshot instead of rewriting version 1.
 - A fixed Spark logistic-regression comparison engine now evaluates the original five-input feature
   set against the eight-input cycle-context extension using guarded train/validation frames only.
-  Its focused tests pass; the full-source MLflow run and candidate decision remain pending.
+  An MLflow boundary is also implemented and tested: it records one parent comparison run and two
+  nested candidate runs with fixed contract, lineage, validation AUPRC, and coefficient evidence.
+  A managed runner now reads only the allowlisted modelling-view table, derives tracking identity
+  from pre-test trainable rows, runs the fixed comparison, and passes its evidence to that boundary.
+  No Databricks workflow or remote MLflow experiment has run, so the candidate decision remains
+  pending.
 
 These negative and mixed results are part of the portfolio evidence: the project records why a
 candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
@@ -267,8 +272,8 @@ audit, zero-insert rerun, and immutable retry policy.
    warehouse.
 6. **Completed:** prove an unchanged managed modelling-view rerun inserts zero rows and preserves
    all 15,766 rows.
-7. Add MLflow tracking and run the guarded full-source candidate comparison while keeping the test
-   period sealed.
+7. Declare, review, and deploy the managed comparison workflow, then run the guarded full-source
+   comparison with MLflow while keeping the test period sealed.
 8. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
    the failure-event level.
 9. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
@@ -282,7 +287,7 @@ audit, zero-insert rerun, and immutable retry policy.
 - Spark SQL and Databricks SQL
 - Databricks Asset Bundles, serverless jobs, Volumes, and Unity Catalog
 - pytest and Ruff
-- MLflow planned for final experiment tracking
+- MLflow tracking boundary implemented and tested; no experiment run yet
 
 Local Spark/Delta execution is verified in Ubuntu WSL with a supported JDK 17. Native Windows Spark
 is not the verified path because its Hadoop layer requires an additional Windows helper binary.

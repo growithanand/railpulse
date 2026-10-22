@@ -23,6 +23,7 @@ databricks_gold_cycle_processing = "railpulse.jobs.gold_cycle_processing:main"
 databricks_gold_failure_horizon_processing = "railpulse.jobs.gold_failure_horizon_processing:main"
 databricks_gold_feature_snapshot_v2_processing = "railpulse.jobs.gold_feature_snapshot_v2_processing:main"
 databricks_gold_modeling_view_v2_processing = "railpulse.jobs.gold_modeling_view_v2_processing:main"
+databricks_gold_model_candidate_comparison = "railpulse.jobs.gold_model_candidate_comparison:main"
 
 [project.optional-dependencies]
 dev = [
@@ -33,6 +34,9 @@ spark = [
     "delta-spark==4.4.0",
     "numpy>=2,<3",
     "pyspark==4.2.0",
+]
+tracking = [
+    "mlflow-skinny>=3,<4",
 ]
 
 [tool.setuptools.packages.find]

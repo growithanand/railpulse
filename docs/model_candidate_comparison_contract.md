@@ -69,6 +69,37 @@ returns the shared estimator parameters, train/validation label counts, fitted i
 coefficients, and completed iteration counts. The returned object contains no test frame, test
 metric, selected threshold, or automatic winner.
 
-These fields form the minimum evidence required for later MLflow logging. MLflow integration and a
-full-source comparison run remain separate increments; no candidate has been selected and no model
+These fields form the minimum evidence required by the MLflow tracking boundary. A full-source
+comparison run remains a separate increment; no candidate has been selected and no model
 performance claim is made here.
+
+## Implemented MLflow tracking boundary
+
+`track_candidate_comparison` validates the complete comparison result before opening any run. It
+also requires the experiment name, code version, fixed feature-snapshot version, matching telemetry
+and failure dataset versions, four lowercase SHA-256 source or ingestion identities, and a
+timezone-free label-observation boundary.
+
+One parent run records the fixed comparison, modelling-view, split, estimator, lineage, and sealed
+test-partition contract. Two nested child runs then record each reviewed candidate's feature list,
+train and validation population counts, optimizer iterations, validation AUPRC, fitted intercept,
+and coefficients. The structured contract and candidate evidence are stored as JSON artifacts.
+
+The boundary does not log a test metric, prediction, threshold, registered model, or automatic
+winner. Its focused tests use an in-memory MLflow-compatible recorder, so no remote experiment or
+full-source model fit has been started yet.
+
+## Implemented managed runner
+
+`run_managed_gold_model_candidate_comparison` resolves only the allowlisted
+`gold.modeling_view_v2` table. It requires explicit experiment and code-version inputs, derives one
+complete tracking identity only from trainable rows before 2020-07-01, prepares the guarded
+development frames, fits both fixed candidates, and sends the result to the tracking boundary.
+
+Rows in the sealed test period cannot change the collected tracking identity. Mixed development
+lineage, missing boundary columns, incompatible comparison evidence, or incomplete tracking
+metadata fail the run before MLflow logging. Three focused unit tests and three Spark tests cover
+the orchestration and tracking-context boundary.
+
+The Python entry point exists, but no Databricks workflow has been declared or deployed for it and
+no remote MLflow run has been created.
