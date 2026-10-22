@@ -131,6 +131,6 @@ implemented. The workflow's first approved run inserted 15,766 rows into an empt
 and reproduced the frozen 15,272-trainable/494-excluded population. Read-only Catalog metadata
 confirmed a 44-column managed Delta table with statistics for all 15,766 rows. Its
 [first-run record](managed_modeling_view_v2_first_run.md) preserves the baseline, observed output,
-completed independent SQL checks, and retry procedure. The unchanged rerun, model fitting,
-threshold selection, and held-out test evaluation remain separate reviewable increments. No
-model-performance claim is made.
+completed independent SQL checks, zero-insert rerun, and retry procedure. Model fitting, threshold
+selection, and held-out test evaluation remain separate reviewable increments. No model-performance
+claim is made.

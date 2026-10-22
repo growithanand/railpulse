@@ -119,6 +119,28 @@ The validation warehouse was stopped immediately after the audit and independent
 active clusters. The separate read-only Catalog API check had already confirmed that the target is
 a Unity Catalog managed Delta table with the 44 contracted columns.
 
+## Verified unchanged rerun
+
+The unchanged workflow ran successfully again on 2026-10-22. It completed in approximately
+7 minutes 33 seconds: the upstream feature-snapshot refresh took approximately 6 minutes 25 seconds,
+and the gated modelling task took approximately 1 minute 6 seconds including setup.
+
+The runner reproduced the exact 15,766-row population, 15,272 trainable/494 excluded split, 22
+positive/15,250 negative trainable labels, six exclusion-reason counts, and four-accepted/
+three-represented failure-event coverage. Its immutable write reconciliation reported:
+
+| Measure | Verified value |
+| --- | ---: |
+| Source modelling rows | 15,766 |
+| Inserted modelling rows | 0 |
+| Unchanged modelling rows | 15,766 |
+| Target rows before | 15,766 |
+| Target rows after | 15,766 |
+
+No separate SQL warehouse was started for the rerun because the writer's unchanged-row
+reconciliation and identical structured population evidence directly established the intended
+idempotency property.
+
 ## Failure and retry policy
 
 If an upstream dependency fails, the modelling task must remain unstarted. If the modelling task
@@ -131,16 +153,15 @@ unchanged rows, and 15,766 rows before and after. Any changed existing row, diff
 lineage, contract revision, or observation boundary must fail rather than overwrite history and
 requires an explicit versioned rebuild decision.
 
-## Unchanged-rerun gate
+## Further-run gate
 
-The first managed write and independent SQL audit are complete. They do not authorize an
-idempotency rerun. Before starting the workflow again, obtain explicit compute approval and
-reconfirm that its immutable merge should report zero inserts, 15,766 unchanged rows, and 15,766
-rows before and after.
+The first managed write, independent SQL audit, and unchanged idempotency rerun are complete. They
+do not authorize additional workflow executions. Any future rerun still requires an explicit reason
+and compute approval.
 
 ## Scope boundary
 
-This checkpoint establishes runner, Catalog, and independent SQL evidence for a reproducible,
-leakage-safe managed modelling population. It does not fit a model or prove predictive performance,
-warning lead time, alert usefulness, false-alarm burden, maintenance impact, or dashboard
-readiness.
+This checkpoint establishes runner, Catalog, independent SQL, and idempotency evidence for a
+reproducible, leakage-safe managed modelling population. It does not fit a model or prove predictive
+performance, warning lead time, alert usefulness, false-alarm burden, maintenance impact, or
+dashboard readiness.

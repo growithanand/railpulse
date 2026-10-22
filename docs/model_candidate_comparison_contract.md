@@ -31,9 +31,24 @@ not model inputs.
 - Do not read or score rows from 2020-07-01 onward during development.
 - Keep alert-threshold selection separate from this feature-set comparison.
 
-The fixed comparison version is `cycle-context-logistic-candidate-comparison-v1`. The next small
-increment can fit the two candidates and collect the validation-only metric against this reviewed
-contract.
+The fixed comparison version is `cycle-context-logistic-candidate-comparison-v1`. Every execution
+must fit both candidates and collect the validation-only metric against this reviewed contract.
+
+## Fixed estimator configuration
+
+Both candidates use the same Spark binomial logistic-regression configuration:
+
+| Parameter | Fixed value |
+| --- | ---: |
+| Maximum iterations | 100 |
+| L2 regularization | 0.1 |
+| Elastic-net mixing | 0.0 |
+| Fit intercept | Yes |
+| Standardize features | Yes |
+
+This first comparison deliberately does not add class weights, resampling, hyperparameter search,
+probability calibration, or an alert threshold. Those choices would add extra degrees of freedom to
+a development set containing only one represented failure event per chronological partition.
 
 ## Implemented development-data guard
 
@@ -45,3 +60,15 @@ timestamp, target, and permitted model inputs; failure metadata and other column
 
 The guard deliberately validates feature and label values only inside the development period. A
 change to a July test value therefore cannot change development validation or summaries.
+
+## Implemented comparison engine
+
+`compare_model_candidates` now accepts only the guarded development-data object. It fits the two
+declared candidates in fixed order, evaluates validation area under the precision-recall curve, and
+returns the shared estimator parameters, train/validation label counts, fitted intercepts and
+coefficients, and completed iteration counts. The returned object contains no test frame, test
+metric, selected threshold, or automatic winner.
+
+These fields form the minimum evidence required for later MLflow logging. MLflow integration and a
+full-source comparison run remain separate increments; no candidate has been selected and no model
+performance claim is made here.

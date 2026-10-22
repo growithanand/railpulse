@@ -22,9 +22,15 @@ from railpulse.evaluation.modeling_view_v2_schema import (
 from railpulse.models.candidate_comparison_contract import (
     MODEL_CANDIDATE_COMPARISON_VERSION,
     MODEL_CANDIDATE_DEVELOPMENT_PARTITIONS,
+    MODEL_CANDIDATE_ELASTIC_NET,
     MODEL_CANDIDATE_ESTIMATOR,
+    MODEL_CANDIDATE_FAMILY,
+    MODEL_CANDIDATE_FIT_INTERCEPT,
+    MODEL_CANDIDATE_MAX_ITERATIONS,
+    MODEL_CANDIDATE_REGULARIZATION,
     MODEL_CANDIDATE_SEALED_PARTITION,
     MODEL_CANDIDATE_SELECTION_METRIC,
+    MODEL_CANDIDATE_STANDARDIZATION,
     MODEL_CANDIDATES,
     ModelCandidate,
     ModelCandidateContractError,
@@ -38,6 +44,15 @@ def test_comparison_uses_one_estimator_and_one_shared_v2_population() -> None:
     assert MODEL_CANDIDATE_ESTIMATOR == "logistic-regression"
     assert MODEL_CANDIDATE_SELECTION_METRIC == "area-under-precision-recall-curve"
     assert get_comparison_modeling_view_version() == MODELING_VIEW_V2_VERSION
+
+
+def test_comparison_freezes_one_regularized_logistic_configuration() -> None:
+    assert MODEL_CANDIDATE_MAX_ITERATIONS == 100
+    assert MODEL_CANDIDATE_REGULARIZATION == 0.1
+    assert MODEL_CANDIDATE_ELASTIC_NET == 0.0
+    assert MODEL_CANDIDATE_FIT_INTERCEPT is True
+    assert MODEL_CANDIDATE_STANDARDIZATION is True
+    assert MODEL_CANDIDATE_FAMILY == "binomial"
 
 
 def test_comparison_exposes_only_train_and_validation_and_seals_test() -> None:

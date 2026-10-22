@@ -288,4 +288,22 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   table with 15,766 rows. The separately approved six-statement SQL audit then confirmed exact
   source projections and distributions, zero contract or leakage-boundary violations, complete
   failure lineage, and the expected event-level coverage. The validation warehouse was stopped
-  immediately afterward.
+  immediately afterward. A separately approved unchanged workflow rerun then inserted zero rows,
+  matched all 15,766 target rows as unchanged, and preserved the exact population, label, exclusion,
+  lineage, and failure-event evidence.
+
+## ADR-023 — Compare cycle context with one fixed development-only estimator
+
+- **Status:** Accepted
+- **Decision:** Compare the original five motor-current inputs with their eight-input cycle-context
+  extension on the same trainable version 2 population using one fixed L2-regularized Spark
+  binomial logistic regression and validation area under the precision-recall curve.
+- **Why:** Holding the estimator, population, split, and fitting configuration constant makes the
+  comparison about the added cycle-context inputs rather than unequal data or tuning effort.
+- **Guardrail:** The comparison accepts only the reviewed train/validation data object. It cannot
+  read or score the July test partition, tune an alert threshold, resample classes, search
+  hyperparameters, or automatically declare a winner.
+- **Evidence boundary:** The implemented engine returns partition counts, validation AUPRC,
+  coefficients, intercepts, and optimizer iterations for later MLflow logging. Focused contract and
+  Spark tests pass. No full-source fit, MLflow run, candidate selection, or performance claim has
+  been made.

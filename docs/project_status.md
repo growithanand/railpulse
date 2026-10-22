@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — managed modelling-view first write and independent audit complete**
+**Databricks migration — managed modelling-view idempotency verified**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -363,6 +363,18 @@ contexts, or unsupported feature statuses occur.
   15,272 trainable and 494 excluded rows. Requiring complete cycle context excludes 141 rows that
   were trainable in version 1, while retaining all 22 positive labels and the same three represented
   failure events. This is population evidence only; no model or threshold has been selected.
+- A [versioned model-candidate comparison contract](model_candidate_comparison_contract.md) declares
+  two feature sets over the same version 2 trainable population: the original five motor-current
+  inputs and their eight-input cycle-context extension. Both use one fixed L2-regularized Spark
+  binomial logistic regression and validation area under the precision-recall curve. Class weights,
+  resampling, hyperparameter search, calibration, alert-threshold selection, and test-period access
+  remain prohibited in this comparison.
+- A leakage-safe development-data guard exposes only the cycle key, prediction time, target, and
+  eight permitted inputs from the selected train and validation periods. A new comparison engine
+  fits both reviewed candidates in fixed order and returns auditable partition counts, validation
+  AUPRC, coefficients, intercepts, and iteration counts without exposing a test frame or selecting a
+  winner. Six contract unit tests and six focused Spark tests pass. The full-source run and MLflow
+  logging remain separate increments, so no candidate-performance result is claimed yet.
 - An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
   feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
   failure lineage; one label-observation boundary; supported target and row-status semantics;
@@ -415,6 +427,12 @@ contexts, or unsupported feature statuses occur.
   versions, lineages, labels, exclusions, and prediction bounds; zero semantic, lineage, reference,
   or leakage-boundary violations; and the expected four-event coverage. The validation warehouse
   was stopped immediately after the audit and reported zero active clusters.
+- The unchanged modelling-view workflow rerun also completed successfully on 2026-10-22 in
+  approximately 7 minutes 33 seconds. Its upstream feature-snapshot refresh succeeded first, and
+  the gated modelling task then reproduced the exact population, label, exclusion, lineage, and
+  failure-event summaries. The immutable merge inserted zero rows, matched all 15,766 rows as
+  unchanged, and preserved 15,766 target rows before and after. No separate SQL warehouse was
+  started for this rerun.
 
 Official local Bronze evidence:
 
@@ -796,9 +814,10 @@ interval checks. The validation warehouse was stopped immediately after the read
 
 ## Not implemented
 
-- The unchanged rerun of the managed modelling view; additional sensor features; and later Gold
-  transformations. The unchanged failure-horizon rerun also remains pending.
-- Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
+- Additional sensor features and later Gold transformations. The unchanged failure-horizon rerun
+  also remains pending.
+- The full-source candidate comparison, MLflow runs, alert evaluation, dashboard, streaming, and
+  policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and the current Gold-table workflows now exist and have verified managed runs. The latest
   modelling-view write has also passed its independent SQL audit; later Gold products remain
@@ -819,8 +838,10 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Record and review the successful modelling-view first write and independent SQL audit. Next,
-consider a separately approved unchanged workflow rerun to prove zero-insert idempotency before
-moving into MLflow-tracked candidate training. The unchanged failure-horizon rerun also remains
-useful but requires compute approval. Do not commit credentials, local paths, deployment state, or
-ignored source data.
+Record and review the successful modelling-view first write, independent SQL audit, unchanged
+zero-insert rerun, and guarded logistic candidate-comparison engine. Next, add an MLflow tracking
+boundary that logs the fixed contract, split, population counts, estimator parameters, validation
+AUPRC, and coefficient evidence without exposing or scoring the sealed test period. A full-source
+run remains a separate compute gate. The unchanged failure-horizon rerun also remains useful but
+requires compute approval. Do not commit credentials, local paths, deployment state, or ignored
+source data.

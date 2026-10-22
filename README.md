@@ -61,7 +61,10 @@ Catalog check confirmed a 44-column Unity Catalog managed Delta table with stati
 rows. A separate six-statement, read-only SQL audit then confirmed exact feature and horizon source
 projections, fixed versions and lineages, the complete label and exclusion distributions, zero
 semantic or leakage-boundary violations, and exact references to the accepted failure events. The
-validation warehouse was stopped immediately after the audit.
+validation warehouse was stopped immediately after the audit. An unchanged workflow rerun then
+proved idempotency: the managed writer inserted zero rows, matched all 15,766 existing rows as
+unchanged, and preserved the complete population and lineage evidence without starting a separate
+SQL warehouse.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -70,8 +73,8 @@ validation warehouse was stopped immediately after the audit.
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
-| Managed Gold | First modelling-view write and independent six-statement audit passed | Prove an unchanged zero-insert rerun |
-| Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
+| Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Begin MLflow-tracked candidate training |
+| Modelling | Baselines, drift evidence, and guarded candidate-comparison engine | Add MLflow tracking and run the full-source comparison |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -182,6 +185,9 @@ The modelling work is intentionally conservative:
 - A pressure-balance feature showed substantial positive/negative overlap and was not promoted.
 - Loaded-cycle duration context showed consistent development-period signal and was added through a
   separate immutable version 2 feature snapshot instead of rewriting version 1.
+- A fixed Spark logistic-regression comparison engine now evaluates the original five-input feature
+  set against the eight-input cycle-context extension using guarded train/validation frames only.
+  Its focused tests pass; the full-source MLflow run and candidate decision remain pending.
 
 These negative and mixed results are part of the portfolio evidence: the project records why a
 candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
@@ -219,6 +225,8 @@ Completed managed steps:
 24. Run its first approved write and reconcile the runner output plus read-only Catalog metadata.
 25. Independently audit the managed modelling view with six checked-in SQL statements, then stop
     the validation warehouse.
+26. Rerun the unchanged workflow and prove the immutable modelling-view merge inserts zero rows and
+    preserves all 15,766 target rows.
 
 The managed workflows now own:
 
@@ -244,7 +252,7 @@ The [first managed failure-horizon run record](docs/managed_failure_horizon_firs
 the first-write evidence, exact label distribution, semantic checks, and pending rerun policy.
 The [first managed modelling-view v2 run record](docs/managed_modeling_view_v2_first_run.md)
 preserves the pre-run gate, successful first-write evidence, Catalog metadata, independent SQL
-audit, and immutable retry policy.
+audit, zero-insert rerun, and immutable retry policy.
 
 ## Roadmap to the portfolio demonstration
 
@@ -257,11 +265,14 @@ audit, and immutable retry policy.
    rerun are independently reconciled.
 5. **Completed:** independently audit the first managed modelling-view write and stop the validation
    warehouse.
-6. Track final candidate training and parameters with MLflow while keeping the test period sealed.
-7. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
+6. **Completed:** prove an unchanged managed modelling-view rerun inserts zero rows and preserves
+   all 15,766 rows.
+7. Add MLflow tracking and run the guarded full-source candidate comparison while keeping the test
+   period sealed.
+8. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
    the failure-event level.
-8. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
-9. Add a short reproducible demo path and evidence-based résumé bullets.
+9. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
+10. Add a short reproducible demo path and evidence-based résumé bullets.
 
 ## Technology
 
@@ -273,7 +284,7 @@ audit, and immutable retry policy.
 - pytest and Ruff
 - MLflow planned for final experiment tracking
 
-Local Spark/Delta execution is verified in Ubuntu WSL with a supported JDK 21. Native Windows Spark
+Local Spark/Delta execution is verified in Ubuntu WSL with a supported JDK 17. Native Windows Spark
 is not the verified path because its Hadoop layer requires an additional Windows helper binary.
 
 ## Quick start
@@ -366,5 +377,6 @@ rather than precise estimates of generalization or maintenance impact.
 - [First managed modelling-view v2 run](docs/managed_modeling_view_v2_first_run.md)
 - [Evaluation protocol](docs/evaluation_protocol.md)
 - [Chronological split evidence](docs/chronological_split_profile.md)
+- [Model candidate comparison contract](docs/model_candidate_comparison_contract.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)
 - [Directional baseline evidence](docs/directional_baseline_profile.md)
