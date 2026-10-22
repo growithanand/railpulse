@@ -281,4 +281,11 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   workflow or compute was started. After sign-in was restored, an unchanged retry created the job
   and changed only those wheel references. Independent readback confirmed the reviewed two-task
   graph, serverless environment, queue and concurrency controls, no schedule, zero runs, and an
-  absent target table.
+  absent target table. The first separately approved execution then enforced the gate: the upstream
+  feature-snapshot refresh succeeded before the modelling task inserted 15,766 rows into an empty
+  managed target. Runner output exactly matched the frozen population, label, exclusion, lineage,
+  and failure-event coverage counts. Read-only Catalog metadata confirmed a 44-column managed Delta
+  table with 15,766 rows. The separately approved six-statement SQL audit then confirmed exact
+  source projections and distributions, zero contract or leakage-boundary violations, complete
+  failure lineage, and the expected event-level coverage. The validation warehouse was stopped
+  immediately afterward.

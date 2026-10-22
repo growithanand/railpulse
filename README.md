@@ -52,22 +52,16 @@ rerun. The first run inserted and independently validated 15,766 point-in-time s
 inserted zero rows, matched all 15,766 existing snapshots as unchanged, and preserved the complete
 feature, eligibility, context, and source-lineage contract.
 
-An allowlisted persistence boundary for `gold.modeling_view_v2` is also implemented and verified
-locally. It validates the feature and failure lineages, prediction-boundary and row-eligibility
-semantics, and immutable cycle-key merges. A packaged runner now reads the managed feature
-snapshots and failure horizons plus accepted failure-event lineage, builds the fixed view, and
-writes only through that boundary. An unscheduled, feature-snapshot-gated Databricks workflow is
-declared and passes strict bundle validation. Its reviewed resource-scoped plan would create one
-job, refresh only the shared wheel reference on four transitive upstream jobs, and delete nothing;
-deployment and execution remain separate approval points. A selected deployment attempt on
-2026-10-22 uploaded the reviewed bundle and refreshed those four wheel references, but Databricks
-rejected creation of the new job because the workspace organization is not active. A read-only
-lookup confirmed that the modelling-view job did not exist. After workspace sign-in was restored,
-an unchanged retry created the job and refreshed the same four wheel references without deleting
-anything. Independent readback confirmed the reviewed two-task graph, serverless environment,
-queueing, one-run concurrency limit, no schedule, zero runs, and an absent target table. No workflow
-ran and no compute started. The first-run contract now freezes the expected population, immutable
-write reconciliation, independent SQL checks, and retry procedure before execution is considered.
+The allowlisted `gold.modeling_view_v2` workflow has now completed its first approved managed
+write. Its upstream feature-snapshot refresh succeeded before the modelling task started, and the
+runner inserted 15,766 immutable rows into an empty target. The output exactly reproduced the
+frozen profile: 15,272 trainable rows, 494 exclusions, 22 positive labels, 15,250 negative labels,
+and three of the four accepted failure events represented by trainable positive cycles. A read-only
+Catalog check confirmed a 44-column Unity Catalog managed Delta table with statistics for 15,766
+rows. A separate six-statement, read-only SQL audit then confirmed exact feature and horizon source
+projections, fixed versions and lineages, the complete label and exclusion distributions, zero
+semantic or leakage-boundary violations, and exact references to the accepted failure events. The
+validation warehouse was stopped immediately after the audit.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -76,7 +70,7 @@ write reconciliation, independent SQL checks, and retry procedure before executi
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
-| Managed Gold | Modelling-view workflow deployed; first-run validation contract prepared | Review and explicitly approve the first managed write |
+| Managed Gold | First modelling-view write and independent six-statement audit passed | Prove an unchanged zero-insert rerun |
 | Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
@@ -219,6 +213,12 @@ Completed managed steps:
 20. Review and deploy the unscheduled Gold-cycle-gated failure-horizon workflow, then independently
     confirm its configuration, empty run history, and absent target table without starting compute.
 21. Run the complete workflow and independently reconcile all 15,766 managed failure-horizon rows.
+22. Materialize and independently validate 15,766 managed feature snapshots, then prove an
+    identical rerun inserts zero rows.
+23. Deploy the feature-snapshot-gated modelling-view workflow without starting compute.
+24. Run its first approved write and reconcile the runner output plus read-only Catalog metadata.
+25. Independently audit the managed modelling view with six checked-in SQL statements, then stop
+    the validation warehouse.
 
 The managed workflows now own:
 
@@ -231,6 +231,8 @@ The managed workflows now own:
 - `<catalog>.<silver_schema>.failure_events_quarantine`
 - `<catalog>.<gold_schema>.loaded_cycles`
 - `<catalog>.<gold_schema>.failure_horizons`
+- `<catalog>.<gold_schema>.feature_snapshots_v2`
+- `<catalog>.<gold_schema>.modeling_view_v2`
 
 The [first managed Silver run record](docs/managed_silver_first_run.md) preserves the pre-run
 baseline and quota-blocked attempt alongside the successful execution, observed outputs,
@@ -240,6 +242,9 @@ deployment boundary, successful execution, independent SQL reconciliation, and v
 rerun.
 The [first managed failure-horizon run record](docs/managed_failure_horizon_first_run.md) preserves
 the first-write evidence, exact label distribution, semantic checks, and pending rerun policy.
+The [first managed modelling-view v2 run record](docs/managed_modeling_view_v2_first_run.md)
+preserves the pre-run gate, successful first-write evidence, Catalog metadata, independent SQL
+audit, and immutable retry policy.
 
 ## Roadmap to the portfolio demonstration
 
@@ -250,11 +255,13 @@ the first-write evidence, exact label distribution, semantic checks, and pending
 3. **Completed:** run and independently reconcile the managed two-hour failure-horizon table.
 4. **Completed:** the managed point-in-time feature-snapshot first write and unchanged idempotency
    rerun are independently reconciled.
-5. Track final candidate training and parameters with MLflow while keeping the test period sealed.
-6. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
+5. **Completed:** independently audit the first managed modelling-view write and stop the validation
+   warehouse.
+6. Track final candidate training and parameters with MLflow while keeping the test period sealed.
+7. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
    the failure-event level.
-7. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
-8. Add a short reproducible demo path and evidence-based résumé bullets.
+8. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
+9. Add a short reproducible demo path and evidence-based résumé bullets.
 
 ## Technology
 

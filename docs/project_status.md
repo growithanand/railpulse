@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Databricks migration — managed feature-snapshot idempotency verified**
+**Databricks migration — managed modelling-view first write and independent audit complete**
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -403,7 +403,18 @@ contexts, or unsupported feature statuses occur.
   checked-in validation SQL compares the complete feature and horizon projections, verifies fixed
   versions and both lineages, reconstructs ordered row eligibility and exclusion reasons, checks
   the feature-window boundary and trainable inputs, and resolves positive rows to accepted Silver
-  failure events. This checkpoint starts no compute and does not create the target table.
+  failure events. Preparing that evidence started no compute and did not create the target table.
+- The first separately approved modelling-view workflow run completed successfully on 2026-10-22
+  in approximately 8 minutes 53 seconds. Its upstream feature-snapshot refresh succeeded before the
+  gated modelling task started. The task then inserted all 15,766 source rows into an empty target
+  and reported the exact frozen 15,272 trainable, 494 excluded, 22 positive, and 15,250 negative
+  counts. All overlapping exclusion counts and the four-accepted/three-represented failure-event
+  coverage also matched. Read-only Catalog metadata confirmed a 44-column managed Delta table with
+  statistics for 15,766 rows and no null cycle keys. The separately approved six-statement SQL audit
+  then confirmed 15,766 unique non-null keys; exact feature and horizon source projections; fixed
+  versions, lineages, labels, exclusions, and prediction bounds; zero semantic, lineage, reference,
+  or leakage-boundary violations; and the expected four-event coverage. The validation warehouse
+  was stopped immediately after the audit and reported zero active clusters.
 
 Official local Bronze evidence:
 
@@ -785,12 +796,13 @@ interval checks. The validation warehouse was stopped immediately after the read
 
 ## Not implemented
 
-- The managed modelling-view workflow deployment and first write; additional sensor features; and
-  later Gold transformations. The unchanged failure-horizon rerun also remains pending.
+- The unchanged rerun of the managed modelling view; additional sensor features; and later Gold
+  transformations. The unchanged failure-horizon rerun also remains pending.
 - Advanced SQL analytics, models, MLflow runs, alerts, dashboard, streaming, or policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
-  Silver, and the first three Gold-table workflows now exist and have independently validated
-  managed runs. Later managed Gold products remain pending.
+  Silver, and the current Gold-table workflows now exist and have verified managed runs. The latest
+  modelling-view write has also passed its independent SQL audit; later Gold products remain
+  pending.
 
 No predictive-model performance, failure-detection, warning-lead-time, false-alarm, or cost result
 has been measured.
@@ -807,8 +819,8 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Commit the modelling-view first-run contract and independent validation SQL. Then reconfirm the
-workflow's zero-run history, absent target, workspace availability, and governed source counts
-before seeking explicit approval to run it. The first managed write remains a separate compute and
-table-mutation gate. The unchanged failure-horizon rerun also remains useful but requires compute
-approval. Do not commit credentials, local paths, deployment state, or ignored source data.
+Record and review the successful modelling-view first write and independent SQL audit. Next,
+consider a separately approved unchanged workflow rerun to prove zero-insert idempotency before
+moving into MLflow-tracked candidate training. The unchanged failure-horizon rerun also remains
+useful but requires compute approval. Do not commit credentials, local paths, deployment state, or
+ignored source data.

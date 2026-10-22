@@ -127,8 +127,10 @@ wrote no table.
 
 The fixed schema, Spark builder, focused fixture tests, full-source population profile, managed
 persistence boundary, packaged processing runner, and validated workflow definition are
-implemented. The workflow is deployed but has never run. Its
-[first-run contract](managed_modeling_view_v2_first_run.md) freezes the baseline, expected
-population, independent SQL checks, and retry procedure. The first managed write, model fitting,
+implemented. The workflow's first approved run inserted 15,766 rows into an empty managed target
+and reproduced the frozen 15,272-trainable/494-excluded population. Read-only Catalog metadata
+confirmed a 44-column managed Delta table with statistics for all 15,766 rows. Its
+[first-run record](managed_modeling_view_v2_first_run.md) preserves the baseline, observed output,
+completed independent SQL checks, and retry procedure. The unchanged rerun, model fitting,
 threshold selection, and held-out test evaluation remain separate reviewable increments. No
 model-performance claim is made.

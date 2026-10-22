@@ -2,10 +2,10 @@
 
 ## Purpose
 
-This document freezes the reviewed baseline, expected output, independent validation, and retry
-procedure for the first catalog-backed `gold.modeling_view_v2` execution. Deployment and execution
-remain separate checkpoints. The workflow is unscheduled and must be started only after this
-contract is reviewed.
+This document preserves the reviewed baseline, expected output, observed first-write evidence,
+independent validation plan, and retry procedure for the first catalog-backed
+`gold.modeling_view_v2` execution. Deployment, execution, and the separate SQL audit remain
+independently reviewable checkpoints.
 
 The workflow has two ordered tasks:
 
@@ -69,11 +69,35 @@ Exclusion reasons can overlap and therefore do not sum to the excluded-row count
 The complete horizon-status population must remain 22 positive, 15,676 negative, three
 horizon-censored, two inside a published failure interval, and 63 missing a prediction boundary.
 
+## Verified first execution
+
+The approved workflow completed successfully on 2026-10-22. Its total duration was approximately
+8 minutes 53 seconds. The upstream feature-snapshot refresh completed first in approximately
+7 minutes 48 seconds; the gated modelling task then completed in approximately 1 minute 3 seconds,
+including setup and cleanup.
+
+The runner reported the fixed modelling, feature-snapshot, and failure-horizon versions and exactly
+matched every frozen first-write expectation:
+
+- 15,766 source rows were inserted into an empty target, leaving 15,766 target rows;
+- 15,272 rows were trainable and 494 were excluded;
+- trainable rows contained 22 positive and 15,250 negative labels;
+- four accepted failure events were present and three were represented by trainable positive cycles;
+- represented failure events contributed 4, 5, and 13 positive cycles, while one event contributed
+  none; and
+- all six overlapping exclusion-reason counts matched the reviewed profile.
+
+A read-only Catalog API check confirmed that the result is a Unity Catalog managed Delta table with
+all 44 contracted columns. Its automatic statistics reported 15,766 rows, and the cycle key had no
+null values. This metadata and the task output are first-write evidence; they do not replace the
+independent SQL audit below.
+
 ## Independent post-run validation
 
-After a successful workflow run, execute each statement in
+On 2026-10-22, each statement in
 [`managed_modeling_view_v2_first_run_validation.sql`](../sql/managed_modeling_view_v2_first_run_validation.sql)
-independently on a stopped-by-default or promptly stopped SQL warehouse. The checks must confirm:
+was executed independently on the existing validation SQL warehouse. All six statements succeeded
+without truncated results. They confirmed:
 
 - 15,766 non-null unique keys and exact full-row projections of both governed source tables;
 - one fixed modelling, snapshot, feature, eligibility, context, and horizon version;
@@ -85,8 +109,15 @@ independently on a stopped-by-default or promptly stopped SQL warehouse. The che
 - four accepted failure events, three represented by trainable positive cycles, with 22 positive
   cycles in total.
 
-Also use a read-only Catalog API check to confirm that the target is a Unity Catalog managed Delta
-table with the 44 contracted columns. Stop the validation warehouse immediately after the audit.
+The source-projection checks found zero missing or unexpected feature and horizon rows. All ten
+contract, source, target, row-state, exclusion-order, feature-window, trainable-input, and
+leakage-boundary violation counts were zero. The three failure-lineage and reference violation
+counts were also zero. Event-level output reconciled four accepted failure events, three represented
+events, and 22 trainable positive cycles with per-event counts of 0, 4, 5, and 13.
+
+The validation warehouse was stopped immediately after the audit and independently reported zero
+active clusters. The separate read-only Catalog API check had already confirmed that the target is
+a Unity Catalog managed Delta table with the 44 contracted columns.
 
 ## Failure and retry policy
 
@@ -100,14 +131,16 @@ unchanged rows, and 15,766 rows before and after. Any changed existing row, diff
 lineage, contract revision, or observation boundary must fail rather than overwrite history and
 requires an explicit versioned rebuild decision.
 
-## Execution gate
+## Unchanged-rerun gate
 
-Preparing this contract does not authorize compute or table creation. Before starting the workflow,
-reconfirm its zero-run history, the absent target, workspace availability, and the expected upstream
-source counts. The first run and the independent SQL audit require explicit approval.
+The first managed write and independent SQL audit are complete. They do not authorize an
+idempotency rerun. Before starting the workflow again, obtain explicit compute approval and
+reconfirm that its immutable merge should report zero inserts, 15,766 unchanged rows, and 15,766
+rows before and after.
 
 ## Scope boundary
 
-This checkpoint can establish a reproducible, leakage-safe managed modelling population. It does
-not fit a model or prove predictive performance, warning lead time, alert usefulness, false-alarm
-burden, maintenance impact, or dashboard readiness.
+This checkpoint establishes runner, Catalog, and independent SQL evidence for a reproducible,
+leakage-safe managed modelling population. It does not fit a model or prove predictive performance,
+warning lead time, alert usefulness, false-alarm burden, maintenance impact, or dashboard
+readiness.
