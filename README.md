@@ -66,7 +66,8 @@ lookup confirmed that the modelling-view job did not exist. After workspace sign
 an unchanged retry created the job and refreshed the same four wheel references without deleting
 anything. Independent readback confirmed the reviewed two-task graph, serverless environment,
 queueing, one-run concurrency limit, no schedule, zero runs, and an absent target table. No workflow
-ran and no compute started.
+ran and no compute started. The first-run contract now freezes the expected population, immutable
+write reconciliation, independent SQL checks, and retry procedure before execution is considered.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -75,7 +76,7 @@ ran and no compute started.
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
-| Managed Gold | Modelling-view workflow deployed and independently verified with zero runs | Freeze and review the first managed-write contract |
+| Managed Gold | Modelling-view workflow deployed; first-run validation contract prepared | Review and explicitly approve the first managed write |
 | Modelling | Development baselines and drift evidence | Select and evaluate a final candidate |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
@@ -355,6 +356,7 @@ rather than precise estimates of generalization or maintenance impact.
 - [Feature snapshot v2](docs/feature_snapshot_v2_contract.md)
 - [First managed feature-snapshot v2 run](docs/managed_feature_snapshot_v2_first_run.md)
 - [Modelling-view v2 profile](docs/modeling_view_v2_profile.md)
+- [First managed modelling-view v2 run](docs/managed_modeling_view_v2_first_run.md)
 - [Evaluation protocol](docs/evaluation_protocol.md)
 - [Chronological split evidence](docs/chronological_split_profile.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)

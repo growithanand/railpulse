@@ -396,6 +396,14 @@ contexts, or unsupported feature statuses occur.
   environment version 4, `ALL_SUCCESS`, queueing, one-run concurrency, no schedule, and zero runs.
   A final read-only Catalog lookup confirmed that `gold.modeling_view_v2` is absent. Deployment
   therefore created no table and started no compute.
+- The [first managed modelling-view v2 run contract](managed_modeling_view_v2_first_run.md) now
+  freezes the zero-run/absent-table baseline, 15,766-row first-write reconciliation, 15,272
+  trainable and 494 excluded rows, 22 positive and 15,250 negative trainable labels, overlapping
+  exclusion counts, failure-event coverage, independent SQL audit, and retry procedure. The
+  checked-in validation SQL compares the complete feature and horizon projections, verifies fixed
+  versions and both lineages, reconstructs ordered row eligibility and exclusion reasons, checks
+  the feature-window boundary and trainable inputs, and resolves positive rows to accepted Silver
+  failure events. This checkpoint starts no compute and does not create the target table.
 
 Official local Bronze evidence:
 
@@ -799,8 +807,8 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Commit the modelling-view deployment record. Then freeze the first-run baseline, expected population
-and status counts, independent SQL validation, and retry procedure before seeking approval to run
-the workflow. The first managed write remains a separate explicit compute and table-mutation gate.
-The unchanged failure-horizon rerun also remains useful but requires compute approval. Do not commit
-credentials, local paths, deployment state, or ignored source data.
+Commit the modelling-view first-run contract and independent validation SQL. Then reconfirm the
+workflow's zero-run history, absent target, workspace availability, and governed source counts
+before seeking explicit approval to run it. The first managed write remains a separate compute and
+table-mutation gate. The unchanged failure-horizon rerun also remains useful but requires compute
+approval. Do not commit credentials, local paths, deployment state, or ignored source data.

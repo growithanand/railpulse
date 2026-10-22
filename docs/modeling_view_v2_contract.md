@@ -127,6 +127,8 @@ wrote no table.
 
 The fixed schema, Spark builder, focused fixture tests, full-source population profile, managed
 persistence boundary, packaged processing runner, and validated workflow definition are
-implemented. The workflow is deployed but has never run. Its first managed write, model fitting,
+implemented. The workflow is deployed but has never run. Its
+[first-run contract](managed_modeling_view_v2_first_run.md) freezes the baseline, expected
+population, independent SQL checks, and retry procedure. The first managed write, model fitting,
 threshold selection, and held-out test evaluation remain separate reviewable increments. No
 model-performance claim is made.
