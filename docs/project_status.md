@@ -6,8 +6,9 @@
 
 The current frontier is a packaged runner that reads the allowlisted managed modelling view,
 derives one pre-test tracking identity, fits the two fixed development-only candidates, and sends
-their approved evidence to the MLflow boundary. Its Databricks workflow has not been declared,
-deployed, or run, and no remote experiment exists yet.
+their approved evidence to the MLflow boundary. Its unscheduled Databricks workflow and
+bundle-managed MLflow experiment are now declared and strictly validated, but neither resource has
+been deployed or run and no remote experiment exists yet.
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -391,8 +392,17 @@ contexts, or unsupported feature statuses occur.
   identity from trainable rows before the sealed test boundary, prepares the restricted development
   frames, fits both candidates, and hands their evidence to MLflow. Test-period lineage changes do
   not affect the collected context; mixed development lineage and missing boundary columns fail
-  closed. Three unit tests and three Spark tests cover the runner boundary. No Databricks workflow
-  has been declared or executed for it.
+  closed. Three unit tests and three Spark tests cover the runner boundary.
+- A separate bundle-managed MLflow experiment and unscheduled two-task comparison workflow are now
+  declared. The workflow first invokes the existing modelling-view job and only on `ALL_SUCCESS`
+  runs the comparison wheel entry point on serverless environment version 4 with `mlflow-skinny`.
+  The task receives the experiment resource path and exact bundle Git commit, queues additional
+  requests, and permits one concurrent run. Strict bundle validation and a compact read-only
+  resolved summary pass. A resource-scoped plan would create those two resources, update five
+  transitive upstream jobs only with the newly built wheel reference, delete nothing, and leave five
+  resources outside the selection. Detailed changes preserve existing task graphs, parameters,
+  schedules, queueing, and concurrency. No deployment, compute, or remote experiment run has
+  occurred.
 - An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
   feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
   failure lineage; one label-observation boundary; supported target and row-status semantics;
@@ -834,8 +844,8 @@ interval checks. The validation warehouse was stopped immediately after the read
 
 - Additional sensor features and later Gold transformations. The unchanged failure-horizon rerun
   also remains pending.
-- The Databricks comparison workflow, full-source candidate comparison, remote MLflow runs, alert
-  evaluation, dashboard, streaming, and policy simulation.
+- Deployment and execution of the Databricks comparison workflow, the full-source candidate
+  comparison, remote MLflow runs, alert evaluation, dashboard, streaming, and policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and the current Gold-table workflows now exist and have verified managed runs. The latest
   modelling-view write has also passed its independent SQL audit; later Gold products remain
@@ -860,7 +870,9 @@ Record and review the successful modelling-view first write, independent SQL aud
 zero-insert rerun, guarded logistic candidate-comparison engine, and tested MLflow tracking
 boundary. The managed runner now reads the allowlisted modelling view, executes the fixed
 comparison, and passes its approved evidence to MLflow without exposing or scoring the sealed test
-period. Next, declare its unscheduled Databricks workflow, validate the bundle, and review a
-resource-scoped plan before any deployment. Running the full-source comparison remains a separate
-compute gate. The unchanged failure-horizon rerun also remains useful but requires compute
-approval. Do not commit credentials, local paths, deployment state, or ignored source data.
+period. The workflow and experiment declarations now pass strict validation and their selected plan
+contains two creates, five wheel-reference-only updates, zero deletions, and five unselected
+resources. Next, commit the reviewed declaration and repeat the selected plan from that clean Git
+state before any deployment. Deployment and the full-source comparison remain separate gates, and
+only the latter starts compute. The unchanged failure-horizon rerun also remains useful but requires
+compute approval. Do not commit credentials, local paths, deployment state, or ignored source data.

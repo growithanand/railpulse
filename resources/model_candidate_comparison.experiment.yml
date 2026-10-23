@@ -1,0 +1,7 @@
+resources:
+  experiments:
+    model_candidate_comparison:
+      name: /Workspace/Users/${workspace.current_user.userName}/railpulse/model-candidate-comparison
+      tags:
+        - key: mlflow.note.content
+          value: Development-only RailPulse feature-candidate comparison with a sealed test period.

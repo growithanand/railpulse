@@ -1,0 +1,34 @@
+resources:
+  jobs:
+    gold_model_candidate_comparison:
+      name: railpulse-gold-model-candidate-comparison
+      description: Refresh the managed modelling view, then fit and track the two reviewed development candidates.
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      tasks:
+        - task_key: refresh_modeling_view_v2
+          run_job_task:
+            job_id: ${resources.jobs.gold_modeling_view_v2_processing.id}
+        - task_key: compare_model_candidates
+          depends_on:
+            - task_key: refresh_modeling_view_v2
+          run_if: ALL_SUCCESS
+          environment_key: default
+          python_wheel_task:
+            package_name: railpulse
+            entry_point: databricks_gold_model_candidate_comparison
+            named_parameters:
+              catalog: ${var.catalog}
+              bronze_schema: ${var.bronze_schema}
+              silver_schema: ${var.silver_schema}
+              gold_schema: ${var.gold_schema}
+              experiment_name: ${resources.experiments.model_candidate_comparison.name}
+              code_version: ${bundle.git.commit}
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl
+              - mlflow-skinny>=3,<4

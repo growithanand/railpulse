@@ -336,5 +336,22 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   failures before recording MLflow evidence.
 - **Evidence boundary:** Three unit tests and three Spark tests cover routing, explicit arguments,
   error propagation, pre-test context isolation, mixed-lineage rejection, and missing-column
-  rejection. The entry point is not yet present in a Databricks workflow, and no compute or remote
-  experiment has been started.
+  rejection. No compute or remote experiment has been started.
+
+## ADR-026 — Gate comparison behind the managed modelling-view workflow
+
+- **Status:** Accepted
+- **Decision:** Declare a bundle-managed MLflow experiment and a separate unscheduled two-task job.
+  The first task invokes the existing modelling-view workflow; the comparison entry point runs only
+  after `ALL_SUCCESS` and receives the experiment resource plus `${bundle.git.commit}`.
+- **Why:** Reusing the verified upstream workflow guarantees that candidate fitting starts from the
+  governed modelling table, while the automatic commit identity ties experiment evidence to the
+  reviewed source without manual copying.
+- **Guardrail:** Use serverless environment version 4, install only the project wheel and
+  `mlflow-skinny`, queue additional requests, allow one concurrent run, and define no schedule or
+  trigger. Review a resource-scoped plan before deployment and require separate approval to run.
+- **Evidence boundary:** Strict validation and the selected plan pass. The plan creates the
+  experiment and comparison job, updates five transitive jobs only with the shared wheel reference,
+  deletes nothing, and leaves five resources unselected. Detailed changes preserve all existing
+  task graphs, parameters, schedules, queues, and concurrency settings. Nothing has been deployed,
+  no compute has started, and no remote MLflow experiment exists.

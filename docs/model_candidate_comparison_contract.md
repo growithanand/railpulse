@@ -101,5 +101,18 @@ lineage, missing boundary columns, incompatible comparison evidence, or incomple
 metadata fail the run before MLflow logging. Three focused unit tests and three Spark tests cover
 the orchestration and tracking-context boundary.
 
-The Python entry point exists, but no Databricks workflow has been declared or deployed for it and
-no remote MLflow run has been created.
+## Validated Databricks declaration
+
+The bundle now declares a separate MLflow experiment and an unscheduled two-task comparison job.
+The first task invokes the existing managed modelling-view workflow. Only after that succeeds does
+the second task invoke the packaged comparison runner on serverless environment version 4 with the
+wheel and `mlflow-skinny` dependencies. The runner receives the bundle-managed experiment path and
+the exact bundle Git commit as its code version.
+
+The workflow queues additional requests, allows one concurrent run, and has no schedule or trigger.
+Strict bundle validation and a read-only resolved summary pass. A selected deployment plan would
+create the experiment and comparison job, update five transitive upstream jobs only to reference
+the newly built wheel, delete no resources, and leave five resources unselected. The detailed diff
+preserves every existing task graph, parameter set, schedule state, queue setting, and concurrency
+limit. The new job and experiment remain undeployed, no compute has started, and no remote MLflow
+run has been created.

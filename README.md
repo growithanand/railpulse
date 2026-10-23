@@ -73,8 +73,8 @@ SQL warehouse.
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
-| Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Declare and review the comparison workflow |
-| Modelling | Guarded comparison, MLflow tracking, and managed runner boundaries | Deploy separately, then run the full-source comparison |
+| Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Deploy the reviewed comparison resources separately |
+| Modelling | Guarded runner plus validated and planned workflow/experiment | Deploy and run through separate gates |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -191,8 +191,10 @@ The modelling work is intentionally conservative:
   nested candidate runs with fixed contract, lineage, validation AUPRC, and coefficient evidence.
   A managed runner now reads only the allowlisted modelling-view table, derives tracking identity
   from pre-test trainable rows, runs the fixed comparison, and passes its evidence to that boundary.
-  No Databricks workflow or remote MLflow experiment has run, so the candidate decision remains
-  pending.
+  Its unscheduled Databricks workflow and bundle-managed experiment are declared and pass strict
+  bundle validation. A selected plan would create those two resources, update five transitive jobs
+  only with the new wheel reference, delete nothing, and leave five resources unselected. Nothing
+  has been deployed and no remote experiment has run, so the candidate decision remains pending.
 
 These negative and mixed results are part of the portfolio evidence: the project records why a
 candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
@@ -232,6 +234,10 @@ Completed managed steps:
     the validation warehouse.
 26. Rerun the unchanged workflow and prove the immutable modelling-view merge inserts zero rows and
     preserves all 15,766 target rows.
+27. Declare and strictly validate the unscheduled model-comparison workflow and its bundle-managed
+    MLflow experiment without deploying resources or starting compute.
+28. Review a selected plan that creates those two resources, refreshes only five transitive wheel
+    references, deletes nothing, and leaves five unrelated resources outside the selection.
 
 The managed workflows now own:
 
@@ -272,8 +278,9 @@ audit, zero-insert rerun, and immutable retry policy.
    warehouse.
 6. **Completed:** prove an unchanged managed modelling-view rerun inserts zero rows and preserves
    all 15,766 rows.
-7. Declare, review, and deploy the managed comparison workflow, then run the guarded full-source
-   comparison with MLflow while keeping the test period sealed.
+7. Commit the reviewed comparison declaration, deploy only its selected resources, independently
+   verify zero runs, then separately run the guarded full-source comparison with MLflow while
+   keeping the test period sealed.
 8. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
    the failure-event level.
 9. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
