@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Development model selection — provisional candidate retained**
+**Validation scoring — guarded selected-candidate scorer implemented locally**
 
 The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
 separately approved managed run refreshed the governed modelling view, fitted both fixed
@@ -14,6 +14,11 @@ A pure-Python selection contract now retains `motor-current-only` for developmen
 work. It freezes both managed-run metrics and population counts, requires the complete reviewed
 candidate set, and rejects a selection that is not the unique validation-AUPRC leader. No test
 metric, threshold, registered model, or deployment is part of this decision.
+
+A Spark scoring boundary now fits only the retained candidate on the exact frozen training
+population and exposes only reconciled validation probabilities plus audit-safe identifiers. It
+rejects changed populations, incompatible versions or columns, duplicate keys, invalid scores, and
+timestamps at or beyond the sealed test boundary. Full-source scoring has not run yet.
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -412,6 +417,11 @@ contexts, or unsupported feature statuses occur.
   five-input `motor-current-only` candidate solely for validation scoring and alert-policy design.
   The tested boundary freezes the managed-run populations and metrics, resolves the selected feature
   list from the original comparison contract, and keeps the July test partition sealed.
+- A [selected-candidate validation scorer](selected_candidate_validation.md) now requires the exact
+  managed comparison populations, fits the retained five-input model only on training rows, and
+  returns 4,730 validation-only score rows with fixed selection and split identities. Three focused
+  Spark tests cover valid scoring and fail-closed population, timestamp, and metadata cases. No
+  full-source scores have been generated or persisted.
 - An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
   feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
   failure lineage; one label-observation boundary; supported target and row-status semantics;
@@ -876,9 +886,10 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-The simpler motor-current candidate is now retained through a versioned development-only contract.
-Next, produce guarded validation scores for that exact candidate without exposing test rows. Then
-define and evaluate alert thresholds, persistence, merge, and cooldown behavior at the failure-event
-level. Freeze the complete model and alert policy before the one-time sealed-test evaluation. The
-unchanged failure-horizon rerun also remains useful but requires compute approval. Do not commit
-credentials, local paths, deployment state, account identifiers, or ignored source data.
+The simpler motor-current candidate is retained, and its validation-only scoring boundary is now
+implemented and tested. Next, generate the full-source validation scores and record a compact,
+auditable distribution summary without persisting row-level output yet. Then define and evaluate
+alert thresholds, persistence, merge, and cooldown behavior at the failure-event level. Freeze the
+complete model and alert policy before the one-time sealed-test evaluation. The unchanged
+failure-horizon rerun also remains useful but requires compute approval. Do not commit credentials,
+local paths, deployment state, account identifiers, or ignored source data.

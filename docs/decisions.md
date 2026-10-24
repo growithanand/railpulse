@@ -371,3 +371,18 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Evidence boundary:** A pure-Python contract freezes the managed-run counts and metrics, requires
   one shared population and every reviewed candidate, and rejects any selected candidate that is not
   the unique validation-AUPRC leader. The validation partition contains only five positive labels.
+
+## ADR-028 — Expose validation probabilities through a sealed scoring boundary
+
+- **Status:** Accepted
+- **Decision:** Fit only the retained `motor-current-only` candidate on the frozen training rows and
+  return cycle probabilities only for the frozen validation rows.
+- **Why:** Alert-policy work needs time-ordered probabilities and labels, but it does not need test
+  rows, source metadata, feature values, raw predictions, or the fitted Spark model.
+- **Guardrail:** Require the exact managed comparison populations, candidate and selection versions,
+  reviewed columns, unique keys, and chronological boundaries before fitting. Emit only audit keys,
+  validation labels and probabilities, and fixed scoring identities.
+- **Evidence boundary:** Three Spark integration tests verify 4,730 reconciled validation scores,
+  bounded probabilities, exclusion of a July row, and rejection of changed populations, July
+  timestamps, and incompatible contract metadata. Full-source execution and persistence remain
+  separate gates.

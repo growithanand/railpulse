@@ -83,7 +83,7 @@ five positive labels and the sealed July test period remains untouched.
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | First managed comparison recorded; motor-current-only retained for development | Produce guarded validation scores before alert-policy selection |
+| Modelling | Retained candidate plus guarded validation-only scorer implemented | Generate and summarize full-source validation scores |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -210,6 +210,11 @@ The modelling work is intentionally conservative:
   alert-policy steps. It freezes the exact managed-run evidence, requires identical candidate
   populations, and keeps the July test partition sealed. This is a development decision, not model
   registration or deployment.
+- A guarded Spark scorer now fits that exact candidate on the frozen 6,325-row training population
+  and can expose only the 4,730 validation keys, timestamps, labels, probabilities, and fixed
+  identities. It rejects changed counts, label distributions, candidate metadata, and July
+  timestamps before fitting. Focused Spark tests pass; no full-source score run or persistence has
+  occurred yet.
 
 These negative and mixed results are part of the portfolio evidence: the project records why a
 candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
@@ -303,8 +308,9 @@ and next modelling gate.
    test period sealed.
 8. **Completed:** retain the simpler candidate through a versioned development-only selection
    contract without opening the test period.
-9. Produce guarded validation scores, convert them into alert episodes, and select a policy using
-   warning lead time and false-alarm burden without opening the sealed test period.
+9. **In progress:** generate and summarize guarded full-source validation scores, then convert them
+   into alert episodes and select a policy using warning lead time and false-alarm burden without
+   opening the sealed test period.
 10. Evaluate the frozen model and alert policy once on the sealed test period.
 11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
 12. Add a short reproducible demo path and evidence-based résumé bullets.
@@ -415,5 +421,6 @@ rather than precise estimates of generalization or maintenance impact.
 - [Model candidate comparison contract](docs/model_candidate_comparison_contract.md)
 - [First managed model-candidate comparison](docs/managed_model_candidate_comparison_first_run.md)
 - [Development model selection](docs/development_model_selection.md)
+- [Selected-candidate validation scoring](docs/selected_candidate_validation.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)
 - [Directional baseline evidence](docs/directional_baseline_profile.md)
