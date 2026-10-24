@@ -69,9 +69,9 @@ returns the shared estimator parameters, train/validation label counts, fitted i
 coefficients, and completed iteration counts. The returned object contains no test frame, test
 metric, selected threshold, or automatic winner.
 
-These fields form the minimum evidence required by the MLflow tracking boundary. A full-source
-comparison run remains a separate increment; no candidate has been selected and no model
-performance claim is made here.
+These fields form the minimum evidence required by the MLflow tracking boundary. The managed
+comparison has now run, but this contract still prohibits automatic selection and test-period
+performance claims.
 
 ## Implemented MLflow tracking boundary
 
@@ -86,8 +86,8 @@ train and validation population counts, optimizer iterations, validation AUPRC, 
 and coefficients. The structured contract and candidate evidence are stored as JSON artifacts.
 
 The boundary does not log a test metric, prediction, threshold, registered model, or automatic
-winner. Its focused tests use an in-memory MLflow-compatible recorder, so no remote experiment or
-full-source model fit has been started yet.
+winner. Its focused tests use an in-memory MLflow-compatible recorder, and the first managed run
+has separately verified the same parent/child structure in the remote MLflow experiment.
 
 ## Implemented managed runner
 
@@ -101,7 +101,7 @@ lineage, missing boundary columns, incompatible comparison evidence, or incomple
 metadata fail the run before MLflow logging. Three focused unit tests and three Spark tests cover
 the orchestration and tracking-context boundary.
 
-## Validated Databricks declaration
+## Deployed Databricks workflow
 
 The bundle now declares a separate MLflow experiment and an unscheduled two-task comparison job.
 The first task invokes the existing managed modelling-view workflow. Only after that succeeds does
@@ -110,9 +110,16 @@ wheel and `mlflow-skinny` dependencies. The runner receives the bundle-managed e
 the exact bundle Git commit as its code version.
 
 The workflow queues additional requests, allows one concurrent run, and has no schedule or trigger.
-Strict bundle validation and a read-only resolved summary pass. A selected deployment plan would
-create the experiment and comparison job, update five transitive upstream jobs only to reference
-the newly built wheel, delete no resources, and leave five resources unselected. The detailed diff
-preserves every existing task graph, parameter set, schedule state, queue setting, and concurrency
-limit. The new job and experiment remain undeployed, no compute has started, and no remote MLflow
-run has been created.
+Strict bundle validation and a read-only resolved summary passed before deployment. The selected
+deployment created the experiment and comparison job, updated five transitive upstream jobs only to
+reference the newly built wheel, deleted no resources, and left five resources unselected. The
+detailed diff preserved every existing task graph, parameter set, schedule state, queue setting, and
+concurrency limit.
+
+The first separately approved managed run completed successfully on 2026-10-24. It refreshed the
+modelling view before fitting and recorded one finished parent plus two finished candidate runs.
+Both candidates used 6,325 training rows with four positives and 4,730 validation rows with five
+positives. `motor-current-only` produced validation AUPRC `0.011954`; the cycle-context extension
+produced `0.008632`. This makes the simpler candidate the provisional development leader under the
+fixed comparison, not a registered model or a sealed-test result. See the
+[first managed comparison record](managed_model_candidate_comparison_first_run.md).

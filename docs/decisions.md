@@ -304,9 +304,9 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   read or score the July test partition, tune an alert threshold, resample classes, search
   hyperparameters, or automatically declare a winner.
 - **Evidence boundary:** The implemented engine returns partition counts, validation AUPRC,
-  coefficients, intercepts, and optimizer iterations for later MLflow logging. Focused contract and
-  Spark tests pass. No full-source fit, MLflow run, candidate selection, or performance claim has
-  been made.
+  coefficients, intercepts, and optimizer iterations for MLflow logging. Focused contract and Spark
+  tests pass. The first managed comparison later recorded both candidates without scoring the sealed
+  test partition or selecting an alert threshold.
 
 ## ADR-024 — Track one comparison parent with two nested candidate runs
 
@@ -320,8 +320,8 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   validation AUPRC, iterations, coefficients, and intercepts; do not log test evidence, predictions,
   alert thresholds, a registered model, or an automatic winner.
 - **Evidence boundary:** Ten focused tracking and contract tests pass using an in-memory
-  MLflow-compatible recorder. No remote MLflow experiment, full-source fit, candidate selection, or
-  model-performance claim has been made.
+  MLflow-compatible recorder. The first managed comparison later verified one parent and two nested
+  candidate runs remotely; it created no registered model or automatic winner.
 
 ## ADR-025 — Derive experiment lineage only from development rows
 
@@ -336,7 +336,8 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   failures before recording MLflow evidence.
 - **Evidence boundary:** Three unit tests and three Spark tests cover routing, explicit arguments,
   error propagation, pre-test context isolation, mixed-lineage rejection, and missing-column
-  rejection. No compute or remote experiment has been started.
+  rejection. The first managed run later recorded the exact reviewed Git commit and development-only
+  lineage in MLflow.
 
 ## ADR-026 — Gate comparison behind the managed modelling-view workflow
 
@@ -350,8 +351,8 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Guardrail:** Use serverless environment version 4, install only the project wheel and
   `mlflow-skinny`, queue additional requests, allow one concurrent run, and define no schedule or
   trigger. Review a resource-scoped plan before deployment and require separate approval to run.
-- **Evidence boundary:** Strict validation and the selected plan pass. The plan creates the
-  experiment and comparison job, updates five transitive jobs only with the shared wheel reference,
-  deletes nothing, and leaves five resources unselected. Detailed changes preserve all existing
-  task graphs, parameters, schedules, queues, and concurrency settings. Nothing has been deployed,
-  no compute has started, and no remote MLflow experiment exists.
+- **Evidence boundary:** Strict validation and the selected plan passed. Deployment created the
+  experiment and comparison job, updated five transitive jobs only with the shared wheel reference,
+  deleted nothing, and left five resources unselected. The first separately approved run completed
+  successfully on 2026-10-24: upstream modelling data refreshed first, then one parent and two nested
+  candidate runs finished in MLflow without test-period scoring.

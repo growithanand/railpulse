@@ -2,13 +2,13 @@
 
 ## Current phase
 
-**Model candidate comparison — managed runner implemented locally**
+**Model candidate comparison — first managed MLflow run complete**
 
-The current frontier is a packaged runner that reads the allowlisted managed modelling view,
-derives one pre-test tracking identity, fits the two fixed development-only candidates, and sends
-their approved evidence to the MLflow boundary. Its unscheduled Databricks workflow and
-bundle-managed MLflow experiment are now declared and strictly validated, but neither resource has
-been deployed or run and no remote experiment exists yet.
+The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
+separately approved managed run refreshed the governed modelling view, fitted both fixed
+development-only candidates, and recorded one parent plus two nested candidate runs. The original
+five-input motor-current candidate leads the eight-input cycle-context extension on validation
+AUPRC, but the test period remains sealed and only five validation positives were available.
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -385,24 +385,24 @@ contexts, or unsupported feature statuses occur.
   run. It records one parent contract run and two nested candidate runs containing only reviewed
   train/validation counts, estimator parameters, validation AUPRC, iterations, intercepts, and
   coefficients. Ten focused tracking and contract tests pass against an in-memory MLflow-compatible
-  recorder. No remote MLflow experiment or full-source fit has run, so no candidate-performance
-  result is claimed yet.
+  recorder. The first managed run later verified the same parent/child structure remotely.
 - A packaged managed comparison runner now resolves only the allowlisted `gold.modeling_view_v2`
   table, requires explicit experiment and code-version inputs, derives one complete tracking
   identity from trainable rows before the sealed test boundary, prepares the restricted development
   frames, fits both candidates, and hands their evidence to MLflow. Test-period lineage changes do
   not affect the collected context; mixed development lineage and missing boundary columns fail
   closed. Three unit tests and three Spark tests cover the runner boundary.
-- A separate bundle-managed MLflow experiment and unscheduled two-task comparison workflow are now
-  declared. The workflow first invokes the existing modelling-view job and only on `ALL_SUCCESS`
+- A separate bundle-managed MLflow experiment and unscheduled two-task comparison workflow are
+  deployed. The workflow first invokes the existing modelling-view job and only on `ALL_SUCCESS`
   runs the comparison wheel entry point on serverless environment version 4 with `mlflow-skinny`.
   The task receives the experiment resource path and exact bundle Git commit, queues additional
   requests, and permits one concurrent run. Strict bundle validation and a compact read-only
-  resolved summary pass. A resource-scoped plan would create those two resources, update five
-  transitive upstream jobs only with the newly built wheel reference, delete nothing, and leave five
-  resources outside the selection. Detailed changes preserve existing task graphs, parameters,
-  schedules, queueing, and concurrency. No deployment, compute, or remote experiment run has
-  occurred.
+  resolved summary passed. The resource-scoped deployment created those two resources, updated five
+  transitive upstream jobs only with the newly built wheel reference, deleted nothing, and left five
+  resources outside the selection. The first managed run then completed successfully. MLflow
+  recorded 6,325 training rows with four positives and 4,730 validation rows with five positives for
+  each candidate. `motor-current-only` reached validation AUPRC `0.011954`; the cycle-context
+  extension reached `0.008632`. No test row, alert threshold, or registered model was produced.
 - An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
   feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
   failure lineage; one label-observation boundary; supported target and row-status semantics;
@@ -844,15 +844,16 @@ interval checks. The validation warehouse was stopped immediately after the read
 
 - Additional sensor features and later Gold transformations. The unchanged failure-horizon rerun
   also remains pending.
-- Deployment and execution of the Databricks comparison workflow, the full-source candidate
-  comparison, remote MLflow runs, alert evaluation, dashboard, streaming, and policy simulation.
+- Development-only alert-policy selection, sealed-test evaluation, dashboard, streaming, and policy
+  simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and the current Gold-table workflows now exist and have verified managed runs. The latest
   modelling-view write has also passed its independent SQL audit; later Gold products remain
   pending.
 
-No predictive-model performance, failure-detection, warning-lead-time, false-alarm, or cost result
-has been measured.
+Validation AUPRC has been measured for the two fixed candidates. No sealed-test performance,
+failure-detection, warning-lead-time, false-alarm, maintenance-impact, or cost result has been
+measured.
 
 ## Known constraints and next phase
 
@@ -866,13 +867,10 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Record and review the successful modelling-view first write, independent SQL audit, unchanged
-zero-insert rerun, guarded logistic candidate-comparison engine, and tested MLflow tracking
-boundary. The managed runner now reads the allowlisted modelling view, executes the fixed
-comparison, and passes its approved evidence to MLflow without exposing or scoring the sealed test
-period. The workflow and experiment declarations now pass strict validation and their selected plan
-contains two creates, five wheel-reference-only updates, zero deletions, and five unselected
-resources. Next, commit the reviewed declaration and repeat the selected plan from that clean Git
-state before any deployment. Deployment and the full-source comparison remain separate gates, and
-only the latter starts compute. The unchanged failure-horizon rerun also remains useful but requires
-compute approval. Do not commit credentials, local paths, deployment state, or ignored source data.
+Record and review the successful managed comparison and its MLflow evidence. The simpler
+motor-current candidate is the provisional development leader because its validation AUPRC exceeds
+the cycle-context extension under the fixed contract. Next, make an explicit candidate-retention
+decision and evaluate development-only alert thresholds at the failure-event level. Freeze the
+complete model and alert policy before the one-time sealed-test evaluation. The unchanged
+failure-horizon rerun also remains useful but requires compute approval. Do not commit credentials,
+local paths, deployment state, account identifiers, or ignored source data.

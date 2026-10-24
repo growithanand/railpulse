@@ -13,8 +13,9 @@ The project asks a practical question:
 > intervention—ideally at least two hours before a recorded failure—without creating an
 > unacceptable false-alarm burden?
 
-No final model-performance or maintenance-impact claim is made yet. The current emphasis is the
-reproducible data foundation and leakage-safe evaluation design needed to make such claims credible.
+The first managed development-only model comparison is complete, but no sealed-test or
+maintenance-impact claim is made yet. The emphasis remains reproducible evidence and a leakage-safe
+evaluation design.
 
 ## Current status
 
@@ -66,6 +67,14 @@ proved idempotency: the managed writer inserted zero rows, matched all 15,766 ex
 unchanged, and preserved the complete population and lineage evidence without starting a separate
 SQL warehouse.
 
+The unscheduled model-comparison workflow and its MLflow experiment are now deployed and have
+completed their first approved run. The workflow refreshed the governed modelling view before
+fitting either candidate, and MLflow recorded one parent run plus two nested candidate runs. On the
+same 6,325 training rows and 4,730 validation rows, the five-input motor-current candidate achieved
+validation AUPRC `0.011954`; adding three cycle-context inputs reduced it to `0.008632`. The simpler
+candidate is therefore the provisional development leader, but the validation set contains only
+five positive labels and the sealed July test period remains untouched.
+
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
 | Source governance | Manifest, immutable paths, checksums, managed Volume | Complete |
@@ -73,8 +82,8 @@ SQL warehouse.
 | Databricks runtime | Serverless wheel execution and source preflight | Complete |
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
-| Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Deploy the reviewed comparison resources separately |
-| Modelling | Guarded runner plus validated and planned workflow/experiment | Deploy and run through separate gates |
+| Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
+| Modelling | First managed comparison recorded in MLflow; motor-current-only leads on validation AUPRC | Freeze a development-only alert policy before sealed-test evaluation |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -191,10 +200,12 @@ The modelling work is intentionally conservative:
   nested candidate runs with fixed contract, lineage, validation AUPRC, and coefficient evidence.
   A managed runner now reads only the allowlisted modelling-view table, derives tracking identity
   from pre-test trainable rows, runs the fixed comparison, and passes its evidence to that boundary.
-  Its unscheduled Databricks workflow and bundle-managed experiment are declared and pass strict
-  bundle validation. A selected plan would create those two resources, update five transitive jobs
-  only with the new wheel reference, delete nothing, and leave five resources unselected. Nothing
-  has been deployed and no remote experiment has run, so the candidate decision remains pending.
+  Its unscheduled Databricks workflow and bundle-managed experiment were deployed through the
+  reviewed selected plan. The first managed run completed successfully and recorded one parent plus
+  two nested MLflow runs. On identical populations, `motor-current-only` reached validation AUPRC
+  `0.011954`, while `motor-current-plus-cycle-context` reached `0.008632`. The simpler candidate is
+  the provisional development leader; five validation positives and an untouched test period keep
+  this from being a final performance claim.
 
 These negative and mixed results are part of the portfolio evidence: the project records why a
 candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
@@ -238,6 +249,9 @@ Completed managed steps:
     MLflow experiment without deploying resources or starting compute.
 28. Review a selected plan that creates those two resources, refreshes only five transitive wheel
     references, deletes nothing, and leaves five unrelated resources outside the selection.
+29. Deploy the selected comparison resources without starting compute.
+30. Run the governed dependency chain and record the finished parent and candidate runs in MLflow
+    without reading or scoring the sealed test period.
 
 The managed workflows now own:
 
@@ -264,6 +278,9 @@ the first-write evidence, exact label distribution, semantic checks, and pending
 The [first managed modelling-view v2 run record](docs/managed_modeling_view_v2_first_run.md)
 preserves the pre-run gate, successful first-write evidence, Catalog metadata, independent SQL
 audit, zero-insert rerun, and immutable retry policy.
+The [first managed model-candidate comparison record](docs/managed_model_candidate_comparison_first_run.md)
+preserves the deployment boundary, ordered workflow evidence, MLflow metrics, interpretation limits,
+and next modelling gate.
 
 ## Roadmap to the portfolio demonstration
 
@@ -278,13 +295,13 @@ audit, zero-insert rerun, and immutable retry policy.
    warehouse.
 6. **Completed:** prove an unchanged managed modelling-view rerun inserts zero rows and preserves
    all 15,766 rows.
-7. Commit the reviewed comparison declaration, deploy only its selected resources, independently
-   verify zero runs, then separately run the guarded full-source comparison with MLflow while
-   keeping the test period sealed.
-8. Convert cycle scores into alert episodes and evaluate warning lead time and false-alarm burden at
-   the failure-event level.
-9. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
-10. Add a short reproducible demo path and evidence-based résumé bullets.
+7. **Completed:** deploy and run the guarded full-source comparison with MLflow while keeping the
+   test period sealed.
+8. Convert development-period cycle scores into alert episodes and select an operating policy using
+   warning lead time and false-alarm burden without opening the sealed test period.
+9. Evaluate the frozen model and alert policy once on the sealed test period.
+10. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
+11. Add a short reproducible demo path and evidence-based résumé bullets.
 
 ## Technology
 
@@ -294,7 +311,7 @@ audit, zero-insert rerun, and immutable retry policy.
 - Spark SQL and Databricks SQL
 - Databricks Asset Bundles, serverless jobs, Volumes, and Unity Catalog
 - pytest and Ruff
-- MLflow tracking boundary implemented and tested; no experiment run yet
+- MLflow experiment with one verified managed comparison and two nested candidate runs
 
 Local Spark/Delta execution is verified in Ubuntu WSL with a supported JDK 17. Native Windows Spark
 is not the verified path because its Hadoop layer requires an additional Windows helper binary.
@@ -390,5 +407,6 @@ rather than precise estimates of generalization or maintenance impact.
 - [Evaluation protocol](docs/evaluation_protocol.md)
 - [Chronological split evidence](docs/chronological_split_profile.md)
 - [Model candidate comparison contract](docs/model_candidate_comparison_contract.md)
+- [First managed model-candidate comparison](docs/managed_model_candidate_comparison_first_run.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)
 - [Directional baseline evidence](docs/directional_baseline_profile.md)
