@@ -83,7 +83,7 @@ five positive labels and the sealed July test period remains untouched.
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | First managed comparison recorded in MLflow; motor-current-only leads on validation AUPRC | Freeze a development-only alert policy before sealed-test evaluation |
+| Modelling | First managed comparison recorded; motor-current-only retained for development | Produce guarded validation scores before alert-policy selection |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -206,6 +206,10 @@ The modelling work is intentionally conservative:
   `0.011954`, while `motor-current-plus-cycle-context` reached `0.008632`. The simpler candidate is
   the provisional development leader; five validation positives and an untouched test period keep
   this from being a final performance claim.
+- A versioned development-selection contract now retains `motor-current-only` for the next
+  alert-policy steps. It freezes the exact managed-run evidence, requires identical candidate
+  populations, and keeps the July test partition sealed. This is a development decision, not model
+  registration or deployment.
 
 These negative and mixed results are part of the portfolio evidence: the project records why a
 candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
@@ -297,11 +301,13 @@ and next modelling gate.
    all 15,766 rows.
 7. **Completed:** deploy and run the guarded full-source comparison with MLflow while keeping the
    test period sealed.
-8. Convert development-period cycle scores into alert episodes and select an operating policy using
+8. **Completed:** retain the simpler candidate through a versioned development-only selection
+   contract without opening the test period.
+9. Produce guarded validation scores, convert them into alert episodes, and select a policy using
    warning lead time and false-alarm burden without opening the sealed test period.
-9. Evaluate the frozen model and alert policy once on the sealed test period.
-10. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
-11. Add a short reproducible demo path and evidence-based résumé bullets.
+10. Evaluate the frozen model and alert policy once on the sealed test period.
+11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
+12. Add a short reproducible demo path and evidence-based résumé bullets.
 
 ## Technology
 
@@ -408,5 +414,6 @@ rather than precise estimates of generalization or maintenance impact.
 - [Chronological split evidence](docs/chronological_split_profile.md)
 - [Model candidate comparison contract](docs/model_candidate_comparison_contract.md)
 - [First managed model-candidate comparison](docs/managed_model_candidate_comparison_first_run.md)
+- [Development model selection](docs/development_model_selection.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)
 - [Directional baseline evidence](docs/directional_baseline_profile.md)

@@ -2,13 +2,18 @@
 
 ## Current phase
 
-**Model candidate comparison — first managed MLflow run complete**
+**Development model selection — provisional candidate retained**
 
 The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
 separately approved managed run refreshed the governed modelling view, fitted both fixed
 development-only candidates, and recorded one parent plus two nested candidate runs. The original
 five-input motor-current candidate leads the eight-input cycle-context extension on validation
 AUPRC, but the test period remains sealed and only five validation positives were available.
+
+A pure-Python selection contract now retains `motor-current-only` for development-only alert-policy
+work. It freezes both managed-run metrics and population counts, requires the complete reviewed
+candidate set, and rejects a selection that is not the unique validation-AUPRC leader. No test
+metric, threshold, registered model, or deployment is part of this decision.
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -403,6 +408,10 @@ contexts, or unsupported feature statuses occur.
   recorded 6,325 training rows with four positives and 4,730 validation rows with five positives for
   each candidate. `motor-current-only` reached validation AUPRC `0.011954`; the cycle-context
   extension reached `0.008632`. No test row, alert threshold, or registered model was produced.
+- A [development model-selection contract](development_model_selection.md) now retains the
+  five-input `motor-current-only` candidate solely for validation scoring and alert-policy design.
+  The tested boundary freezes the managed-run populations and metrics, resolves the selected feature
+  list from the original comparison contract, and keeps the July test partition sealed.
 - An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
   feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
   failure lineage; one label-observation boundary; supported target and row-status semantics;
@@ -867,10 +876,9 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-Record and review the successful managed comparison and its MLflow evidence. The simpler
-motor-current candidate is the provisional development leader because its validation AUPRC exceeds
-the cycle-context extension under the fixed contract. Next, make an explicit candidate-retention
-decision and evaluate development-only alert thresholds at the failure-event level. Freeze the
-complete model and alert policy before the one-time sealed-test evaluation. The unchanged
-failure-horizon rerun also remains useful but requires compute approval. Do not commit credentials,
-local paths, deployment state, account identifiers, or ignored source data.
+The simpler motor-current candidate is now retained through a versioned development-only contract.
+Next, produce guarded validation scores for that exact candidate without exposing test rows. Then
+define and evaluate alert thresholds, persistence, merge, and cooldown behavior at the failure-event
+level. Freeze the complete model and alert policy before the one-time sealed-test evaluation. The
+unchanged failure-horizon rerun also remains useful but requires compute approval. Do not commit
+credentials, local paths, deployment state, account identifiers, or ignored source data.

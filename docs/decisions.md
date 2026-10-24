@@ -356,3 +356,18 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   deleted nothing, and left five resources unselected. The first separately approved run completed
   successfully on 2026-10-24: upstream modelling data refreshed first, then one parent and two nested
   candidate runs finished in MLflow without test-period scoring.
+
+## ADR-027 — Retain the simpler candidate for development-only alert-policy work
+
+- **Status:** Accepted
+- **Decision:** Retain `motor-current-only` as the candidate for development-only scoring and alert
+  policy design. Do not carry the cycle-context extension into the next stage.
+- **Why:** Both candidates used identical populations and estimator settings. The simpler candidate
+  produced validation AUPRC `0.011954`, compared with `0.008632` for the three-feature extension,
+  while requiring fewer inputs.
+- **Guardrail:** Treat the decision as provisional and development-only. Keep the July test period
+  sealed, and do not register, deploy, or describe the candidate as production-ready. Threshold,
+  persistence, merge, and cooldown rules remain separate decisions.
+- **Evidence boundary:** A pure-Python contract freezes the managed-run counts and metrics, requires
+  one shared population and every reviewed candidate, and rejects any selected candidate that is not
+  the unique validation-AUPRC leader. The validation partition contains only five positive labels.
