@@ -93,9 +93,16 @@ profile as JSON. It contains no table writer, MLflow writer, model registration,
 or test-period scoring path. Three unit tests verify its named parameters, ordered routing, source
 table identity, compact result, and fail-closed error handling.
 
+The bundle now declares an unscheduled two-task workflow. It invokes the existing managed
+modelling-view v2 job first and runs the profile task only after `ALL_SUCCESS`. The profile task uses
+serverless environment version 4, the project wheel only, queueing, and a one-run concurrency limit.
+Strict bundle validation passes. A resource-scoped plan proposes one job addition, five existing-job
+updates, no deletions, and leaves seven resources outside the selection.
+
 ## Next gate
 
-The scorer, compact profile, and managed read-only runner are implemented and tested. The next gate
-is declaring and reviewing an unscheduled Databricks job before any deployment or separately
-approved compute run. Its aggregate output must reconcile to the frozen counts before any threshold
-or alert-episode logic is introduced; row-level score persistence remains out of scope.
+The scorer, compact profile, managed runner, and unscheduled workflow are implemented and validated.
+The next gate is reviewing and deploying only the selected job changes, without starting compute.
+Execution remains a separate approval. Its aggregate output must reconcile to the frozen counts
+before any threshold or alert-episode logic is introduced; row-level score persistence remains out
+of scope.

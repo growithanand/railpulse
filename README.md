@@ -79,8 +79,10 @@ A compact validation-score profiler is now implemented and tested. A read-only l
 attempt stopped before fitting because its reconstructed train/validation populations differed from
 the frozen managed evidence by six negative rows. The guard was intentionally retained; no local
 score summary or test-period result was produced. A managed read-only runner is now prepared to use
-the governed modelling table and return only the compact profile; no Databricks job has been
-declared, deployed, or run for it yet.
+the governed modelling table and return only the compact profile. Its unscheduled two-task
+Databricks job is declared and passes strict bundle validation. A resource-scoped plan proposes one
+job addition, five existing-job updates, no deletions, and leaves seven resources outside the
+selection; nothing has been deployed or run for this profile yet.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -90,7 +92,7 @@ declared, deployed, or run for it yet.
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | Guarded scorer, compact profile, and managed read-only runner implemented | Declare and review the unscheduled profile job |
+| Modelling | Guarded scorer plus validated, planned profile workflow | Review and deploy the selected profile job |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -224,8 +226,9 @@ The modelling work is intentionally conservative:
   probabilities without persisting row-level output. Focused Spark tests pass. A read-only local
   attempt correctly stopped on a six-negative-row provenance mismatch, so no full-source profile or
   persistence has occurred yet. A tested managed runner now reads the governed modelling table and
-  returns only aggregate profile evidence; its workflow resource and execution remain separate
-  review gates.
+  returns only aggregate profile evidence. Its unscheduled job declaration passes validation, and a
+  selected plan proposes one addition, five updates, and no deletions. Deployment and execution
+  remain separate review gates.
 
 These negative and mixed results are part of the portfolio evidence: the project records why a
 candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
@@ -319,10 +322,11 @@ and next modelling gate.
    test period sealed.
 8. **Completed:** retain the simpler candidate through a versioned development-only selection
    contract without opening the test period.
-9. **In progress:** the compact validation-score profile and managed runner are implemented; declare,
-   review, deploy, and separately run the unscheduled job against the exact managed comparison
-   population. Then convert reviewed validation scores into alert episodes and select a policy using
-   warning lead time and false-alarm burden without opening the sealed test period.
+9. **In progress:** the compact validation-score profile, managed runner, and unscheduled job are
+   implemented and validated. Review and deploy the selected plan, then separately run it against
+   the exact managed comparison population. Afterward, convert reviewed validation scores into alert
+   episodes and select a policy using warning lead time and false-alarm burden without opening the
+   sealed test period.
 10. Evaluate the frozen model and alert policy once on the sealed test period.
 11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
 12. Add a short reproducible demo path and evidence-based résumé bullets.

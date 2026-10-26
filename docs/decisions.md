@@ -404,4 +404,6 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   validation populations contained six fewer negative rows than the frozen managed evidence. No
   score summary, threshold, row-level write, or test-period result was produced. A separate managed
   runner now routes the governed modelling table through the same guard and returns only compact
-  JSON evidence; its workflow declaration, deployment, and execution remain separate gates.
+  JSON evidence. Its unscheduled workflow refreshes the governed modelling view before profiling,
+  passes strict bundle validation, and has a selected plan with one addition, five updates, and no
+  deletions. Deployment and execution remain separate gates.
