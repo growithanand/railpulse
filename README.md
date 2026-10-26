@@ -82,7 +82,8 @@ score summary or test-period result was produced. A managed read-only runner is 
 the governed modelling table and return only the compact profile. Its unscheduled two-task
 Databricks job is declared and passes strict bundle validation. A resource-scoped plan proposes one
 job addition, five existing-job updates, no deletions, and leaves seven resources outside the
-selection; nothing has been deployed or run for this profile yet.
+selection. The selected deployment then created that job and updated the five planned dependencies
+without deleting resources or starting compute. The profile workflow has not been run yet.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -92,7 +93,7 @@ selection; nothing has been deployed or run for this profile yet.
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | Guarded scorer plus validated, planned profile workflow | Review and deploy the selected profile job |
+| Modelling | Guarded scorer plus deployed validation-profile workflow | Run and reconcile the compact managed profile |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -227,8 +228,8 @@ The modelling work is intentionally conservative:
   attempt correctly stopped on a six-negative-row provenance mismatch, so no full-source profile or
   persistence has occurred yet. A tested managed runner now reads the governed modelling table and
   returns only aggregate profile evidence. Its unscheduled job declaration passes validation, and a
-  selected plan proposes one addition, five updates, and no deletions. Deployment and execution
-  remain separate review gates.
+  selected plan proposed one addition, five updates, and no deletions. The selected deployment
+  applied exactly that resource scope without starting compute. Execution remains a separate gate.
 
 These negative and mixed results are part of the portfolio evidence: the project records why a
 candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
@@ -323,10 +324,10 @@ and next modelling gate.
 8. **Completed:** retain the simpler candidate through a versioned development-only selection
    contract without opening the test period.
 9. **In progress:** the compact validation-score profile, managed runner, and unscheduled job are
-   implemented and validated. Review and deploy the selected plan, then separately run it against
-   the exact managed comparison population. Afterward, convert reviewed validation scores into alert
-   episodes and select a policy using warning lead time and false-alarm burden without opening the
-   sealed test period.
+   implemented, validated, and deployed. Run it separately against the exact managed comparison
+   population and reconcile the compact output. Afterward, convert reviewed validation scores into
+   alert episodes and select a policy using warning lead time and false-alarm burden without opening
+   the sealed test period.
 10. Evaluate the frozen model and alert policy once on the sealed test period.
 11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
 12. Add a short reproducible demo path and evidence-based résumé bullets.

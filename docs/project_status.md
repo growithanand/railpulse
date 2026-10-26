@@ -436,7 +436,10 @@ contexts, or unsupported feature statuses occur.
   modelling-view v2 workflow before running the profile task under `ALL_SUCCESS`. It uses serverless
   environment version 4, the project wheel only, queueing, and one-run concurrency. Strict bundle
   validation passes. A resource-scoped plan proposes one job addition, five existing-job updates,
-  no deletions, and leaves seven resources outside the selection. Nothing has been deployed or run.
+  no deletions, and leaves seven resources outside the selection. The selected deployment from Git
+  commit `a8d3f9f` then created the new job and updated the five planned dependencies, uploaded 16
+  files, and deleted nothing. A direct bundle summary confirmed the reviewed two-task definition.
+  No workflow run or compute was started.
 - An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
   feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
   failure lineage; one label-observation boundary; supported target and row-status semantics;
@@ -902,10 +905,9 @@ change will require an explicit versioned rebuild rather than silently moving re
 ## Next milestone
 
 The simpler motor-current candidate is retained, and its validation-only scorer, compact profile,
-managed runner, and unscheduled workflow are implemented and validated. Next, review and deploy only
-the selected job changes without starting compute, then run the job under separate authorization.
-Reconcile its aggregate output to the frozen counts before defining alert thresholds, persistence,
-merge, and cooldown behavior at the failure-event level. Freeze the complete model and alert policy
-before the one-time sealed-test evaluation. The unchanged failure-horizon rerun also remains useful
-but requires compute approval. Do not commit credentials, local paths, deployment state, account
-identifiers, or ignored source data.
+managed runner, and unscheduled workflow are implemented, validated, and deployed. Next, run the job
+under separate authorization and reconcile its aggregate output to the frozen counts before defining
+alert thresholds, persistence, merge, and cooldown behavior at the failure-event level. Freeze the
+complete model and alert policy before the one-time sealed-test evaluation. The unchanged
+failure-horizon rerun also remains useful but requires compute approval. Do not commit credentials,
+local paths, deployment state, account identifiers, or ignored source data.

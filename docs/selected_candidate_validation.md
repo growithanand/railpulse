@@ -99,10 +99,15 @@ serverless environment version 4, the project wheel only, queueing, and a one-ru
 Strict bundle validation passes. A resource-scoped plan proposes one job addition, five existing-job
 updates, no deletions, and leaves seven resources outside the selection.
 
+The selected deployment was applied from Git commit `a8d3f9f`. It created the profile job, updated
+the five planned existing jobs, uploaded 16 bundle files, and deleted no file or resource. A direct
+bundle summary confirmed the new job is bundle-managed and UI-locked with the reviewed two tasks,
+entry point, named parameters, queue, concurrency limit, and serverless environment. Deployment did
+not start a workflow run or compute.
+
 ## Next gate
 
-The scorer, compact profile, managed runner, and unscheduled workflow are implemented and validated.
-The next gate is reviewing and deploying only the selected job changes, without starting compute.
-Execution remains a separate approval. Its aggregate output must reconcile to the frozen counts
-before any threshold or alert-episode logic is introduced; row-level score persistence remains out
-of scope.
+The scorer, compact profile, managed runner, and unscheduled workflow are implemented, validated,
+and deployed. The next gate is a separately approved workflow run. Its aggregate output must
+reconcile to the frozen counts before any threshold or alert-episode logic is introduced; row-level
+score persistence remains out of scope.
