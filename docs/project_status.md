@@ -439,7 +439,25 @@ contexts, or unsupported feature statuses occur.
   no deletions, and leaves seven resources outside the selection. The selected deployment from Git
   commit `a8d3f9f` then created the new job and updated the five planned dependencies, uploaded 16
   files, and deleted nothing. A direct bundle summary confirmed the reviewed two-task definition.
-  No workflow run or compute was started.
+  No workflow run or compute was started during deployment.
+- The [first managed validation-score profile](managed_selected_candidate_validation_profile_first_run.md)
+  later completed successfully in approximately 8 minutes 11 seconds. The governed refresh
+  completed first, then the 43-second profile task reconciled 6,325 training rows and 4,730
+  validation rows, reproduced validation AUPRC `0.0119542268`, and emitted all/positive/negative
+  aggregate score distributions. Positive scores sat near the upper tail, but negative-score overlap
+  ruled out a simple separating threshold. No row-level scores, test results, alerts, or registered
+  model were produced.
+- A [validation-only alert-policy contract](validation_alert_policy_contract.md) now freezes five
+  candidates sourced from the managed all-score p90, p95, and p99 quantiles. Three candidates use a
+  single qualifying cycle and two require consecutive cycles; all use a fixed 60-minute merge gap
+  and 120-minute cooldown. Twelve focused unit cases verify version, ordering, uniqueness, managed
+  thresholds, sealed-test identity, and invalid-value rejection. No policy has been selected.
+- A pure `motor-current-validation-alert-episodes-v1` engine now constructs chronological alerts
+  without labels or failure events. It validates and orders score points, applies inclusive
+  thresholds, forms consecutive streaks, triggers at the persistence boundary, merges nearby
+  streaks, suppresses starts during cooldown, and returns episodes plus audit counts. Five focused
+  tests cover construction behavior and fail-closed inputs. No Spark adapter or event-level metric
+  has been introduced yet.
 - An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
   feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
   failure lineage; one label-observation boundary; supported target and row-status semantics;
@@ -905,9 +923,10 @@ change will require an explicit versioned rebuild rather than silently moving re
 ## Next milestone
 
 The simpler motor-current candidate is retained, and its validation-only scorer, compact profile,
-managed runner, and unscheduled workflow are implemented, validated, and deployed. Next, run the job
-under separate authorization and reconcile its aggregate output to the frozen counts before defining
-alert thresholds, persistence, merge, and cooldown behavior at the failure-event level. Freeze the
-complete model and alert policy before the one-time sealed-test evaluation. The unchanged
-failure-horizon rerun also remains useful but requires compute approval. Do not commit credentials,
-local paths, deployment state, account identifiers, or ignored source data.
+managed runner, and unscheduled workflow are implemented, deployed, and reconciled through their
+first managed run. Five validation-only policy candidates and their label-blind episode engine are
+now frozen. Next, connect the reviewed Spark scores to that engine, then compare failure-event
+warning lead time and false-alarm burden. Freeze the complete model and alert policy before the
+one-time sealed-test evaluation. The unchanged failure-horizon rerun also remains useful but requires
+compute approval. Do not commit credentials, local paths, deployment state, account identifiers, or
+ignored source data.

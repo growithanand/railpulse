@@ -85,6 +85,12 @@ This is a successful fail-closed provenance check, not validation evidence. No f
 distribution, threshold, or test result was produced. The exact managed population remains the
 authority for the retained-candidate decision.
 
+The first managed profile run later passed the same guard and reconciled 6,325 training rows plus
+4,730 validation rows, including four and five positive labels respectively. It reproduced
+validation AUPRC `0.0119542268` and emitted the reviewed compact profile without a row-level write.
+The complete result and interpretation limits are preserved in the
+[first managed profile record](managed_selected_candidate_validation_profile_first_run.md).
+
 ## Managed runner
 
 The read-only managed runner resolves the allowlisted `gold.modeling_view_v2` table, derives the
@@ -108,6 +114,8 @@ not start a workflow run or compute.
 ## Next gate
 
 The scorer, compact profile, managed runner, and unscheduled workflow are implemented, validated,
-and deployed. The next gate is a separately approved workflow run. Its aggregate output must
-reconcile to the frozen counts before any threshold or alert-episode logic is introduced; row-level
-score persistence remains out of scope.
+deployed, and reconciled through their first managed run. A separate
+[validation-only policy contract](validation_alert_policy_contract.md) now freezes five threshold and
+persistence candidates, and its deterministic label-blind episode engine is implemented. The next
+gate is a guarded adapter from reviewed Spark scores to the engine. Row-level score persistence and
+the sealed test partition remain out of scope until a policy is frozen.

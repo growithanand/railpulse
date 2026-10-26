@@ -83,7 +83,18 @@ the governed modelling table and return only the compact profile. Its unschedule
 Databricks job is declared and passes strict bundle validation. A resource-scoped plan proposes one
 job addition, five existing-job updates, no deletions, and leaves seven resources outside the
 selection. The selected deployment then created that job and updated the five planned dependencies
-without deleting resources or starting compute. The profile workflow has not been run yet.
+without deleting resources or starting compute.
+
+The first separately approved profile run has now completed successfully. It reproduced all 4,730
+validation rows, including five positives, and validation AUPRC `0.011954`. Positive probabilities
+were concentrated near the upper score tail, but negative scores overlapped and reached a higher
+maximum. No score table, threshold, alert episode, registered model, or test result was created.
+
+A validation-only policy contract now freezes five candidates derived from the managed all-score
+p90, p95, and p99 quantiles. Three use a single qualifying cycle; two require consecutive cycles.
+All hold the merge gap at one hour and cooldown at two hours. A deterministic, label-blind engine
+now constructs their chronological streaks and episodes in memory. This defines a small comparison
+set without selecting a threshold or opening the test period.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -93,7 +104,7 @@ without deleting resources or starting compute. The profile workflow has not bee
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | Guarded scorer plus deployed validation-profile workflow | Run and reconcile the compact managed profile |
+| Modelling | Five policy candidates plus deterministic episode engine implemented | Connect reviewed Spark scores to the engine |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -229,7 +240,14 @@ The modelling work is intentionally conservative:
   persistence has occurred yet. A tested managed runner now reads the governed modelling table and
   returns only aggregate profile evidence. Its unscheduled job declaration passes validation, and a
   selected plan proposed one addition, five updates, and no deletions. The selected deployment
-  applied exactly that resource scope without starting compute. Execution remains a separate gate.
+  applied exactly that resource scope without starting compute. The first separately approved run
+  later reconciled the exact frozen population and reproduced validation AUPRC `0.011954`. Positive
+  scores occupied the upper tail but overlapped negative scores, so no threshold was selected.
+- A versioned validation-only alert-policy contract now freezes p90, p95, and p99 score thresholds,
+  one- and two-cycle persistence variants, a shared one-hour merge gap, and a two-hour cooldown. A
+  pure, label-blind engine now sorts score points, forms consecutive streaks, triggers only after
+  persistence is satisfied, merges nearby streaks, suppresses cooldown starts, and returns auditable
+  in-memory episodes. Spark score routing, event-level evaluation, and policy selection remain open.
 
 These negative and mixed results are part of the portfolio evidence: the project records why a
 candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
@@ -324,10 +342,10 @@ and next modelling gate.
 8. **Completed:** retain the simpler candidate through a versioned development-only selection
    contract without opening the test period.
 9. **In progress:** the compact validation-score profile, managed runner, and unscheduled job are
-   implemented, validated, and deployed. Run it separately against the exact managed comparison
-   population and reconcile the compact output. Afterward, convert reviewed validation scores into
-   alert episodes and select a policy using warning lead time and false-alarm burden without opening
-   the sealed test period.
+   implemented, deployed, and successfully reconciled on the exact managed comparison population.
+   Five validation-only policy candidates and their deterministic episode engine are now frozen.
+   Route reviewed Spark scores into the engine, then select a policy using warning lead time and
+   false-alarm burden without opening the sealed test period.
 10. Evaluate the frozen model and alert policy once on the sealed test period.
 11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
 12. Add a short reproducible demo path and evidence-based résumé bullets.
@@ -439,5 +457,7 @@ rather than precise estimates of generalization or maintenance impact.
 - [First managed model-candidate comparison](docs/managed_model_candidate_comparison_first_run.md)
 - [Development model selection](docs/development_model_selection.md)
 - [Selected-candidate validation scoring](docs/selected_candidate_validation.md)
+- [First managed validation-score profile](docs/managed_selected_candidate_validation_profile_first_run.md)
+- [Validation-only alert-policy contract](docs/validation_alert_policy_contract.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)
 - [Directional baseline evidence](docs/directional_baseline_profile.md)

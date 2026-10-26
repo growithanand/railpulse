@@ -407,4 +407,39 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   JSON evidence. Its unscheduled workflow refreshes the governed modelling view before profiling,
   passes strict bundle validation, and has a selected plan with one addition, five updates, and no
   deletions. The selected deployment later applied exactly that resource scope without starting
-  compute; workflow execution remains a separate gate.
+  compute. The first separately approved run then reconciled the exact frozen development
+  populations, reproduced validation AUPRC `0.0119542268`, and emitted aggregate score distributions
+  without row-level persistence or test scoring.
+
+## ADR-030 — Compare a small quantile-and-persistence alert-policy set
+
+- **Status:** Accepted
+- **Decision:** Freeze five validation-only candidates using the managed all-score p90, p95, and p99
+  probability quantiles. Compare single-cycle alerts at all three thresholds and two-cycle
+  persistence at p90 and p95 while holding the merge gap at 60 minutes and cooldown at 120 minutes.
+- **Why:** The managed profile shows useful rank concentration but overlapping labels and very low
+  raw probabilities. A small percentile-based set tests selectivity and persistence without treating
+  `0.5` as meaningful or launching an unconstrained threshold search.
+- **Guardrail:** Source thresholds only from the versioned managed profile, keep policy IDs ordered
+  and unique, prohibit test access, and do not interpret the contract as a selected policy. Episode
+  construction and event-level evaluation remain separate gates.
+- **Evidence boundary:** Twelve focused unit cases verify the profile, selection, model, and sealed
+  test identities; exact managed thresholds; shared time rules; unique definitions; lookup behavior;
+  and rejection of blank, non-finite, out-of-range, non-integer, or negative values.
+
+## ADR-031 — Construct alert episodes without labels
+
+- **Status:** Accepted
+- **Decision:** Build alert episodes from only cycle ID, prediction timestamp, and probability. Sort
+  deterministically, break persistence on every below-threshold cycle, trigger on the cycle that
+  satisfies persistence, merge gaps of at most 60 minutes, and suppress starts strictly inside the
+  prior retained episode's 120-minute cooldown.
+- **Why:** Policy mechanics must be reproducible and operationally interpretable before failure
+  labels are introduced for evaluation. Keeping construction label-blind prevents target information
+  from changing alert timing or grouping.
+- **Guardrail:** Require unique cycle IDs, timezone-free timestamps, bounded finite probabilities,
+  and an unchanged declared policy. Suppressed episodes do not extend cooldown. Produce in-memory
+  episodes and audit counts only; do not persist, select a policy, or access test rows.
+- **Evidence boundary:** Five focused tests cover inclusive thresholds, chronological ordering,
+  second-cycle persistence, separate merge and cooldown effects, deterministic episode fields,
+  invalid input rejection, and changed or unknown policy rejection.
