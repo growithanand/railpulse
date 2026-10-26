@@ -6,6 +6,10 @@
 development candidate and later alert-policy evaluation. It fits `motor-current-only` on the frozen
 training partition and exposes probabilities only for the frozen validation partition.
 
+`motor-current-validation-score-profile-v1` adds a compact, read-only evidence boundary over those
+scores. It returns aggregate metadata and score distributions without retaining cycle-level
+probabilities.
+
 This implementation does not read or score July test rows, choose an alert threshold, construct an
 alert episode, register a model, or persist scores.
 
@@ -44,6 +48,21 @@ Feature values, failure metadata, raw predictions, test rows, and the fitted Spa
 exposed. The accompanying result retains validation AUPRC, coefficients, intercept, optimizer
 iterations, and reconciled train/validation summaries for auditing.
 
+## Compact profile behavior
+
+The profile revalidates the score columns, candidate and split identities, unique cycle keys,
+labels, probability bounds, and population counts. It then reports the validation AUPRC, fitted
+coefficients and intercept, optimizer iterations, positive rate, and separate score distributions
+for all, positive, and negative validation rows. Each distribution contains the row count, minimum,
+mean, maximum, and the 1st, 5th, 10th, 25th, 50th, 75th, 90th, 95th, and 99th percentiles.
+
+The command below rebuilds the local full-source modelling view and prints deterministic JSON. It
+performs no table, file, MLflow, registry, or row-level score write.
+
+```bash
+.venv-wsl/bin/python -m railpulse.models.selected_candidate_validation_profile --master "local[4]"
+```
+
 ## Failure behavior
 
 Scoring fails before fitting when contract metadata, columns, population counts, label counts,
@@ -51,11 +70,32 @@ unique keys, or chronological boundaries differ from the managed comparison evid
 if output probabilities are null, non-finite, outside `[0, 1]`, duplicated by cycle key, or do not
 reconcile to all 4,730 validation rows.
 
-Three focused Spark integration tests verify valid scoring, test-row exclusion, probability bounds,
-changed-population rejection, July-timestamp rejection, and incompatible-contract rejection.
+Three focused Spark integration tests verify valid scoring and profiling, test-row exclusion,
+probability bounds, changed-population rejection, July-timestamp rejection, incompatible-contract
+rejection, and score-identity rejection.
+
+## Full-source verification status
+
+The read-only local command was attempted on 2026-10-25. It stopped before model fitting because the
+reconstructed local development population contained 6,320 training rows and 4,729 validation rows,
+while the managed comparison evidence requires 6,325 and 4,730. Positive-label counts still matched
+at four and five; the difference was six negative rows across the two development partitions.
+
+This is a successful fail-closed provenance check, not validation evidence. No full-source score,
+distribution, threshold, or test result was produced. The exact managed population remains the
+authority for the retained-candidate decision.
+
+## Managed runner
+
+The read-only managed runner resolves the allowlisted `gold.modeling_view_v2` table, derives the
+reviewed train and validation frames, applies the guarded scorer, and returns only the compact
+profile as JSON. It contains no table writer, MLflow writer, model registration, schedule, trigger,
+or test-period scoring path. Three unit tests verify its named parameters, ordered routing, source
+table identity, compact result, and fail-closed error handling.
 
 ## Next gate
 
-The boundary is implemented and tested locally. It has not generated or persisted full-source
-validation scores in Databricks. The next increment should add reviewed summary evidence for those
-scores before any threshold or alert-episode logic is introduced.
+The scorer, compact profile, and managed read-only runner are implemented and tested. The next gate
+is declaring and reviewing an unscheduled Databricks job before any deployment or separately
+approved compute run. Its aggregate output must reconcile to the frozen counts before any threshold
+or alert-episode logic is introduced; row-level score persistence remains out of scope.

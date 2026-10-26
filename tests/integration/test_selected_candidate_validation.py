@@ -18,6 +18,12 @@ from railpulse.models.selected_candidate_validation import (
     SelectedCandidateValidationError,
     score_selected_candidate_validation,
 )
+from railpulse.models.selected_candidate_validation_profile import (
+    SCORE_POPULATION_ORDER,
+    SELECTED_CANDIDATE_VALIDATION_PROFILE_VERSION,
+    SelectedCandidateValidationProfileError,
+    collect_selected_candidate_validation_profile,
+)
 
 
 def _partition_rows(
@@ -103,6 +109,25 @@ def test_scoring_exposes_only_reconciled_validation_rows(spark: SparkSession) ->
     assert 0.0 <= score_range.minimum <= score_range.maximum <= 1.0
     assert 0.0 <= result.validation_area_under_pr <= 1.0
     assert len(result.fitted_coefficients) == len(MODEL_INPUT_COLUMNS)
+
+    profile = collect_selected_candidate_validation_profile(result)
+    assert profile.profile_version == SELECTED_CANDIDATE_VALIDATION_PROFILE_VERSION
+    assert profile.validation_row_count == 4_730
+    assert profile.validation_positive_count == 5
+    assert profile.validation_negative_count == 4_725
+    assert profile.validation_positive_rate == pytest.approx(5 / 4_730)
+    assert tuple(item.population for item in profile.score_distributions) == SCORE_POPULATION_ORDER
+    assert tuple(item.row_count for item in profile.score_distributions) == (4_730, 5, 4_725)
+    for distribution in profile.score_distributions:
+        assert 0.0 <= distribution.minimum_score <= distribution.median_score
+        assert distribution.median_score <= distribution.maximum_score <= 1.0
+
+    changed_identity = result.scores.withColumn(
+        "model_candidate_id",
+        F.lit("unreviewed-candidate"),
+    )
+    with pytest.raises(SelectedCandidateValidationProfileError, match="identity"):
+        collect_selected_candidate_validation_profile(replace(result, scores=changed_identity))
 
 
 @pytest.mark.spark

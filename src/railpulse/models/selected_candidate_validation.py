@@ -150,9 +150,11 @@ def _validate_partition(
         int(row.row_count) - int(row.positive_count),
     )
     declared = (summary.row_count, summary.positive_count, summary.negative_count)
-    if observed != declared or observed != _expected_population(evidence, partition):
+    expected = _expected_population(evidence, partition)
+    if observed != declared or observed != expected:
         raise SelectedCandidateValidationError(
-            f"Selected-candidate {partition} population does not match managed selection evidence"
+            f"Selected-candidate {partition} population does not match managed selection evidence: "
+            f"observed={observed}, declared={declared}, expected={expected}"
         )
     if int(row.distinct_key_count) != int(row.row_count):
         raise SelectedCandidateValidationError(

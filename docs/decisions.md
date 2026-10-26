@@ -386,3 +386,22 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   bounded probabilities, exclusion of a July row, and rejection of changed populations, July
   timestamps, and incompatible contract metadata. Full-source execution and persistence remain
   separate gates.
+
+## ADR-029 — Profile validation probabilities without row-level persistence
+
+- **Status:** Accepted
+- **Decision:** Convert the guarded validation score frame into one compact profile containing
+  fixed identities, fit evidence, label counts, positive rate, and all/positive/negative probability
+  distributions. Do not write cycle-level probabilities.
+- **Why:** Threshold design needs to understand score separation and scale, while the project does
+  not yet need a durable prediction table. Aggregate evidence makes the next review possible with a
+  smaller privacy, provenance, and accidental-test-use surface.
+- **Guardrail:** Revalidate the exact managed population, reviewed columns, unique keys, candidate
+  and split literals, probability bounds, and reconciled distribution counts. Fail before fitting
+  when a reconstructed source does not match the managed comparison evidence.
+- **Evidence boundary:** Focused Spark coverage verifies the compact profile and rejects tampered
+  score identity. A read-only local full-source attempt stopped before fitting because its train and
+  validation populations contained six fewer negative rows than the frozen managed evidence. No
+  score summary, threshold, row-level write, or test-period result was produced. A separate managed
+  runner now routes the governed modelling table through the same guard and returns only compact
+  JSON evidence; its workflow declaration, deployment, and execution remain separate gates.

@@ -419,9 +419,20 @@ contexts, or unsupported feature statuses occur.
   list from the original comparison contract, and keeps the July test partition sealed.
 - A [selected-candidate validation scorer](selected_candidate_validation.md) now requires the exact
   managed comparison populations, fits the retained five-input model only on training rows, and
-  returns 4,730 validation-only score rows with fixed selection and split identities. Three focused
-  Spark tests cover valid scoring and fail-closed population, timestamp, and metadata cases. No
-  full-source scores have been generated or persisted.
+  returns 4,730 validation-only score rows with fixed selection and split identities. A compact
+  profile validates those identities and summarizes all, positive, and negative validation scores
+  without persisting row-level output. Three focused Spark tests cover valid scoring and profiling
+  plus fail-closed population, timestamp, metadata, and score-identity cases.
+- A read-only local full-source profile attempt stopped before fitting: the reconstructed local
+  population had 6,320 training rows and 4,729 validation rows, compared with the frozen managed
+  evidence of 6,325 and 4,730. Positive counts matched, leaving a six-negative-row provenance
+  difference across the development partitions. The exact-count guard remains in place, and no
+  full-source score, profile, threshold, or test result was produced.
+- A managed read-only validation-profile runner now resolves only the allowlisted modelling-view v2
+  table, prepares the development partitions, invokes the guarded scorer, and returns the compact
+  profile as JSON. It has no write, registration, schedule, trigger, or test-scoring path. Three
+  routing and fail-closed unit tests pass; a Databricks job resource has not yet been declared,
+  deployed, or run.
 - An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
   feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
   failure lineage; one label-observation boundary; supported target and row-status semantics;
@@ -886,10 +897,11 @@ change will require an explicit versioned rebuild rather than silently moving re
 
 ## Next milestone
 
-The simpler motor-current candidate is retained, and its validation-only scoring boundary is now
-implemented and tested. Next, generate the full-source validation scores and record a compact,
-auditable distribution summary without persisting row-level output yet. Then define and evaluate
-alert thresholds, persistence, merge, and cooldown behavior at the failure-event level. Freeze the
-complete model and alert policy before the one-time sealed-test evaluation. The unchanged
-failure-horizon rerun also remains useful but requires compute approval. Do not commit credentials,
-local paths, deployment state, account identifiers, or ignored source data.
+The simpler motor-current candidate is retained, and its validation-only scorer, compact profile,
+and managed read-only runner are implemented and tested. Next, declare and review an unscheduled
+Databricks job, then deploy and run it only under separate authorization. Reconcile its aggregate
+output to the frozen counts before defining alert thresholds, persistence, merge, and cooldown
+behavior at the failure-event level. Freeze the complete model and alert policy before the one-time
+sealed-test evaluation. The unchanged failure-horizon rerun also remains useful but requires compute
+approval. Do not commit credentials, local paths, deployment state, account identifiers, or ignored
+source data.

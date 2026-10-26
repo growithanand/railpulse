@@ -24,6 +24,7 @@ databricks_gold_failure_horizon_processing = "railpulse.jobs.gold_failure_horizo
 databricks_gold_feature_snapshot_v2_processing = "railpulse.jobs.gold_feature_snapshot_v2_processing:main"
 databricks_gold_modeling_view_v2_processing = "railpulse.jobs.gold_modeling_view_v2_processing:main"
 databricks_gold_model_candidate_comparison = "railpulse.jobs.gold_model_candidate_comparison:main"
+databricks_gold_selected_candidate_validation_profile = "railpulse.jobs.gold_selected_candidate_validation_profile:main"
 
 [project.optional-dependencies]
 dev = [

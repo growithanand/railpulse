@@ -75,6 +75,13 @@ validation AUPRC `0.011954`; adding three cycle-context inputs reduced it to `0.
 candidate is therefore the provisional development leader, but the validation set contains only
 five positive labels and the sealed July test period remains untouched.
 
+A compact validation-score profiler is now implemented and tested. A read-only local full-source
+attempt stopped before fitting because its reconstructed train/validation populations differed from
+the frozen managed evidence by six negative rows. The guard was intentionally retained; no local
+score summary or test-period result was produced. A managed read-only runner is now prepared to use
+the governed modelling table and return only the compact profile; no Databricks job has been
+declared, deployed, or run for it yet.
+
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
 | Source governance | Manifest, immutable paths, checksums, managed Volume | Complete |
@@ -83,7 +90,7 @@ five positive labels and the sealed July test period remains untouched.
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | Retained candidate plus guarded validation-only scorer implemented | Generate and summarize full-source validation scores |
+| Modelling | Guarded scorer, compact profile, and managed read-only runner implemented | Declare and review the unscheduled profile job |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -213,8 +220,12 @@ The modelling work is intentionally conservative:
 - A guarded Spark scorer now fits that exact candidate on the frozen 6,325-row training population
   and can expose only the 4,730 validation keys, timestamps, labels, probabilities, and fixed
   identities. It rejects changed counts, label distributions, candidate metadata, and July
-  timestamps before fitting. Focused Spark tests pass; no full-source score run or persistence has
-  occurred yet.
+  timestamps before fitting. A compact profiler can summarize all, positive, and negative validation
+  probabilities without persisting row-level output. Focused Spark tests pass. A read-only local
+  attempt correctly stopped on a six-negative-row provenance mismatch, so no full-source profile or
+  persistence has occurred yet. A tested managed runner now reads the governed modelling table and
+  returns only aggregate profile evidence; its workflow resource and execution remain separate
+  review gates.
 
 These negative and mixed results are part of the portfolio evidence: the project records why a
 candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
@@ -308,9 +319,10 @@ and next modelling gate.
    test period sealed.
 8. **Completed:** retain the simpler candidate through a versioned development-only selection
    contract without opening the test period.
-9. **In progress:** generate and summarize guarded full-source validation scores, then convert them
-   into alert episodes and select a policy using warning lead time and false-alarm burden without
-   opening the sealed test period.
+9. **In progress:** the compact validation-score profile and managed runner are implemented; declare,
+   review, deploy, and separately run the unscheduled job against the exact managed comparison
+   population. Then convert reviewed validation scores into alert episodes and select a policy using
+   warning lead time and false-alarm burden without opening the sealed test period.
 10. Evaluate the frozen model and alert policy once on the sealed test period.
 11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
 12. Add a short reproducible demo path and evidence-based résumé bullets.
