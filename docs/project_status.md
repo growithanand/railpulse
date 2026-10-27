@@ -456,8 +456,12 @@ contexts, or unsupported feature statuses occur.
   without labels or failure events. It validates and orders score points, applies inclusive
   thresholds, forms consecutive streaks, triggers at the persistence boundary, merges nearby
   streaks, suppresses starts during cooldown, and returns episodes plus audit counts. Five focused
-  tests cover construction behavior and fail-closed inputs. No Spark adapter or event-level metric
-  has been introduced yet.
+  tests cover construction behavior and fail-closed inputs.
+- A guarded `motor-current-validation-alert-adapter-v1` boundary now revalidates the complete Spark
+  score profile, projects only cycle ID, timestamp, and probability, invokes all five policies in
+  frozen order, and reconciles every result to 4,730 validation cycles. Three focused Spark tests
+  cover the full fit/profile/adapter path, exclude test rows, and reject changed score identity. No
+  failure-event metric or policy selection has been introduced yet.
 - An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
   feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
   failure lineage; one label-observation boundary; supported target and row-status semantics;
@@ -925,8 +929,8 @@ change will require an explicit versioned rebuild rather than silently moving re
 The simpler motor-current candidate is retained, and its validation-only scorer, compact profile,
 managed runner, and unscheduled workflow are implemented, deployed, and reconciled through their
 first managed run. Five validation-only policy candidates and their label-blind episode engine are
-now frozen. Next, connect the reviewed Spark scores to that engine, then compare failure-event
-warning lead time and false-alarm burden. Freeze the complete model and alert policy before the
-one-time sealed-test evaluation. The unchanged failure-horizon rerun also remains useful but requires
-compute approval. Do not commit credentials, local paths, deployment state, account identifiers, or
-ignored source data.
+now frozen, and the guarded Spark adapter is implemented. Next, compare failure-event warning lead
+time and false-alarm burden without changing construction. Freeze the complete model and alert policy
+before the one-time sealed-test evaluation. The unchanged failure-horizon rerun also remains useful
+but requires compute approval. Do not commit credentials, local paths, deployment state, account
+identifiers, or ignored source data.

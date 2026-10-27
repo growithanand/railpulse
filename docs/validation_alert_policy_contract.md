@@ -68,9 +68,22 @@ Spark, storage, or model-registration dependency. Five focused episode tests cov
 thresholds, ordering, persistence timing, merge/cooldown separation, duplicate keys, invalid values,
 and changed-policy rejection.
 
+## Guarded Spark adapter
+
+`motor-current-validation-alert-adapter-v1` accepts only the reconciled
+`SelectedCandidateValidationScores` result. It reruns the compact-profile guards, projects exactly
+`loaded_cycle_id`, `prediction_timestamp`, and `failure_probability`, orders those points, and then
+invokes all five policies in their frozen order. Validation labels and feature values never enter the
+episode engine.
+
+The adapter requires every policy result to evaluate all 4,730 reviewed validation cycles and to
+preserve the declared candidate order. It returns the compact score profile and in-memory episode
+evidence; it contains no persistence or test path. Three focused Spark tests now cover the complete
+fit/profile/adapter path, test-row exclusion, and fail-closed score identity.
+
 ## Next gate
 
-Add a guarded Spark adapter that accepts only the reconciled validation score result, projects the
-three label-free episode inputs, invokes all five policies, and returns compact construction
-evidence. Event-level failure matching, policy selection, persistence, and test evaluation remain
-separate increments.
+Add validation-only event matching that compares constructed episode starts with the accepted
+failure interval represented in June. Report warning lead time, event detection, episode burden, and
+false alerts without changing episode construction. Policy selection, persistence, and test
+evaluation remain separate increments.

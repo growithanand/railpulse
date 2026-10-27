@@ -94,7 +94,8 @@ A validation-only policy contract now freezes five candidates derived from the m
 p90, p95, and p99 quantiles. Three use a single qualifying cycle; two require consecutive cycles.
 All hold the merge gap at one hour and cooldown at two hours. A deterministic, label-blind engine
 now constructs their chronological streaks and episodes in memory. This defines a small comparison
-set without selecting a threshold or opening the test period.
+set without selecting a threshold or opening the test period. A guarded Spark adapter now validates
+the complete score profile, removes labels, runs all five policies, and reconciles their cycle counts.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -104,7 +105,7 @@ set without selecting a threshold or opening the test period.
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | Five policy candidates plus deterministic episode engine implemented | Connect reviewed Spark scores to the engine |
+| Modelling | Guarded Spark-to-episode path implemented for five policies | Add validation event-level evaluation |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -247,7 +248,9 @@ The modelling work is intentionally conservative:
   one- and two-cycle persistence variants, a shared one-hour merge gap, and a two-hour cooldown. A
   pure, label-blind engine now sorts score points, forms consecutive streaks, triggers only after
   persistence is satisfied, merges nearby streaks, suppresses cooldown starts, and returns auditable
-  in-memory episodes. Spark score routing, event-level evaluation, and policy selection remain open.
+  in-memory episodes. A guarded adapter now revalidates the complete Spark score result, projects only
+  cycle ID, timestamp, and probability, and reconciles all five candidate outputs. Event-level
+  evaluation and policy selection remain open.
 
 These negative and mixed results are part of the portfolio evidence: the project records why a
 candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
@@ -344,8 +347,8 @@ and next modelling gate.
 9. **In progress:** the compact validation-score profile, managed runner, and unscheduled job are
    implemented, deployed, and successfully reconciled on the exact managed comparison population.
    Five validation-only policy candidates and their deterministic episode engine are now frozen.
-   Route reviewed Spark scores into the engine, then select a policy using warning lead time and
-   false-alarm burden without opening the sealed test period.
+   The guarded Spark adapter is also implemented. Add failure-event matching, then select a policy
+   using warning lead time and false-alarm burden without opening the sealed test period.
 10. Evaluate the frozen model and alert policy once on the sealed test period.
 11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
 12. Add a short reproducible demo path and evidence-based résumé bullets.

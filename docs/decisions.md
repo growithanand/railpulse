@@ -443,3 +443,18 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Evidence boundary:** Five focused tests cover inclusive thresholds, chronological ordering,
   second-cycle persistence, separate merge and cooldown effects, deterministic episode fields,
   invalid input rejection, and changed or unknown policy rejection.
+
+## ADR-032 — Strip labels before alert-policy construction
+
+- **Status:** Accepted
+- **Decision:** Revalidate the complete selected-candidate score result, then project only cycle ID,
+  prediction timestamp, and probability before invoking every frozen policy in declared order.
+- **Why:** Alert mechanics must not depend on validation labels, feature values, failure metadata, or
+  test rows. A narrow adapter makes that separation structural while preserving the existing Spark
+  scoring boundary.
+- **Guardrail:** Require the exact managed compact profile, collect all 4,730 ordered validation
+  points, reconcile every candidate result to that count and order, and wrap profile or episode
+  failures. Return in-memory evidence only; do not persist or select a policy.
+- **Evidence boundary:** Three focused Spark tests cover the full fit/profile/adapter chain,
+  five-policy order and counts, label-free episode fields, test-row exclusion, probability bounds,
+  and fail-closed changed identity, population, timestamp, and metadata cases.

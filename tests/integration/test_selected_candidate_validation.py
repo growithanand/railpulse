@@ -18,12 +18,16 @@ from railpulse.models.selected_candidate_validation import (
     SelectedCandidateValidationError,
     score_selected_candidate_validation,
 )
+from railpulse.models.selected_candidate_validation_alerts import (
+    SELECTED_CANDIDATE_VALIDATION_ALERT_ADAPTER_VERSION,
+    SelectedCandidateValidationAlertError,
+    build_selected_candidate_validation_alerts,
+)
 from railpulse.models.selected_candidate_validation_profile import (
     SCORE_POPULATION_ORDER,
     SELECTED_CANDIDATE_VALIDATION_PROFILE_VERSION,
-    SelectedCandidateValidationProfileError,
-    collect_selected_candidate_validation_profile,
 )
+from railpulse.models.validation_alert_policy_contract import VALIDATION_ALERT_POLICY_CANDIDATES
 
 
 def _partition_rows(
@@ -110,7 +114,19 @@ def test_scoring_exposes_only_reconciled_validation_rows(spark: SparkSession) ->
     assert 0.0 <= result.validation_area_under_pr <= 1.0
     assert len(result.fitted_coefficients) == len(MODEL_INPUT_COLUMNS)
 
-    profile = collect_selected_candidate_validation_profile(result)
+    alert_candidates = build_selected_candidate_validation_alerts(result)
+    profile = alert_candidates.profile
+    assert alert_candidates.adapter_version == SELECTED_CANDIDATE_VALIDATION_ALERT_ADAPTER_VERSION
+    assert alert_candidates.evaluated_cycle_count == 4_730
+    assert tuple(item.policy_candidate_id for item in alert_candidates.candidate_results) == tuple(
+        candidate.candidate_id for candidate in VALIDATION_ALERT_POLICY_CANDIDATES
+    )
+    assert all(item.evaluated_cycle_count == 4_730 for item in alert_candidates.candidate_results)
+    assert all(
+        not hasattr(episode, "failure_within_horizon")
+        for item in alert_candidates.candidate_results
+        for episode in item.episodes
+    )
     assert profile.profile_version == SELECTED_CANDIDATE_VALIDATION_PROFILE_VERSION
     assert profile.validation_row_count == 4_730
     assert profile.validation_positive_count == 5
@@ -126,8 +142,8 @@ def test_scoring_exposes_only_reconciled_validation_rows(spark: SparkSession) ->
         "model_candidate_id",
         F.lit("unreviewed-candidate"),
     )
-    with pytest.raises(SelectedCandidateValidationProfileError, match="identity"):
-        collect_selected_candidate_validation_profile(replace(result, scores=changed_identity))
+    with pytest.raises(SelectedCandidateValidationAlertError, match="identity"):
+        build_selected_candidate_validation_alerts(replace(result, scores=changed_identity))
 
 
 @pytest.mark.spark

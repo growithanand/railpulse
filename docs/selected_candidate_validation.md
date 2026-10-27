@@ -116,6 +116,6 @@ not start a workflow run or compute.
 The scorer, compact profile, managed runner, and unscheduled workflow are implemented, validated,
 deployed, and reconciled through their first managed run. A separate
 [validation-only policy contract](validation_alert_policy_contract.md) now freezes five threshold and
-persistence candidates, and its deterministic label-blind episode engine is implemented. The next
-gate is a guarded adapter from reviewed Spark scores to the engine. Row-level score persistence and
-the sealed test partition remain out of scope until a policy is frozen.
+persistence candidates. Its deterministic label-blind episode engine and guarded Spark adapter are
+implemented and tested. The next gate is validation-only failure-event evaluation. Row-level score
+persistence and the sealed test partition remain out of scope until a policy is frozen.

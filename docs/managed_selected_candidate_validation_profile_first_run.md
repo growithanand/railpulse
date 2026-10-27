@@ -63,9 +63,9 @@ small and their conclusions cautious.
 
 The [validation-only policy contract](validation_alert_policy_contract.md) now defines a limited set
 covering score threshold, persistence, episode merge, and cooldown behavior, and its label-blind
-episode engine is implemented. The next gate is routing the reviewed Spark scores into that engine,
-then comparing policies on validation using failure-event warning lead time and false alarms per
-operating period. Freeze the complete model and policy before the one-time sealed-test evaluation.
+episode engine plus guarded Spark adapter are implemented. The next gate is comparing policies on
+validation using failure-event warning lead time and false alarms per operating period. Freeze the
+complete model and policy before the one-time sealed-test evaluation.
 
 ## Repository boundary
 
