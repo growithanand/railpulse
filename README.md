@@ -96,6 +96,8 @@ All hold the merge gap at one hour and cooldown at two hours. A deterministic, l
 now constructs their chronological streaks and episodes in memory. This defines a small comparison
 set without selecting a threshold or opening the test period. A guarded Spark adapter now validates
 the complete score profile, removes labels, runs all five policies, and reconciles their cycle counts.
+A separate pure evaluator now freezes two-hour failure-event matching and reports detection, warning
+lead time, late alerts, false-alert burden, and total episode burden without changing construction.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -105,7 +107,7 @@ the complete score profile, removes labels, runs all five policies, and reconcil
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | Guarded Spark-to-episode path implemented for five policies | Add validation event-level evaluation |
+| Modelling | Pure validation event-matching contract implemented | Connect governed June inputs and compare five policies |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -249,8 +251,10 @@ The modelling work is intentionally conservative:
   pure, label-blind engine now sorts score points, forms consecutive streaks, triggers only after
   persistence is satisfied, merges nearby streaks, suppresses cooldown starts, and returns auditable
   in-memory episodes. A guarded adapter now revalidates the complete Spark score result, projects only
-  cycle ID, timestamp, and probability, and reconciles all five candidate outputs. Event-level
-  evaluation and policy selection remain open.
+  cycle ID, timestamp, and probability, and reconciles all five candidate outputs. A separate pure
+  evaluator classifies episode starts as pre-failure warnings, inside-failure late alerts, or false
+  alerts and reports event detection, lead time, and per-operating-day burden. Connecting governed
+  June inputs, comparing the five policies, and selecting one policy remain open.
 
 These negative and mixed results are part of the portfolio evidence: the project records why a
 candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
@@ -347,8 +351,9 @@ and next modelling gate.
 9. **In progress:** the compact validation-score profile, managed runner, and unscheduled job are
    implemented, deployed, and successfully reconciled on the exact managed comparison population.
    Five validation-only policy candidates and their deterministic episode engine are now frozen.
-   The guarded Spark adapter is also implemented. Add failure-event matching, then select a policy
-   using warning lead time and false-alarm burden without opening the sealed test period.
+   The guarded Spark adapter and pure event-matching evaluator are also implemented. Connect the
+   governed June event and operating-day evidence, then select a policy using warning lead time and
+   false-alarm burden without opening the sealed test period.
 10. Evaluate the frozen model and alert policy once on the sealed test period.
 11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
 12. Add a short reproducible demo path and evidence-based résumé bullets.
@@ -462,5 +467,6 @@ rather than precise estimates of generalization or maintenance impact.
 - [Selected-candidate validation scoring](docs/selected_candidate_validation.md)
 - [First managed validation-score profile](docs/managed_selected_candidate_validation_profile_first_run.md)
 - [Validation-only alert-policy contract](docs/validation_alert_policy_contract.md)
+- [Validation-only alert event evaluation](docs/validation_alert_evaluation.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)
 - [Directional baseline evidence](docs/directional_baseline_profile.md)

@@ -458,3 +458,19 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Evidence boundary:** Three focused Spark tests cover the full fit/profile/adapter chain,
   five-policy order and counts, label-free episode fields, test-row exclusion, probability bounds,
   and fail-closed changed identity, population, timestamp, and metadata cases.
+
+## ADR-033 — Match validation alerts to events only after construction
+
+- **Status:** Accepted
+- **Decision:** Evaluate an episode as a warning only when its start falls in the existing two-hour
+  pre-failure horizon. Report starts inside the accepted failure interval as late alerts and count
+  starts outside both intervals as false alerts. Measure lead time from the first warning start.
+- **Why:** Introducing accepted events only after label-blind construction preserves alert timing
+  while producing operationally understandable detection and burden evidence. Separating late from
+  false alerts avoids calling an alert during a real failure either an early warning or unrelated.
+- **Guardrail:** Require the current policy and episode versions, exactly one fully observed June
+  event, chronological validation-only episodes, and a plausible operating-day count. Do not access
+  July, alter episodes, persist row-level scores, or select a policy in this layer.
+- **Evidence boundary:** Three focused unit tests cover detection, the exact horizon boundary, lead
+  time, late and false classification, missed events, burden reconciliation, invalid day counts,
+  changed versions, timezone handling, and rejection of a July failure.

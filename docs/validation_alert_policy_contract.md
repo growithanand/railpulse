@@ -81,9 +81,14 @@ preserve the declared candidate order. It returns the compact score profile and 
 evidence; it contains no persistence or test path. Three focused Spark tests now cover the complete
 fit/profile/adapter path, test-row exclusion, and fail-closed score identity.
 
-## Next gate
+## Event-evaluation boundary
 
-Add validation-only event matching that compares constructed episode starts with the accepted
-failure interval represented in June. Report warning lead time, event detection, episode burden, and
-false alerts without changing episode construction. Policy selection, persistence, and test
+`motor-current-validation-alert-event-evaluation-v1` now compares constructed episode starts with
+the accepted failure interval represented in June. It uses the existing two-hour failure horizon,
+reports warning lead time and event detection, separates inside-failure late alerts from unrelated
+false alerts, and reconciles total and false episode burden per operating day. Alert construction is
+unchanged.
+
+The next gate is a guarded Spark adapter that supplies only the governed June event and label-free
+operating-day count to this evaluator for all five policies. Policy selection, persistence, and test
 evaluation remain separate increments.
