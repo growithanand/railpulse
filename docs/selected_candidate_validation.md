@@ -117,5 +117,7 @@ The scorer, compact profile, managed runner, and unscheduled workflow are implem
 deployed, and reconciled through their first managed run. A separate
 [validation-only policy contract](validation_alert_policy_contract.md) now freezes five threshold and
 persistence candidates. Its deterministic label-blind episode engine and guarded Spark adapter are
-implemented and tested. The next gate is validation-only failure-event evaluation. Row-level score
+implemented and tested. A second guarded adapter now introduces only the accepted June failure and
+label-free operating-day count after construction, then reconciles all five event evaluations. The
+next gate is a read-only managed runner and reviewed workflow declaration. Row-level score
 persistence and the sealed test partition remain out of scope until a policy is frozen.

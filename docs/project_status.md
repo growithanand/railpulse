@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Alert-policy validation — pure event-evaluation contract implemented locally**
+**Alert-policy validation — guarded five-policy evaluation path implemented locally**
 
 The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
 separately approved managed run refreshed the governed modelling view, fitted both fixed
@@ -23,8 +23,9 @@ frozen population without persisting cycle scores.
 
 A pure event evaluator now applies the existing two-hour failure horizon after label-blind episode
 construction. It separates warning, inside-failure, and false alert starts and reports detection,
-lead time, and per-operating-day burden. The governed Spark input adapter and five-policy comparison
-remain the next local increment; no validation policy has been selected.
+lead time, and per-operating-day burden. A guarded Spark adapter now derives operating days from the
+validated score timestamps, selects only the accepted June event after construction, and reconciles
+all five policy evaluations. No validation policy has been selected.
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -472,6 +473,11 @@ contexts, or unsupported feature statuses occur.
   lead time, separates inside-failure late alerts from false alerts, and reconciles total and false
   episode burden per operating day. Three focused tests pass. No managed policy comparison or
   policy selection has been performed.
+- A guarded `motor-current-validation-alert-evaluation-adapter-v1` path now constructs all five
+  policies before introducing failure evidence, derives observed operating days from validation
+  timestamps, filters accepted failures to June before collection, and reconciles every policy
+  metric to its source episodes. The three-case Spark suite passes, including June-only exposure in
+  the presence of April and July events and fail-closed rejected-event handling. It writes nothing.
 - An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
   feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
   failure lineage; one label-observation boundary; supported target and row-status semantics;
@@ -940,8 +946,9 @@ The simpler motor-current candidate is retained, and its validation-only scorer,
 managed runner, and unscheduled workflow are implemented, deployed, and reconciled through their
 first managed run. Five validation-only policy candidates and their label-blind episode engine are
 now frozen, the guarded Spark adapter is implemented, and the pure event evaluator fixes the metric
-semantics. Next, connect only the governed June event and label-free operating-day evidence, compare
-all five policies, and review the limited result. Freeze the complete model and alert policy before
-the one-time sealed-test evaluation. The unchanged failure-horizon rerun also remains useful but
-requires compute approval. Do not commit credentials, local paths, deployment state, account
-identifiers, or ignored source data.
+semantics. The guarded evaluation adapter now connects only the governed June event and label-free
+operating-day evidence after construction. Next, add a read-only managed runner and reviewed
+workflow declaration; deployment and execution remain separate approvals. Freeze the complete model
+and alert policy before the one-time sealed-test evaluation. The unchanged failure-horizon rerun
+also remains useful but requires compute approval. Do not commit credentials, local paths,
+deployment state, account identifiers, or ignored source data.

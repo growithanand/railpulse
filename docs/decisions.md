@@ -474,3 +474,19 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Evidence boundary:** Three focused unit tests cover detection, the exact horizon boundary, lead
   time, late and false classification, missed events, burden reconciliation, invalid day counts,
   changed versions, timezone handling, and rejection of a July failure.
+
+## ADR-034 — Introduce governed event evidence after all episodes exist
+
+- **Status:** Accepted
+- **Decision:** Build the complete five-policy episode set through the existing label-blind adapter
+  before reading failure intervals. Then derive operating days from validation timestamps, select
+  only accepted failures starting inside June, and evaluate every policy in frozen order.
+- **Why:** Keeping failure inputs downstream of construction makes it structurally impossible for
+  event timing to move, merge, suppress, or create an alert. Deriving burden exposure from the same
+  score population also avoids a manually supplied denominator.
+- **Guardrail:** Project only failure record ID, start, end, and rejection reasons; filter outside
+  validation before collection; reject non-accepted June rows; and reconcile every metric to the
+  source episode count. Return in-memory evidence only, with no policy selection or test access.
+- **Evidence boundary:** The three-case Spark suite proves the full 4,730-cycle path, fixed five-
+  policy order, observed-day derivation, June-only event exposure in the presence of April and July
+  rows, complete episode classification, and fail-closed rejected-event handling.

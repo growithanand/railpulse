@@ -18,6 +18,11 @@ from railpulse.models.selected_candidate_validation import (
     SelectedCandidateValidationError,
     score_selected_candidate_validation,
 )
+from railpulse.models.selected_candidate_validation_alert_evaluation import (
+    SELECTED_CANDIDATE_VALIDATION_ALERT_EVALUATION_ADAPTER_VERSION,
+    SelectedCandidateValidationAlertEvaluationError,
+    evaluate_selected_candidate_validation_alerts,
+)
 from railpulse.models.selected_candidate_validation_alerts import (
     SELECTED_CANDIDATE_VALIDATION_ALERT_ADAPTER_VERSION,
     SelectedCandidateValidationAlertError,
@@ -91,6 +96,33 @@ def _view(spark: SparkSession):
     )
 
 
+def _accepted_failures(spark: SparkSession):
+    return spark.createDataFrame(
+        (
+            (
+                "failure-april",
+                datetime(2020, 4, 18),
+                datetime(2020, 4, 18, 23, 59),
+                [],
+            ),
+            (
+                "failure-june",
+                datetime(2020, 6, 1, 2),
+                datetime(2020, 6, 1, 3),
+                [],
+            ),
+            (
+                "failure-july",
+                datetime(2020, 7, 15, 14, 30),
+                datetime(2020, 7, 15, 19),
+                [],
+            ),
+        ),
+        "record_id string, failure_start timestamp_ntz, failure_end timestamp_ntz, "
+        "rejection_reasons array<string>",
+    )
+
+
 @pytest.mark.spark
 def test_scoring_exposes_only_reconciled_validation_rows(spark: SparkSession) -> None:
     development = prepare_model_candidate_development_data(_view(spark))
@@ -114,8 +146,35 @@ def test_scoring_exposes_only_reconciled_validation_rows(spark: SparkSession) ->
     assert 0.0 <= result.validation_area_under_pr <= 1.0
     assert len(result.fitted_coefficients) == len(MODEL_INPUT_COLUMNS)
 
-    alert_candidates = build_selected_candidate_validation_alerts(result)
+    alert_evaluation = evaluate_selected_candidate_validation_alerts(
+        result,
+        _accepted_failures(spark),
+    )
+    alert_candidates = alert_evaluation.alert_candidates
     profile = alert_candidates.profile
+    assert (
+        alert_evaluation.adapter_version
+        == SELECTED_CANDIDATE_VALIDATION_ALERT_EVALUATION_ADAPTER_VERSION
+    )
+    assert (
+        alert_evaluation.evaluation_version == "motor-current-validation-alert-event-evaluation-v1"
+    )
+    assert alert_evaluation.evaluated_cycle_count == 4_730
+    assert alert_evaluation.operating_day_count == 1
+    assert alert_evaluation.accepted_failure_event_count == 1
+    assert tuple(item.policy_candidate_id for item in alert_evaluation.policy_evaluations) == tuple(
+        candidate.candidate_id for candidate in VALIDATION_ALERT_POLICY_CANDIDATES
+    )
+    assert all(
+        item.operating_day_count == 1
+        and item.accepted_failure_event_count == 1
+        and item.alert_episode_count
+        == item.warning_episode_count
+        + item.inside_failure_episode_count
+        + item.false_alert_episode_count
+        and item.event_evaluations[0].failure_record_id == "failure-june"
+        for item in alert_evaluation.policy_evaluations
+    )
     assert alert_candidates.adapter_version == SELECTED_CANDIDATE_VALIDATION_ALERT_ADAPTER_VERSION
     assert alert_candidates.evaluated_cycle_count == 4_730
     assert tuple(item.policy_candidate_id for item in alert_candidates.candidate_results) == tuple(
@@ -144,6 +203,19 @@ def test_scoring_exposes_only_reconciled_validation_rows(spark: SparkSession) ->
     )
     with pytest.raises(SelectedCandidateValidationAlertError, match="identity"):
         build_selected_candidate_validation_alerts(replace(result, scores=changed_identity))
+
+    rejected_june = _accepted_failures(spark).withColumn(
+        "rejection_reasons",
+        F.when(
+            F.col("record_id") == "failure-june",
+            F.array(F.lit("not_accepted")),
+        ).otherwise(F.col("rejection_reasons")),
+    )
+    with pytest.raises(
+        SelectedCandidateValidationAlertEvaluationError,
+        match="accepted failure events",
+    ):
+        evaluate_selected_candidate_validation_alerts(result, rejected_june)
 
 
 @pytest.mark.spark

@@ -52,9 +52,27 @@ Three focused unit tests cover an exact two-hour warning boundary, a late inside
 unmatched false alert, a missed event, burden reconciliation, sealed-test rejection, invalid day
 counts, changed versions, and timezone-aware failures.
 
+## Guarded Spark adapter
+
+`motor-current-validation-alert-evaluation-adapter-v1` first invokes the existing guarded,
+label-blind construction path for all five policies. Only after those episodes exist does it derive
+the distinct operating dates from validation timestamps and select accepted failures whose start is
+inside the frozen June validation boundaries.
+
+The adapter projects only record ID, failure start, failure end, and rejection reasons from the
+failure input. It rejects missing columns and any validation event with rejection reasons. Events
+outside June are filtered before collection, so the July event cannot enter evaluation. Every
+policy result must reconcile to the same operating-day count, single June event, and source episode
+count. Results remain in memory and no policy is selected.
+
+The focused Spark integration suite passes all three cases. Its complete-path case proves that
+4,730 validation cycles flow through all five policies, only the June event is exposed when April
+and July events are present, operating days are derived from timestamps, every episode is
+classified exactly once, and a rejected June row fails closed.
+
 ## Next gate
 
-Add a guarded adapter that derives the observed June operating-day count and the single accepted
-June failure interval from the governed Spark inputs, then evaluates all five in-memory policy
-results. Review that evidence before freezing one policy. Do not access the sealed July test period
-or persist row-level scores during this step.
+Add a read-only managed runner that loads the allowlisted modelling view and accepted failure table,
+rebuilds the five validation policy results, and emits only compact evaluation JSON. Review its
+resource declaration and deployment plan before any run. Do not access the sealed July test period,
+persist row-level scores, or select a policy before managed evidence exists.

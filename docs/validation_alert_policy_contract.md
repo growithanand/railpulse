@@ -89,6 +89,8 @@ reports warning lead time and event detection, separates inside-failure late ale
 false alerts, and reconciles total and false episode burden per operating day. Alert construction is
 unchanged.
 
-The next gate is a guarded Spark adapter that supplies only the governed June event and label-free
-operating-day count to this evaluator for all five policies. Policy selection, persistence, and test
-evaluation remain separate increments.
+`motor-current-validation-alert-evaluation-adapter-v1` now supplies only the governed June event and
+label-free operating-day count to this evaluator after all five policy episodes have been built. It
+filters non-validation events before collection and reconciles every policy metric to its source
+episode count. The next gate is a read-only managed runner and reviewed job declaration. Policy
+selection, persistence, and test evaluation remain separate increments.
