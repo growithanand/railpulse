@@ -505,3 +505,17 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Evidence boundary:** Three focused unit tests verify named parameters, exact table identities,
   read/prepare/score/evaluate order, compact result routing, and fail-closed evaluation errors. The
   console entry point is packaged separately from any workflow declaration.
+
+## ADR-036 — Gate managed alert evaluation behind the modelling refresh
+
+- **Status:** Accepted
+- **Decision:** Declare an unscheduled two-task workflow that invokes the existing managed
+  modelling-view v2 job, then runs the compact validation-alert evaluation only after
+  `ALL_SUCCESS`.
+- **Why:** Policy evidence must use the same freshly reconciled source path as the successful profile
+  run. Reusing the existing job dependency avoids duplicating Bronze-to-Gold orchestration.
+- **Guardrail:** Use serverless environment version 4, the project wheel only, queueing, and one-run
+  concurrency. Add no schedule or trigger; declaration does not authorize deployment or execution.
+- **Evidence boundary:** Strict bundle validation passes. The resource-scoped read-only plan reports
+  one create, five shared-wheel-only upstream updates, zero deletions, and eight unselected
+  resources. Deployment and managed execution remain separate approvals.

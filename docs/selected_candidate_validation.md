@@ -124,6 +124,8 @@ partition remain out of scope until a policy is frozen.
 
 The read-only evaluation runner is now implemented locally. It reads only the allowlisted managed
 modelling view and accepted-failure table and returns compact profile plus five-policy metrics. Its
-console entry point and module are present in a verified wheel build, but no workflow has been added,
-deployed, or run. The next gate is the unscheduled workflow declaration and a read-only resource
-plan.
+console entry point and module are present in a verified wheel build. An unscheduled workflow is now
+declared locally and gates evaluation behind the existing modelling-view refresh, but it has not
+been deployed or run. Strict validation passes, and the selected plan reports one creation, five
+shared-wheel-only upstream updates, zero deletions, and eight unselected resources. The next gate is
+committing this declaration before deployment is considered.

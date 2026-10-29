@@ -88,7 +88,17 @@ No Databricks workflow has been added or deployed.
 
 ## Next gate
 
-Declare an unscheduled managed workflow that refreshes the modelling view before invoking this
-runner. Validate the bundle and review a resource-scoped deployment plan before deployment; running
-the workflow remains a separate compute approval. Do not access the sealed July test period,
-persist row-level scores, or select a policy before managed evidence exists.
+An unscheduled two-task workflow is now declared. It invokes the existing managed modelling-view v2
+job first and runs the compact evaluation entry point only after `ALL_SUCCESS`. The evaluation task
+uses serverless environment version 4, the project wheel only, queueing, and a one-run concurrency
+limit. It has no schedule or trigger.
+
+Validate the bundle and review a resource-scoped deployment plan before deployment; running the
+workflow remains a separate compute approval. Do not access the sealed July test period, persist
+row-level scores, or select a policy before managed evidence exists.
+
+Strict bundle validation passes. The selected read-only plan proposes one job creation, five
+existing upstream job updates, zero deletions, zero unchanged selected resources, and leaves eight
+resources outside the selection. Detailed plan inspection confirms that every existing-job update
+changes only the dynamically versioned shared-wheel dependency; task graphs, parameters, schedules,
+and concurrency settings remain unchanged. Nothing has been deployed or run.
