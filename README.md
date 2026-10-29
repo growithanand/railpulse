@@ -102,8 +102,8 @@ A guarded Spark adapter now derives operating days from validation timestamps, e
 accepted June event after construction, and reconciles all five policy evaluations in memory.
 A read-only managed runner now resolves the allowlisted modelling and accepted-failure tables and
 returns compact profile and policy evidence without cycle scores or episode lists.
-Its unscheduled two-task workflow is declared locally and gates evaluation behind a successful
-managed modelling-view refresh; it has not been deployed or run.
+Its unscheduled two-task workflow gates evaluation behind a successful
+managed modelling-view refresh. The reviewed selection is now deployed but has not been run.
 Strict bundle validation passes. The selected plan contains one job creation, five shared-wheel-only
 upstream updates, zero deletions, and eight resources outside the selection.
 
@@ -115,7 +115,7 @@ upstream updates, zero deletions, and eight resources outside the selection.
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | Evaluation workflow passes strict validation and selected plan | Commit before deployment review |
+| Modelling | Evaluation workflow deployed with empty run history | Review and approve first managed run |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -266,7 +266,7 @@ The modelling work is intentionally conservative:
   all five evaluations without persistence. A read-only managed runner routes the allowlisted Gold
   modelling view and Silver accepted-failure table through that path and emits compact JSON only.
   An unscheduled workflow now gates that runner behind the existing modelling-view refresh. Bundle
-  review, deployment, managed execution, and policy selection remain open.
+  review and deployment are complete; managed execution and policy selection remain open.
 
 These negative and mixed results are part of the portfolio evidence: the project records why a
 candidate was rejected rather than turning limited failure data into an inflated accuracy claim.
@@ -366,8 +366,9 @@ and next modelling gate.
    The guarded construction adapter, pure event-matching evaluator, and guarded five-policy
    evaluation adapter are implemented. The read-only managed runner is also implemented locally.
    Its unscheduled workflow passes strict validation and a selected read-only plan with one create,
-   five shared-wheel-only updates, and zero deletions. Commit this checkpoint before separately
-   reviewing deployment and execution; the sealed test period remains closed.
+   five shared-wheel-only updates, and zero deletions. The reviewed selection is deployed with an
+   empty run history. Review the first managed execution separately; the sealed test period remains
+   closed.
 10. Evaluate the frozen model and alert policy once on the sealed test period.
 11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
 12. Add a short reproducible demo path and evidence-based résumé bullets.

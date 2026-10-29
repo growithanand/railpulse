@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Alert-policy validation — unscheduled managed evaluation workflow declared locally**
+**Alert-policy validation — managed evaluation workflow deployed, not run**
 
 The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
 separately approved managed run refreshed the governed modelling view, fitted both fixed
@@ -32,10 +32,10 @@ failure table, rebuilds the guarded validation path, and emits compact profile p
 It omits cycle scores and episode collections and contains no writer or policy-selection path. No
 evaluation workflow has been deployed or run.
 
-An unscheduled two-task workflow is now declared locally. It invokes the existing managed
+The unscheduled two-task workflow invokes the existing managed
 modelling-view v2 workflow first and runs the compact evaluator only after success, using serverless
 environment version 4 and the project wheel. It has queueing, one-run concurrency, and no schedule
-or trigger.
+or trigger. The reviewed selection is deployed with an empty run history.
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -497,7 +497,9 @@ contexts, or unsupported feature statuses occur.
   v2 job with `ALL_SUCCESS`, serverless environment version 4, the project wheel only, queueing, and
   one-run concurrency. It has no schedule or trigger. Strict validation passes, and the selected
   plan reports one creation, five shared-wheel-only upstream updates, zero deletions, and eight
-  resources outside the selection. It has not been deployed.
+  resources outside the selection. Deployment then created the job and applied only those five
+  wheel updates, uploaded 20 files, deleted nothing, and started no run. Remote readback confirms
+  the reviewed configuration and an empty run history.
 - An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
   feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
   failure lineage; one label-observation boundary; supported target and row-status semantics;
@@ -968,9 +970,10 @@ first managed run. Five validation-only policy candidates and their label-blind 
 now frozen, the guarded Spark adapter is implemented, and the pure event evaluator fixes the metric
 semantics. The guarded evaluation adapter now connects only the governed June event and label-free
 operating-day evidence after construction, and the compact read-only managed runner is implemented.
-The unscheduled workflow is now declared locally. Strict validation and the resource-scoped plan
-both pass with no deletions and only shared-wheel changes upstream. Commit this declaration
-checkpoint before considering deployment; execution remains a separate compute approval. Freeze the
-complete model and alert policy before the one-time sealed-test evaluation. The unchanged failure-
-horizon rerun also remains useful but requires compute approval. Do not commit credentials, local
-paths, deployment state, account identifiers, or ignored source data.
+Strict validation and the resource-scoped plan both pass with no deletions and only shared-wheel
+changes upstream. The reviewed workflow is now
+deployed and remotely verified without execution. Next, commit this deployment-status checkpoint,
+then separately review the first managed run and its serverless compute charge. Freeze the complete
+model and alert policy before the one-time sealed-test evaluation. The unchanged failure-horizon
+rerun also remains useful but requires compute approval. Do not commit credentials, local paths,
+deployment state, account identifiers, or ignored source data.

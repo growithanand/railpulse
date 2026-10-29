@@ -126,6 +126,10 @@ The read-only evaluation runner is now implemented locally. It reads only the al
 modelling view and accepted-failure table and returns compact profile plus five-policy metrics. Its
 console entry point and module are present in a verified wheel build. An unscheduled workflow is now
 declared locally and gates evaluation behind the existing modelling-view refresh, but it has not
-been deployed or run. Strict validation passes, and the selected plan reports one creation, five
+been run. Strict validation passes, and the selected plan reports one creation, five
 shared-wheel-only upstream updates, zero deletions, and eight unselected resources. The next gate is
-committing this declaration before deployment is considered.
+committing the successful deployment record before the first managed run is considered.
+
+The reviewed selection is deployed. Remote readback confirms the expected two tasks, dependency,
+entry point, parameters, environment, queue, concurrency limit, and absence of schedules or triggers.
+Its run history is empty, so deployment used no job compute.

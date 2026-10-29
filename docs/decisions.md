@@ -519,3 +519,17 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Evidence boundary:** Strict bundle validation passes. The resource-scoped read-only plan reports
   one create, five shared-wheel-only upstream updates, zero deletions, and eight unselected
   resources. Deployment and managed execution remain separate approvals.
+
+## ADR-037 — Deploy validation evaluation without executing it
+
+- **Status:** Accepted
+- **Decision:** Apply only the reviewed evaluation-job selection after strict validation and the
+  unchanged resource-scoped plan. Do not start the workflow during deployment.
+- **Why:** Remote configuration must be verified before paying for a full upstream refresh and model
+  evaluation. Separating deployment from execution preserves a clear human approval boundary.
+- **Guardrail:** Create one job, update only the five planned shared-wheel dependencies, delete
+  nothing, and verify the remote task graph, environment, parameters, schedule, trigger, and run
+  history without invoking compute.
+- **Evidence boundary:** Deployment created one resource, changed five, deleted zero, uploaded 20
+  files, and started no run. Remote readback matches the reviewed two-task definition and confirms
+  an empty run history.

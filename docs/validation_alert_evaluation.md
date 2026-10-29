@@ -101,4 +101,17 @@ Strict bundle validation passes. The selected read-only plan proposes one job cr
 existing upstream job updates, zero deletions, zero unchanged selected resources, and leaves eight
 resources outside the selection. Detailed plan inspection confirms that every existing-job update
 changes only the dynamically versioned shared-wheel dependency; task graphs, parameters, schedules,
-and concurrency settings remain unchanged. Nothing has been deployed or run.
+and concurrency settings remain unchanged. At that plan checkpoint, nothing had been deployed or
+run.
+
+## Deployment status
+
+The reviewed selection was deployed from Git commit `e46307c`. Deployment created the evaluation
+job, refreshed the five planned upstream shared-wheel references, uploaded 20 bundle files, and
+deleted no file or resource. It did not start a workflow run.
+
+Independent remote readback confirms a UI-locked two-task job with the expected modelling-view job
+reference, `ALL_SUCCESS` dependency, evaluation entry point, four namespace parameters, serverless
+environment version 4, one wheel dependency, queueing, and one-run concurrency. No schedule or
+trigger is present, and the run history is empty. Execution and compute charges remain a separate
+approval.
