@@ -119,5 +119,11 @@ deployed, and reconciled through their first managed run. A separate
 persistence candidates. Its deterministic label-blind episode engine and guarded Spark adapter are
 implemented and tested. A second guarded adapter now introduces only the accepted June failure and
 label-free operating-day count after construction, then reconciles all five event evaluations. The
-next gate is a read-only managed runner and reviewed workflow declaration. Row-level score
-persistence and the sealed test partition remain out of scope until a policy is frozen.
+read-only evaluation runner is implemented locally. Row-level score persistence and the sealed test
+partition remain out of scope until a policy is frozen.
+
+The read-only evaluation runner is now implemented locally. It reads only the allowlisted managed
+modelling view and accepted-failure table and returns compact profile plus five-policy metrics. Its
+console entry point and module are present in a verified wheel build, but no workflow has been added,
+deployed, or run. The next gate is the unscheduled workflow declaration and a read-only resource
+plan.

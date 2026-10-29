@@ -70,9 +70,25 @@ The focused Spark integration suite passes all three cases. Its complete-path ca
 and July events are present, operating days are derived from timestamps, every episode is
 classified exactly once, and a rejected June row fails closed.
 
+## Read-only managed runner
+
+`databricks-gold-selected-candidate-validation-alert-evaluation-v1` resolves only the allowlisted
+managed `gold.modeling_view_v2` and `silver.failure_events_accepted` tables. It prepares the frozen
+development populations, refits the selected candidate, invokes the guarded five-policy evaluation,
+and returns deterministic JSON.
+
+The output contains the two source table identities, contract versions, reconciled cycle/day/event
+counts, the compact validation-score profile, and five policy evaluations. It deliberately omits
+cycle probabilities and the in-memory episode collection. The runner contains no table writer,
+MLflow writer, model registration, policy-selection rule, schedule, trigger, or test-scoring path.
+Three focused unit tests verify named parameters, allowlisted table reads, operation order, compact
+output routing, and wrapped contract failures. The repository's system-Python wheel build succeeds,
+and direct wheel inspection confirms both the runner module and console entry point are packaged.
+No Databricks workflow has been added or deployed.
+
 ## Next gate
 
-Add a read-only managed runner that loads the allowlisted modelling view and accepted failure table,
-rebuilds the five validation policy results, and emits only compact evaluation JSON. Review its
-resource declaration and deployment plan before any run. Do not access the sealed July test period,
+Declare an unscheduled managed workflow that refreshes the modelling view before invoking this
+runner. Validate the bundle and review a resource-scoped deployment plan before deployment; running
+the workflow remains a separate compute approval. Do not access the sealed July test period,
 persist row-level scores, or select a policy before managed evidence exists.

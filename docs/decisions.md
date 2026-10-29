@@ -490,3 +490,18 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Evidence boundary:** The three-case Spark suite proves the full 4,730-cycle path, fixed five-
   policy order, observed-day derivation, June-only event exposure in the presence of April and July
   rows, complete episode classification, and fail-closed rejected-event handling.
+
+## ADR-035 — Keep managed policy evaluation read-only and compact
+
+- **Status:** Accepted
+- **Decision:** Route only the allowlisted managed modelling view and accepted-failure table through
+  the frozen validation scorer and five-policy evaluator. Return compact profile and policy metrics,
+  excluding cycle probabilities and episode collections from job output.
+- **Why:** Managed execution is needed to reproduce the exact governed population, but evaluation
+  does not require a new table, MLflow run, registry entry, or row-level log. Compact evidence is
+  sufficient for policy review and reduces accidental persistence of detailed scores.
+- **Guardrail:** Resolve both source names through existing allowlists, preserve operation order,
+  wrap contract failures, and expose no writer, selector, scheduler, trigger, or test-scoring path.
+- **Evidence boundary:** Three focused unit tests verify named parameters, exact table identities,
+  read/prepare/score/evaluate order, compact result routing, and fail-closed evaluation errors. The
+  console entry point is packaged separately from any workflow declaration.

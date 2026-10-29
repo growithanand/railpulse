@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Alert-policy validation — guarded five-policy evaluation path implemented locally**
+**Alert-policy validation — read-only managed evaluation runner implemented locally**
 
 The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
 separately approved managed run refreshed the governed modelling view, fitted both fixed
@@ -26,6 +26,11 @@ construction. It separates warning, inside-failure, and false alert starts and r
 lead time, and per-operating-day burden. A guarded Spark adapter now derives operating days from the
 validated score timestamps, selects only the accepted June event after construction, and reconciles
 all five policy evaluations. No validation policy has been selected.
+
+A read-only managed runner now resolves the allowlisted Gold modelling view and Silver accepted-
+failure table, rebuilds the guarded validation path, and emits compact profile plus policy evidence.
+It omits cycle scores and episode collections and contains no writer or policy-selection path. No
+workflow resource has been declared, deployed, or run for this evaluator.
 
 The local Bronze-to-Gold engineering path, chronological modelling view, development-only baseline
 investigations, and version 2 feature snapshot are verified. The Databricks bundle and serverless
@@ -478,6 +483,11 @@ contexts, or unsupported feature statuses occur.
   timestamps, filters accepted failures to June before collection, and reconciles every policy
   metric to its source episodes. The three-case Spark suite passes, including June-only exposure in
   the presence of April and July events and fail-closed rejected-event handling. It writes nothing.
+- A read-only `databricks-gold-selected-candidate-validation-alert-evaluation-v1` runner now reads
+  the allowlisted modelling view and accepted-failure table, prepares and scores the frozen
+  development data, and returns compact profile and five-policy metrics. Three focused unit tests
+  pass. The system-Python wheel build succeeds and contains the runner plus console entry point, but
+  no workflow, deployment, or managed run exists yet.
 - An allowlisted managed `gold.modeling_view_v2` persistence boundary now validates the fixed
   feature, eligibility, context, horizon, and modelling-view contracts; one feature lineage; one
   failure lineage; one label-observation boundary; supported target and row-status semantics;
@@ -947,8 +957,9 @@ managed runner, and unscheduled workflow are implemented, deployed, and reconcil
 first managed run. Five validation-only policy candidates and their label-blind episode engine are
 now frozen, the guarded Spark adapter is implemented, and the pure event evaluator fixes the metric
 semantics. The guarded evaluation adapter now connects only the governed June event and label-free
-operating-day evidence after construction. Next, add a read-only managed runner and reviewed
-workflow declaration; deployment and execution remain separate approvals. Freeze the complete model
-and alert policy before the one-time sealed-test evaluation. The unchanged failure-horizon rerun
-also remains useful but requires compute approval. Do not commit credentials, local paths,
-deployment state, account identifiers, or ignored source data.
+operating-day evidence after construction, and the compact read-only managed runner is implemented.
+Next, declare the unscheduled workflow and review strict validation plus a resource-scoped plan;
+deployment and execution remain separate approvals. Freeze the complete model and alert policy
+before the one-time sealed-test evaluation. The unchanged failure-horizon rerun also remains useful
+but requires compute approval. Do not commit credentials, local paths, deployment state, account
+identifiers, or ignored source data.
