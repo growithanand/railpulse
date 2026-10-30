@@ -7,8 +7,8 @@ policy is compared with the accepted failure interval represented in the frozen 
 period. It measures event detection, warning lead time, late alerts, false alerts, and episode
 burden without changing any alert timestamp or opening the July test period.
 
-This is an evaluation contract, not a policy-selection result. No managed policy outputs have been
-evaluated yet.
+This is an evaluation contract, not a policy-selection result. Its first managed execution has now
+produced validation evidence, but no policy has been selected.
 
 ## Matching rules
 
@@ -84,7 +84,8 @@ MLflow writer, model registration, policy-selection rule, schedule, trigger, or 
 Three focused unit tests verify named parameters, allowlisted table reads, operation order, compact
 output routing, and wrapped contract failures. The repository's system-Python wheel build succeeds,
 and direct wheel inspection confirms both the runner module and console entry point are packaged.
-No Databricks workflow has been added or deployed.
+A Databricks workflow now runs this compact evaluator only after a successful managed modelling-view
+refresh.
 
 ## Next gate
 
@@ -93,9 +94,9 @@ job first and runs the compact evaluation entry point only after `ALL_SUCCESS`. 
 uses serverless environment version 4, the project wheel only, queueing, and a one-run concurrency
 limit. It has no schedule or trigger.
 
-Validate the bundle and review a resource-scoped deployment plan before deployment; running the
-workflow remains a separate compute approval. Do not access the sealed July test period, persist
-row-level scores, or select a policy before managed evidence exists.
+The bundle, resource-scoped deployment, and first separately approved managed run are complete. Do
+not access the sealed July test period or persist row-level scores. Policy selection remains a
+separate reviewed decision.
 
 Strict bundle validation passes. The selected read-only plan proposes one job creation, five
 existing upstream job updates, zero deletions, zero unchanged selected resources, and leaves eight
@@ -113,5 +114,24 @@ deleted no file or resource. It did not start a workflow run.
 Independent remote readback confirms a UI-locked two-task job with the expected modelling-view job
 reference, `ALL_SUCCESS` dependency, evaluation entry point, four namespace parameters, serverless
 environment version 4, one wheel dependency, queueing, and one-run concurrency. No schedule or
-trigger is present, and the run history is empty. Execution and compute charges remain a separate
-approval.
+trigger is present.
+
+## First managed result
+
+The first separately approved run completed successfully after refreshing the governed modelling
+view. It reconciled 4,730 June validation cycles, 28 operating days, and one accepted failure event.
+The output remained compact and no row-level score or episode table was written.
+
+| Policy candidate | Event detected | Warning lead | Alert episodes | False episodes | False episodes/day |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| p90 single cycle | Yes | 1h 56m 24s | 68 | 67 | 2.39 |
+| p95 single cycle | Yes | 1h 33m 26s | 67 | 66 | 2.36 |
+| p99 single cycle | No | — | 27 | 27 | 0.96 |
+| p90 two consecutive cycles | Yes | 1h 33m 26s | 59 | 58 | 2.07 |
+| p95 two consecutive cycles | Yes | 27m 41s | 34 | 33 | 1.18 |
+
+The p95 two-consecutive-cycle candidate has the lowest false-alert burden among the policies that
+detected the event, but it also provides the shortest warning lead. The p99 single-cycle candidate
+is quieter but misses the only accepted validation event. Because the comparison contains only one
+failure event, it does not establish general production performance. July remains sealed and the
+next gate is an explicit policy-review decision.

@@ -533,3 +533,18 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Evidence boundary:** Deployment created one resource, changed five, deleted zero, uploaded 20
   files, and started no run. Remote readback matches the reviewed two-task definition and confirms
   an empty run history.
+
+## ADR-038 — Treat the first managed policy comparison as evidence, not selection
+
+- **Status:** Accepted
+- **Decision:** Run the deployed validation evaluator once after separate compute approval, record
+  aggregate five-policy evidence, and keep policy selection as a later explicit decision.
+- **Why:** The managed run confirms the governed execution path and exposes the practical trade-off
+  between warning lead and false-alert burden, but one accepted validation failure is not enough to
+  justify an automatic production-policy choice.
+- **Guardrail:** Keep July sealed, write no row-level scores or episode tables, omit account and run
+  identifiers from repository evidence, and do not interpret a successful run as policy approval.
+- **Evidence boundary:** The run reconciled 4,730 validation cycles, 28 operating days, and one June
+  event. Four policies detected it. P95 two-consecutive-cycle had the lowest false-alert burden among
+  detecting candidates at 33 false episodes, or 1.18 per day, with 27 minutes 41 seconds of warning;
+  p99 single-cycle produced fewer alerts but missed the event.
