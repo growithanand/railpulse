@@ -548,3 +548,19 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   event. Four policies detected it. P95 two-consecutive-cycle had the lowest false-alert burden among
   detecting candidates at 33 false episodes, or 1.18 per day, with 27 minutes 41 seconds of warning;
   p99 single-cycle produced fewer alerts but missed the event.
+
+## ADR-039 — Freeze the lowest-burden full-detection policy for development
+
+- **Status:** Accepted
+- **Decision:** Require complete validation-event detection first, then select the unique eligible
+  candidate with the lowest false-alert episode count. Freeze p95 two-consecutive-cycle for the next
+  development stage.
+- **Why:** Missing the only accepted validation event makes the quieter p99 candidate unsuitable for
+  progression. Among the four policies that detected the event, p95 two-consecutive-cycle reduces
+  false-alert burden the most, although its 27-minute-41-second warning lead is the shortest.
+- **Guardrail:** Require exact agreement with all five reviewed managed results, preserve the frozen
+  policy parameters, keep July sealed, and treat the choice as development-only rather than a
+  production-performance claim.
+- **Evidence boundary:** The pure selection contract contains no test metric, score persistence,
+  table writer, deployment, or compute path. Five focused tests cover the frozen evidence, selection
+  rule, sealed-test metadata, invalid counts, altered evidence, and non-leading choices.

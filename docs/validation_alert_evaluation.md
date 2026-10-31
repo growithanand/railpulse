@@ -7,8 +7,8 @@ policy is compared with the accepted failure interval represented in the frozen 
 period. It measures event detection, warning lead time, late alerts, false alerts, and episode
 burden without changing any alert timestamp or opening the July test period.
 
-This is an evaluation contract, not a policy-selection result. Its first managed execution has now
-produced validation evidence, but no policy has been selected.
+This evaluation contract does not itself select a policy. Its first managed execution produced the
+aggregate evidence now consumed by a separate development-only selection contract.
 
 ## Matching rules
 
@@ -134,4 +134,9 @@ The p95 two-consecutive-cycle candidate has the lowest false-alert burden among 
 detected the event, but it also provides the shortest warning lead. The p99 single-cycle candidate
 is quieter but misses the only accepted validation event. Because the comparison contains only one
 failure event, it does not establish general production performance. July remains sealed and the
-next gate is an explicit policy-review decision.
+result was therefore reviewed as development evidence rather than production performance.
+
+That decision is now captured in
+[development alert-policy selection](development_alert_policy_selection.md). The versioned contract
+requires full event detection before minimizing false-alert burden and freezes p95
+two-consecutive-cycle for development. It does not open July or claim production performance.

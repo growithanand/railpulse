@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Alert-policy validation — first managed five-policy evaluation complete**
+**Alert-policy validation — development policy frozen, sealed test remains closed**
 
 The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
 separately approved managed run refreshed the governed modelling view, fitted both fixed
@@ -27,7 +27,8 @@ lead time, and per-operating-day burden. A guarded Spark adapter now derives ope
 validated score timestamps, selects only the accepted June event after construction, and reconciles
 all five policy evaluations. The first managed run evaluated 4,730 cycles across 28 operating days
 and the single accepted June event. Four policies detected the event; p99 single-cycle missed it.
-No validation policy has been selected.
+A versioned development-only selection contract now requires full event detection and then the
+lowest false-alert burden. It freezes p95 two-consecutive cycles for the next evaluation stage.
 
 A read-only managed runner now resolves the allowlisted Gold modelling view and Silver accepted-
 failure table, rebuilds the guarded validation path, and emits compact profile plus policy evidence.
@@ -470,7 +471,8 @@ contexts, or unsupported feature statuses occur.
   candidates sourced from the managed all-score p90, p95, and p99 quantiles. Three candidates use a
   single qualifying cycle and two require consecutive cycles; all use a fixed 60-minute merge gap
   and 120-minute cooldown. Twelve focused unit cases verify version, ordering, uniqueness, managed
-  thresholds, sealed-test identity, and invalid-value rejection. No policy has been selected.
+  thresholds, sealed-test identity, and invalid-value rejection. This candidate contract does not
+  itself select a policy; a later development-only decision now does so.
 - A pure `motor-current-validation-alert-episodes-v1` engine now constructs chronological alerts
   without labels or failure events. It validates and orders score points, applies inclusive
   thresholds, forms consecutive streaks, triggers at the persistence boundary, merges nearby
@@ -484,7 +486,7 @@ contexts, or unsupported feature statuses occur.
   the existing two-hour pre-failure horizon after construction. It reports June event detection and
   lead time, separates inside-failure late alerts from false alerts, and reconciles total and false
   episode burden per operating day. Three focused tests pass. The first managed comparison has now
-  run successfully, but no policy has been selected.
+  run successfully and feeds the separate development-only policy selection.
 - A guarded `motor-current-validation-alert-evaluation-adapter-v1` path now constructs all five
   policies before introducing failure evidence, derives observed operating days from validation
   timestamps, filters accepted failures to June before collection, and reconciles every policy
@@ -943,8 +945,7 @@ interval checks. The validation warehouse was stopped immediately after the read
 
 - Additional sensor features and later Gold transformations. The unchanged failure-horizon rerun
   also remains pending.
-- Development-only alert-policy selection, sealed-test evaluation, dashboard, streaming, and policy
-  simulation.
+- Sealed-test evaluation, dashboard, streaming, and policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and the current Gold-table workflows now exist and have verified managed runs. The latest
   modelling-view write has also passed its independent SQL audit; later Gold products remain
@@ -978,8 +979,9 @@ changes upstream. The reviewed workflow is deployed, remotely verified, and reco
 first managed run. The run evaluated 4,730 validation cycles, 28 operating days, and one accepted
 June failure event. Four candidates detected it. Among those, p95 two-consecutive-cycle produced the
 lowest false-alert burden at 33 false episodes, or 1.18 per day, but its warning lead was only 27
-minutes 41 seconds. The next boundary is to review these trade-offs and freeze one validation policy
-without opening July. Freeze the complete model and alert policy before the one-time sealed-test
-evaluation. The unchanged failure-horizon rerun also remains useful but requires compute approval.
-Do not commit credentials, local paths, deployment state, account identifiers, or ignored source
-data.
+minutes 41 seconds. The versioned development-only selection now freezes that policy using the rule
+"full event detection, then lowest false-alert burden." The next boundary is to implement and review
+a one-time sealed-test evaluation path without opening July during implementation. Test access and
+managed execution remain separate explicit approvals. The unchanged failure-horizon rerun also
+remains useful but requires compute approval. Do not commit credentials, local paths, deployment
+state, account identifiers, or ignored source data.

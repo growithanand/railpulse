@@ -119,17 +119,20 @@ deployed, and reconciled through their first managed run. A separate
 persistence candidates. Its deterministic label-blind episode engine and guarded Spark adapter are
 implemented and tested. A second guarded adapter now introduces only the accepted June failure and
 label-free operating-day count after construction, then reconciles all five event evaluations. The
-read-only evaluation runner is implemented locally. Row-level score persistence and the sealed test
-partition remain out of scope until a policy is frozen.
+read-only evaluation runner is implemented locally. Row-level score persistence remains out of
+scope, and the sealed test partition stays closed until its one-time evaluation boundary is reviewed.
 
 The read-only evaluation runner reads only the allowlisted managed modelling view and accepted-
 failure table and returns compact profile plus five-policy metrics. Its console entry point and
 module are present in a verified wheel build. The unscheduled workflow gates evaluation behind the
 existing modelling-view refresh. Its first separately approved run completed successfully over
 4,730 validation cycles, 28 operating days, and one accepted June event. Four policies detected the
-event; p99 single-cycle missed it. No row-level scores were persisted and no policy was selected.
+event; p99 single-cycle missed it. No row-level scores were persisted. A later development-only
+contract now selects from this aggregate evidence.
 
 The reviewed selection is deployed. Remote readback confirms the expected two tasks, dependency,
 entry point, parameters, environment, queue, concurrency limit, and absence of schedules or triggers.
-The next gate is to review the observed detection, warning-lead, and false-alert trade-offs and freeze
-one policy before any sealed-test evaluation.
+The observed trade-off is now frozen in a separate
+[development alert-policy selection](development_alert_policy_selection.md). It requires full event
+detection before minimizing false-alert burden and selects p95 two-consecutive-cycle. The next gate
+is to prepare a one-time sealed-test evaluation boundary without opening July during implementation.
