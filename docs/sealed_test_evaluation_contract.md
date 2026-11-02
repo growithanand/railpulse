@@ -49,6 +49,7 @@ of this contract.
 
 The [sealed-test scoring adapter](sealed_test_scoring_adapter.md) now proves the frozen identities,
 train-only fit, held-out-only scoring, and in-memory score reconciliation with synthetic fixtures.
-The next increment must strip labels before applying only the frozen alert policy, then introduce
-synthetic failure events after episode construction. Deployment and the single managed test read
-remain later, separately reviewed approvals.
+The [sealed-test alert evaluation adapter](sealed_test_alert_evaluation_adapter.md) now strips labels,
+applies only the frozen alert policy, and introduces synthetic failure events after construction.
+The next increment is a compact read-only runner with aggregate output only. Workflow declaration,
+deployment, and the single managed test read remain later, separately reviewed approvals.

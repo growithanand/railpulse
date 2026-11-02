@@ -595,3 +595,19 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Evidence boundary:** Three synthetic Spark tests pass. They cover the reconciled scoring path,
   invalid validation-row isolation, bounded probabilities, changed training counts, duplicate keys,
   invalid held-out features, and missing columns. Real July rows remain unread.
+
+## ADR-042 — Construct the selected policy before introducing held-out events
+
+- **Status:** Accepted
+- **Decision:** Revalidate held-out score identity, remove targets, construct only the frozen p95
+  two-consecutive-cycle policy, and introduce accepted test failure evidence only after episodes
+  exist.
+- **Why:** Prediction-time alerts must not depend on outcome labels or event timestamps. Evaluating
+  only the selected policy also prevents held-out results from restarting candidate selection.
+- **Guardrail:** Preserve the frozen threshold and temporal rules, require one reconciled score
+  identity and one accepted held-out event, keep scores and episodes in memory, and add no job, CLI,
+  writer, bundle resource, or real-data execution.
+- **Evidence boundary:** Three synthetic Spark tests prove a detected event with 3,540 seconds of
+  warning plus fail-closed altered identity, changed counts, rejected events, and missing events. A
+  pure boundary test confirms June evidence cannot enter held-out evaluation. Real July data remains
+  unread.

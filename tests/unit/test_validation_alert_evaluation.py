@@ -15,6 +15,7 @@ from railpulse.models.validation_alert_evaluation import (
     VALIDATION_ALERT_EVENT_EVALUATION_VERSION,
     ValidationAlertEvaluationError,
     ValidationFailureEvent,
+    evaluate_sealed_test_alert_policy,
     evaluate_validation_alert_policy,
 )
 from railpulse.models.validation_alert_policy_contract import (
@@ -122,4 +123,29 @@ def test_evaluation_rejects_test_events_invalid_days_and_tampered_results() -> N
             "failure-june",
             FAILURE_START.replace(tzinfo=UTC),
             FAILURE_END.replace(tzinfo=UTC),
+        )
+
+
+def test_same_matching_semantics_guard_the_sealed_test_period() -> None:
+    test_failure_start = datetime(2020, 7, 15, 10)
+    result = _result(test_failure_start - timedelta(hours=1))
+    event = ValidationFailureEvent(
+        "failure-july",
+        test_failure_start,
+        test_failure_start + timedelta(hours=1),
+    )
+
+    evaluation = evaluate_sealed_test_alert_policy(
+        result,
+        (event,),
+        operating_day_count=5,
+    )
+
+    assert evaluation.detected_failure_event_count == 1
+    assert evaluation.event_evaluations[0].warning_lead_time_seconds == 3_600
+    with pytest.raises(ValidationAlertEvaluationError, match="inside sealed test"):
+        evaluate_sealed_test_alert_policy(
+            result,
+            (_event(),),
+            operating_day_count=5,
         )

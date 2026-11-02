@@ -91,21 +91,30 @@ class ValidationAlertPolicyEvaluation:
     event_evaluations: tuple[ValidationFailureEventEvaluation, ...]
 
 
-def _validate_operating_day_count(operating_day_count: int) -> None:
-    split = get_selected_split_candidate()
-    maximum_days = (split.test_start.date() - split.validation_start.date()).days
+def _validate_operating_day_count(
+    operating_day_count: int,
+    *,
+    period_name: str,
+    maximum_days: int | None,
+) -> None:
     if (
         isinstance(operating_day_count, bool)
         or not isinstance(operating_day_count, int)
-        or not 1 <= operating_day_count <= maximum_days
+        or operating_day_count < 1
+        or (maximum_days is not None and operating_day_count > maximum_days)
     ):
         raise ValidationAlertEvaluationError(
-            "Validation operating-day count must be a positive integer within the selected period"
+            f"{period_name.capitalize()} operating-day count must be a positive integer within "
+            "the selected period"
         )
 
 
 def _validate_events(
     events: Sequence[ValidationFailureEvent],
+    *,
+    period_start: datetime,
+    period_end: datetime | None,
+    period_name: str,
 ) -> tuple[ValidationFailureEvent, ...]:
     if len(events) != 1:
         raise ValidationAlertEvaluationError(
@@ -117,20 +126,25 @@ def _validate_events(
     if len({event.failure_record_id for event in ordered}) != len(ordered):
         raise ValidationAlertEvaluationError("Validation failure events require unique record IDs")
 
-    split = get_selected_split_candidate()
     horizon = timedelta(seconds=DEFAULT_FAILURE_HORIZON_SECONDS)
     for event in ordered:
-        if (
-            event.failure_start - horizon < split.validation_start
-            or event.failure_end >= split.test_start
+        if event.failure_start - horizon < period_start or (
+            period_end is not None and event.failure_end >= period_end
         ):
             raise ValidationAlertEvaluationError(
-                "Validation failure event and complete warning window must stay inside validation"
+                "Validation failure event and complete warning window must stay inside "
+                f"{period_name}"
             )
     return ordered
 
 
-def _validate_episode_result(result: ValidationAlertEpisodeResult) -> None:
+def _validate_episode_result(
+    result: ValidationAlertEpisodeResult,
+    *,
+    period_start: datetime,
+    period_end: datetime | None,
+    period_name: str,
+) -> None:
     if (
         result.episode_version != VALIDATION_ALERT_EPISODE_VERSION
         or result.policy_version != VALIDATION_ALERT_POLICY_VERSION
@@ -153,7 +167,6 @@ def _validate_episode_result(result: ValidationAlertEpisodeResult) -> None:
             "Validation alert episode counts do not reconcile before evaluation"
         )
 
-    split = get_selected_split_candidate()
     previous: ValidationAlertEpisode | None = None
     for expected_index, episode in enumerate(result.episodes, start=1):
         if (
@@ -167,11 +180,12 @@ def _validate_episode_result(result: ValidationAlertEpisodeResult) -> None:
             episode.start_timestamp.tzinfo is not None
             or episode.end_timestamp.tzinfo is not None
             or episode.end_timestamp < episode.start_timestamp
-            or episode.start_timestamp < split.validation_start
-            or episode.end_timestamp >= split.test_start
+            or episode.start_timestamp < period_start
+            or (period_end is not None and episode.end_timestamp >= period_end)
         ):
             raise ValidationAlertEvaluationError(
-                "Validation alert episodes must stay ordered inside the selected validation period"
+                "Validation alert episodes must stay ordered inside the selected "
+                f"{period_name} period"
             )
         if previous is not None and episode.start_timestamp <= previous.end_timestamp:
             raise ValidationAlertEvaluationError(
@@ -216,17 +230,35 @@ def _event_evaluation(
     )
 
 
-def evaluate_validation_alert_policy(
+def _evaluate_alert_policy(
     result: ValidationAlertEpisodeResult,
     events: Sequence[ValidationFailureEvent],
     *,
     operating_day_count: int,
+    period_start: datetime,
+    period_end: datetime | None,
+    period_name: str,
+    maximum_operating_days: int | None,
 ) -> ValidationAlertPolicyEvaluation:
-    """Compare one label-blind policy result with validation-only failure events."""
+    """Compare one label-blind policy result with one governed evaluation period."""
 
-    _validate_episode_result(result)
-    _validate_operating_day_count(operating_day_count)
-    validated_events = _validate_events(events)
+    _validate_episode_result(
+        result,
+        period_start=period_start,
+        period_end=period_end,
+        period_name=period_name,
+    )
+    _validate_operating_day_count(
+        operating_day_count,
+        period_name=period_name,
+        maximum_days=maximum_operating_days,
+    )
+    validated_events = _validate_events(
+        events,
+        period_start=period_start,
+        period_end=period_end,
+        period_name=period_name,
+    )
     event_evaluations = tuple(
         _event_evaluation(event, result.episodes) for event in validated_events
     )
@@ -270,4 +302,44 @@ def evaluate_validation_alert_policy(
         alert_episodes_per_operating_day=alert_count / operating_day_count,
         false_alert_episodes_per_operating_day=(len(false_alert_indices) / operating_day_count),
         event_evaluations=event_evaluations,
+    )
+
+
+def evaluate_validation_alert_policy(
+    result: ValidationAlertEpisodeResult,
+    events: Sequence[ValidationFailureEvent],
+    *,
+    operating_day_count: int,
+) -> ValidationAlertPolicyEvaluation:
+    """Compare one label-blind policy result with validation-only failure events."""
+
+    split = get_selected_split_candidate()
+    return _evaluate_alert_policy(
+        result,
+        events,
+        operating_day_count=operating_day_count,
+        period_start=split.validation_start,
+        period_end=split.test_start,
+        period_name="validation",
+        maximum_operating_days=(split.test_start.date() - split.validation_start.date()).days,
+    )
+
+
+def evaluate_sealed_test_alert_policy(
+    result: ValidationAlertEpisodeResult,
+    events: Sequence[ValidationFailureEvent],
+    *,
+    operating_day_count: int,
+) -> ValidationAlertPolicyEvaluation:
+    """Apply the frozen event-matching semantics to one held-out policy result."""
+
+    split = get_selected_split_candidate()
+    return _evaluate_alert_policy(
+        result,
+        events,
+        operating_day_count=operating_day_count,
+        period_start=split.test_start,
+        period_end=None,
+        period_name="sealed test",
+        maximum_operating_days=None,
     )

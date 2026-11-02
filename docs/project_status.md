@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Sealed-test preparation — synthetic scoring adapter verified, no real test read**
+**Sealed-test preparation — synthetic selected-policy evaluation verified, no real test read**
 
 The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
 separately approved managed run refreshed the governed modelling view, fitted both fixed
@@ -40,6 +40,12 @@ validation period, and scores held-out rows in memory using the selected five-fe
 integration tests use synthetic held-out rows only and cover the successful path plus altered
 training counts, cross-partition duplicate keys, invalid test features, and missing columns. The
 adapter has no job, CLI entry point, table writer, or Databricks resource.
+
+A second guarded adapter now revalidates held-out score identity, strips targets before collecting
+score points, constructs only p95 two-consecutive-cycle episodes, and introduces held-out failure
+evidence only after construction. Three synthetic Spark tests prove the successful warning path and
+fail-closed identity, count, rejection, and missing-event behavior. The shared pure evaluator now
+supports the held-out lower boundary without changing its June validation behavior.
 
 A read-only managed runner now resolves the allowlisted Gold modelling view and Silver accepted-
 failure table, rebuilds the guarded validation path, and emits compact profile plus policy evidence.
@@ -994,8 +1000,9 @@ minutes 41 seconds. The versioned development-only selection now freezes that po
 "full event detection, then lowest false-alert burden." The one-time sealed-test contract now freezes
 the final evaluation identities, partition roles, aggregate-only output, and rerun guardrails without
 reading July or authorizing execution. The Spark scoring adapter now verifies the frozen training fit
-and held-out scoring path using synthetic rows only. The next boundary is to strip labels and build
-only the selected policy's episodes, then evaluate them against synthetic failure events. Deployment,
-real test access, and managed execution remain separate explicit approvals. The unchanged failure-
-horizon rerun also remains useful but requires compute approval. Do not commit credentials, local
-paths, deployment state, account identifiers, or ignored source data.
+and held-out scoring path using synthetic rows only. A second adapter now strips labels, constructs
+only the selected policy, and evaluates synthetic held-out failure evidence after construction. The
+next boundary is a compact read-only runner that returns only approved aggregate metrics. Workflow
+declaration, deployment, real test access, and managed execution remain separate explicit approvals.
+The unchanged failure-horizon rerun also remains useful but requires compute approval. Do not commit
+credentials, local paths, deployment state, account identifiers, or ignored source data.
