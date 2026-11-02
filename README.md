@@ -110,7 +110,9 @@ burden among the detecting policies at 33 false episodes, or 1.18 per operating 
 41 seconds of warning. The p99 single-cycle candidate reduced the burden further but missed the
 event. A versioned development-only selection contract now requires full event detection and then
 chooses the unique lowest-false-alert-burden candidate, freezing p95 two-consecutive cycles for the
-next evaluation stage. This is not a production claim, and July remains sealed.
+next evaluation stage. A separate one-time sealed-test contract now freezes the training-only model
+fit, validation-derived threshold, selected policy, aggregate-only output, and no-automatic-retry
+rules. The contract does not authorize execution or read July, which remains sealed.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -120,7 +122,7 @@ next evaluation stage. This is not a production claim, and July remains sealed.
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | P95 two-consecutive-cycle policy frozen for development | Prepare one-time sealed-test evaluation boundary |
+| Modelling | Model, policy, and sealed-test contract frozen | Implement synthetic guarded test adapter without reading July |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -373,7 +375,9 @@ and next modelling gate.
    28 operating days, and one accepted June event. A versioned development-only contract selects
    p95 two-consecutive cycles as the lowest-burden full-detection policy. The sealed test period
    remains closed.
-10. Evaluate the frozen model and alert policy once on the sealed test period.
+10. **In progress:** the one-time sealed-test contract is implemented without reading July. Build
+    and test its guarded adapter locally before separately reviewing deployment and the single
+    managed test read.
 11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
 12. Add a short reproducible demo path and evidence-based résumé bullets.
 
@@ -488,5 +492,6 @@ rather than precise estimates of generalization or maintenance impact.
 - [Validation-only alert-policy contract](docs/validation_alert_policy_contract.md)
 - [Validation-only alert event evaluation](docs/validation_alert_evaluation.md)
 - [Development alert-policy selection](docs/development_alert_policy_selection.md)
+- [Sealed-test evaluation contract](docs/sealed_test_evaluation_contract.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)
 - [Directional baseline evidence](docs/directional_baseline_profile.md)

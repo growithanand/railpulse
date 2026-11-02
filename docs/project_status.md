@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Alert-policy validation — development policy frozen, sealed test remains closed**
+**Sealed-test preparation — evaluation contract frozen, no test read**
 
 The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
 separately approved managed run refreshed the governed modelling view, fitted both fixed
@@ -29,6 +29,11 @@ all five policy evaluations. The first managed run evaluated 4,730 cycles across
 and the single accepted June event. Four policies detected the event; p99 single-cycle missed it.
 A versioned development-only selection contract now requires full event detection and then the
 lowest false-alert burden. It freezes p95 two-consecutive cycles for the next evaluation stage.
+
+A one-time sealed-test contract now freezes the selected split, training-only model fit,
+validation-derived threshold, selected alert policy, aggregate metrics, report-only result use, and
+no-automatic-retry rule. The contract explicitly does not authorize execution and contains no test
+result or run identity. July remains unread by this increment.
 
 A read-only managed runner now resolves the allowlisted Gold modelling view and Silver accepted-
 failure table, rebuilds the guarded validation path, and emits compact profile plus policy evidence.
@@ -980,8 +985,10 @@ first managed run. The run evaluated 4,730 validation cycles, 28 operating days,
 June failure event. Four candidates detected it. Among those, p95 two-consecutive-cycle produced the
 lowest false-alert burden at 33 false episodes, or 1.18 per day, but its warning lead was only 27
 minutes 41 seconds. The versioned development-only selection now freezes that policy using the rule
-"full event detection, then lowest false-alert burden." The next boundary is to implement and review
-a one-time sealed-test evaluation path without opening July during implementation. Test access and
-managed execution remain separate explicit approvals. The unchanged failure-horizon rerun also
-remains useful but requires compute approval. Do not commit credentials, local paths, deployment
-state, account identifiers, or ignored source data.
+"full event detection, then lowest false-alert burden." The one-time sealed-test contract now freezes
+the final evaluation identities, partition roles, aggregate-only output, and rerun guardrails without
+reading July or authorizing execution. The next boundary is to implement its Spark preparation and
+scoring adapter against synthetic fixtures. Deployment, real test access, and managed execution
+remain separate explicit approvals. The unchanged failure-horizon rerun also remains useful but
+requires compute approval. Do not commit credentials, local paths, deployment state, account
+identifiers, or ignored source data.

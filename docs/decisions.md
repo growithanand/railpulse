@@ -564,3 +564,19 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Evidence boundary:** The pure selection contract contains no test metric, score persistence,
   table writer, deployment, or compute path. Five focused tests cover the frozen evidence, selection
   rule, sealed-test metadata, invalid counts, altered evidence, and non-leading choices.
+
+## ADR-040 — Freeze test semantics before authorizing a test read
+
+- **Status:** Accepted
+- **Decision:** Define a one-time final-evaluation contract before implementing or running the held-
+  out test path. Refit the selected model on training only, preserve the validation-derived p95
+  two-consecutive-cycle policy unchanged, and expose aggregate results only.
+- **Why:** Refitting on train plus validation would alter the score scale underneath the frozen
+  threshold. Fixing identities, partition roles, metrics, and result use before access prevents test
+  feedback from becoming another tuning loop.
+- **Guardrail:** The contract authorizes no execution, permits one separately approved test read,
+  disables automatic retry, requires a new versioned decision for any later read, persists no row-
+  level scores or episodes, and prohibits retuning from the result.
+- **Evidence boundary:** Fifteen focused tests freeze the model, policy, split, partition roles,
+  threshold parameters, one-read approval rules, aggregate-only output, and absence of test results
+  or execution identities. No real test data, Databricks resource, or compute is touched.

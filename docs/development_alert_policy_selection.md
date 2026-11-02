@@ -45,6 +45,7 @@ single sealed-test evaluation.
 
 ## Next gate
 
-Build and review a one-time sealed-test evaluation boundary that accepts only the frozen model and
-this frozen policy. Merely implementing that boundary must not read July or start Databricks compute;
-test access and managed execution remain separate explicit approvals.
+The [sealed-test evaluation contract](sealed_test_evaluation_contract.md) now accepts only the frozen
+model and this frozen policy while preserving training-only fit and the validation-derived threshold.
+It does not read July or authorize execution. The next increment is a guarded Spark adapter tested
+only with synthetic fixtures; real test access and managed execution remain separate approvals.
