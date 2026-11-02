@@ -112,7 +112,9 @@ event. A versioned development-only selection contract now requires full event d
 chooses the unique lowest-false-alert-burden candidate, freezing p95 two-consecutive cycles for the
 next evaluation stage. A separate one-time sealed-test contract now freezes the training-only model
 fit, validation-derived threshold, selected policy, aggregate-only output, and no-automatic-retry
-rules. The contract does not authorize execution or read July, which remains sealed.
+rules. A guarded Spark adapter now fits the frozen training population and scores only held-out rows
+in memory; its tests use synthetic data and prove validation-row isolation. Neither layer authorizes
+execution or reads the real July data, which remains sealed.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -122,7 +124,7 @@ rules. The contract does not authorize execution or read July, which remains sea
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | Model, policy, and sealed-test contract frozen | Implement synthetic guarded test adapter without reading July |
+| Modelling | Synthetic sealed-test scoring adapter verified | Build selected-policy episode adapter with synthetic events |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -375,9 +377,9 @@ and next modelling gate.
    28 operating days, and one accepted June event. A versioned development-only contract selects
    p95 two-consecutive cycles as the lowest-burden full-detection policy. The sealed test period
    remains closed.
-10. **In progress:** the one-time sealed-test contract is implemented without reading July. Build
-    and test its guarded adapter locally before separately reviewing deployment and the single
-    managed test read.
+10. **In progress:** the one-time sealed-test contract and synthetic Spark scoring adapter are
+    implemented without reading July. Next, construct only the selected policy's episodes and
+    evaluate them with synthetic events before reviewing any deployment or managed test read.
 11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
 12. Add a short reproducible demo path and evidence-based résumé bullets.
 
@@ -493,5 +495,6 @@ rather than precise estimates of generalization or maintenance impact.
 - [Validation-only alert event evaluation](docs/validation_alert_evaluation.md)
 - [Development alert-policy selection](docs/development_alert_policy_selection.md)
 - [Sealed-test evaluation contract](docs/sealed_test_evaluation_contract.md)
+- [Sealed-test scoring adapter](docs/sealed_test_scoring_adapter.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)
 - [Directional baseline evidence](docs/directional_baseline_profile.md)

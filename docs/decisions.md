@@ -580,3 +580,18 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Evidence boundary:** Fifteen focused tests freeze the model, policy, split, partition roles,
   threshold parameters, one-read approval rules, aggregate-only output, and absence of test results
   or execution identities. No real test data, Databricks resource, or compute is touched.
+
+## ADR-041 — Prove sealed scoring with synthetic held-out rows first
+
+- **Status:** Accepted
+- **Decision:** Implement final model fitting and held-out scoring as an unexposed Spark adapter,
+  then verify it using generated rows before adding alert episodes, event evidence, or managed
+  execution.
+- **Why:** Isolating scoring proves the train-only fit, held-out-only transform, and frozen identity
+  chain without combining every final-evaluation concern or accessing the real test partition.
+- **Guardrail:** Require the exact frozen training population, ignore validation rows, validate
+  held-out labels and features, enforce globally unique cycle IDs, keep row-level scores in memory,
+  and add no job, CLI entry point, writer, registry action, bundle resource, or compute path.
+- **Evidence boundary:** Three synthetic Spark tests pass. They cover the reconciled scoring path,
+  invalid validation-row isolation, bounded probabilities, changed training counts, duplicate keys,
+  invalid held-out features, and missing columns. Real July rows remain unread.

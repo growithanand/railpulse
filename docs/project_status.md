@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Sealed-test preparation — evaluation contract frozen, no test read**
+**Sealed-test preparation — synthetic scoring adapter verified, no real test read**
 
 The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
 separately approved managed run refreshed the governed modelling view, fitted both fixed
@@ -34,6 +34,12 @@ A one-time sealed-test contract now freezes the selected split, training-only mo
 validation-derived threshold, selected alert policy, aggregate metrics, report-only result use, and
 no-automatic-retry rule. The contract explicitly does not authorize execution and contains no test
 result or run identity. July remains unread by this increment.
+
+A guarded Spark adapter now enforces the exact frozen 6,325-row training population, ignores the
+validation period, and scores held-out rows in memory using the selected five-feature model. Three
+integration tests use synthetic held-out rows only and cover the successful path plus altered
+training counts, cross-partition duplicate keys, invalid test features, and missing columns. The
+adapter has no job, CLI entry point, table writer, or Databricks resource.
 
 A read-only managed runner now resolves the allowlisted Gold modelling view and Silver accepted-
 failure table, rebuilds the guarded validation path, and emits compact profile plus policy evidence.
@@ -987,8 +993,9 @@ lowest false-alert burden at 33 false episodes, or 1.18 per day, but its warning
 minutes 41 seconds. The versioned development-only selection now freezes that policy using the rule
 "full event detection, then lowest false-alert burden." The one-time sealed-test contract now freezes
 the final evaluation identities, partition roles, aggregate-only output, and rerun guardrails without
-reading July or authorizing execution. The next boundary is to implement its Spark preparation and
-scoring adapter against synthetic fixtures. Deployment, real test access, and managed execution
-remain separate explicit approvals. The unchanged failure-horizon rerun also remains useful but
-requires compute approval. Do not commit credentials, local paths, deployment state, account
-identifiers, or ignored source data.
+reading July or authorizing execution. The Spark scoring adapter now verifies the frozen training fit
+and held-out scoring path using synthetic rows only. The next boundary is to strip labels and build
+only the selected policy's episodes, then evaluate them against synthetic failure events. Deployment,
+real test access, and managed execution remain separate explicit approvals. The unchanged failure-
+horizon rerun also remains useful but requires compute approval. Do not commit credentials, local
+paths, deployment state, account identifiers, or ignored source data.
