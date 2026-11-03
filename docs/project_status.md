@@ -55,7 +55,9 @@ An unscheduled workflow now declares the governed modelling-view dependency foll
 aggregate evaluator, with zero retries on both tasks, one-run concurrency, queueing, and no trigger.
 Strict authenticated bundle validation passes. Its resource-scoped plan proposes one new job, five
 shared-wheel-only upstream updates, zero deletions, and nine unrelated resources left unselected.
-No deployment, Databricks run, or real test read exists.
+The selected deployment created the UI-locked, unscheduled job and applied the five planned updates.
+Remote inspection confirms the reviewed two-task graph, one-run concurrency, queueing, no trigger,
+and empty run history. No Databricks run, compute use, or real test read exists.
 
 A read-only managed runner now resolves the allowlisted Gold modelling view and Silver accepted-
 failure table, rebuilds the guarded validation path, and emits compact profile plus policy evidence.
@@ -1017,7 +1019,9 @@ without its explicit flag. The wheel and console entry point are verified. An un
 now declares the governed modelling-view refresh followed by the evaluator, with zero retries and no
 trigger. Strict authenticated bundle validation and the resource-scoped plan now pass. The plan
 contains one addition, five shared-wheel-only upstream updates, zero deletions, and nine unrelated
-resources left unselected. The next boundary is deploying only that reviewed selection without
-execution. Real test access and managed execution remain separate explicit approvals. The unchanged
-failure-horizon rerun also remains useful but requires compute approval. Do not commit credentials,
-local paths, deployment state, account identifiers, or ignored source data.
+resources left unselected. The selected deployment then created the UI-locked workflow and applied
+only the planned updates. Remote inspection confirms the two-task graph, no schedule or trigger, and
+empty run history. The next boundary is the separately approved single serverless execution and
+aggregate-result capture. The unchanged failure-horizon rerun also remains useful but requires
+compute approval. Do not commit credentials, local paths, deployment state, account identifiers, or
+ignored source data.

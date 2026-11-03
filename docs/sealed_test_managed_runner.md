@@ -71,6 +71,13 @@ this job, five upstream updates caused only by the newly built shared wheel, zer
 unrelated resources left unselected. The five planned updates are the existing Bronze, Silver,
 loaded-cycle, feature-snapshot-v2, and modelling-view-v2 jobs in the dependency chain.
 
-The resource remains bundle-managed and has not been deployed. Its next gate is deploying only the
-reviewed selection without execution. The single serverless test read remains a separate explicit
-approval after remote configuration is verified.
+## Deployment evidence
+
+The selected deployment created the bundle-managed job and applied the five reviewed shared-wheel
+updates without starting a run. Remote inspection confirms that the job is UI-locked, unscheduled,
+has no trigger, queues requests, permits one concurrent run, and contains exactly the two reviewed
+tasks. The evaluator alone receives the explicit access flag. Its run history is empty.
+
+The bundle declaration fixes both tasks at zero retries; Databricks omits these default-valued fields
+from the returned job JSON. No compute started and no real test row was read. The next gate is a
+separate explicit approval for the single serverless execution.

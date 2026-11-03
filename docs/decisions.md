@@ -641,3 +641,17 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   job reference. Strict authenticated bundle validation passes. The selected plan reports one job
   addition, five shared-wheel-only dependency updates, zero deletions, and nine unrelated resources
   unselected. Deployment and execution remain separate gates.
+
+## ADR-045 — Deploy the reviewed final-evaluation configuration without running it
+
+- **Status:** Accepted
+- **Decision:** Apply only the selected sealed-test job deployment after the strict validation and
+  zero-deletion plan remain unchanged. Keep execution as a separate approval boundary.
+- **Why:** Verifying the remote job definition before opening the held-out partition prevents a
+  configuration correction from consuming the one-time evaluation opportunity.
+- **Guardrail:** Require the job to remain UI-locked, unscheduled, trigger-free, queued, limited to
+  one concurrent run, and empty of run history. Preserve explicit zero-retry settings in the bundle
+  even though Databricks omits default-valued retry fields from returned job JSON.
+- **Evidence boundary:** The selected deployment created the job and applied only the five planned
+  shared-wheel dependency updates. Remote inspection confirms the reviewed two-task graph and empty
+  run history. No compute or sealed-test access occurred.
