@@ -116,7 +116,9 @@ rules. A guarded Spark adapter now fits the frozen training population and score
 in memory; its tests use synthetic data and prove validation-row isolation. A second adapter removes
 targets, constructs only the selected policy's episodes, and introduces synthetic failure evidence
 after construction. None of these layers authorizes execution or reads the real July data, which
-remains sealed.
+remains sealed. A compact runner now requires an explicit access flag, reads only the two allowlisted
+managed sources, and returns the contract's exact aggregate metric set. Its unscheduled, zero-retry
+workflow is declared locally but has not been deployed or run.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -126,7 +128,7 @@ remains sealed.
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | Synthetic sealed-test scoring and alert evaluation verified | Build compact read-only managed runner locally |
+| Modelling | Aggregate-only runner, wheel entry point, and unscheduled workflow verified locally | Review deployment plan without execution |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -381,8 +383,10 @@ and next modelling gate.
    remains closed.
 10. **In progress:** the one-time sealed-test contract and synthetic Spark scoring adapter are
     implemented without reading July. The selected policy is now also constructed label-blind and
-    evaluated against synthetic events. Next, build the compact read-only runner before reviewing
-    any workflow declaration, deployment, or managed test read.
+    evaluated against synthetic events. The compact runner and explicit access flag are implemented
+    locally, wheel inspection confirms its module and console entry point, and an unscheduled,
+    zero-retry workflow is declared. Next, review the resource-scoped deployment plan without
+    executing the workflow.
 11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
 12. Add a short reproducible demo path and evidence-based résumé bullets.
 
@@ -500,5 +504,6 @@ rather than precise estimates of generalization or maintenance impact.
 - [Sealed-test evaluation contract](docs/sealed_test_evaluation_contract.md)
 - [Sealed-test scoring adapter](docs/sealed_test_scoring_adapter.md)
 - [Sealed-test alert evaluation adapter](docs/sealed_test_alert_evaluation_adapter.md)
+- [Sealed-test managed runner](docs/sealed_test_managed_runner.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)
 - [Directional baseline evidence](docs/directional_baseline_profile.md)

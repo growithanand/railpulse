@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Sealed-test preparation — synthetic selected-policy evaluation verified, no real test read**
+**Sealed-test preparation — aggregate-only runner and wheel verified, no real test read**
 
 The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
 separately approved managed run refreshed the governed modelling view, fitted both fixed
@@ -46,6 +46,14 @@ score points, constructs only p95 two-consecutive-cycle episodes, and introduces
 evidence only after construction. Three synthetic Spark tests prove the successful warning path and
 fail-closed identity, count, rejection, and missing-event behavior. The shared pure evaluator now
 supports the held-out lower boundary without changing its June validation behavior.
+
+A compact managed runner now refuses unapproved access before any table read, resolves only the
+allowlisted modelling-view and accepted-failure sources, calls the two guarded adapters, and returns
+the exact aggregate metric allowlist. Four focused tests use fakes only. A console entry point is
+declared locally, and direct wheel inspection confirms both its module and entry point are packaged.
+An unscheduled workflow now declares the governed modelling-view dependency followed by the
+aggregate evaluator, with zero retries on both tasks, one-run concurrency, queueing, and no trigger.
+No deployment, Databricks run, or real test read exists.
 
 A read-only managed runner now resolves the allowlisted Gold modelling view and Silver accepted-
 failure table, rebuilds the guarded validation path, and emits compact profile plus policy evidence.
@@ -1002,7 +1010,10 @@ the final evaluation identities, partition roles, aggregate-only output, and rer
 reading July or authorizing execution. The Spark scoring adapter now verifies the frozen training fit
 and held-out scoring path using synthetic rows only. A second adapter now strips labels, constructs
 only the selected policy, and evaluates synthetic held-out failure evidence after construction. The
-next boundary is a compact read-only runner that returns only approved aggregate metrics. Workflow
-declaration, deployment, real test access, and managed execution remain separate explicit approvals.
+compact read-only runner now returns only approved aggregate metrics and fails before table access
+without its explicit flag. The wheel and console entry point are verified. An unscheduled workflow
+now declares the governed modelling-view refresh followed by the evaluator, with zero retries and no
+trigger. The next boundary is strict bundle validation and resource-scoped plan review without
+execution. Deployment, real test access, and managed execution remain separate explicit approvals.
 The unchanged failure-horizon rerun also remains useful but requires compute approval. Do not commit
 credentials, local paths, deployment state, account identifiers, or ignored source data.

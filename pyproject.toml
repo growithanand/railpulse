@@ -26,6 +26,7 @@ databricks_gold_modeling_view_v2_processing = "railpulse.jobs.gold_modeling_view
 databricks_gold_model_candidate_comparison = "railpulse.jobs.gold_model_candidate_comparison:main"
 databricks_gold_selected_candidate_validation_profile = "railpulse.jobs.gold_selected_candidate_validation_profile:main"
 databricks_gold_selected_candidate_validation_alert_evaluation = "railpulse.jobs.gold_selected_candidate_validation_alert_evaluation:main"
+databricks_gold_selected_candidate_sealed_test_evaluation = "railpulse.jobs.gold_selected_candidate_sealed_test_evaluation:main"
 
 [project.optional-dependencies]
 dev = [

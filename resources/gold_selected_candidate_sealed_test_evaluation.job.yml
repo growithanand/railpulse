@@ -1,0 +1,40 @@
+resources:
+  jobs:
+    gold_selected_candidate_sealed_test_evaluation:
+      name: railpulse-gold-selected-candidate-sealed-test-evaluation
+      description: >-
+        Refresh the managed modelling view, then run the one-time aggregate-only sealed-test
+        evaluation.
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+      tasks:
+        - task_key: refresh_modeling_view_v2
+          max_retries: 0
+          run_job_task:
+            job_id: ${resources.jobs.gold_modeling_view_v2_processing.id}
+        - task_key: evaluate_selected_candidate_sealed_test
+          depends_on:
+            - task_key: refresh_modeling_view_v2
+          run_if: ALL_SUCCESS
+          max_retries: 0
+          environment_key: default
+          python_wheel_task:
+            package_name: railpulse
+            entry_point: databricks_gold_selected_candidate_sealed_test_evaluation
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --bronze_schema
+              - ${var.bronze_schema}
+              - --silver_schema
+              - ${var.silver_schema}
+              - --gold_schema
+              - ${var.gold_schema}
+              - --allow_sealed_test_read
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

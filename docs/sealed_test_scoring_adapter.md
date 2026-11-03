@@ -53,5 +53,5 @@ invalid test features, and missing columns.
 The [sealed-test alert evaluation adapter](sealed_test_alert_evaluation_adapter.md) now strips targets
 from these in-memory scores, applies only the frozen p95 two-consecutive-cycle policy, and evaluates
 episodes against synthetic failure events only after construction. The next gate is a compact
-aggregate-only managed runner; real test access, workflow declaration, deployment, and compute
-remain separate approvals.
+aggregate-only managed runner. That runner is now implemented locally with an explicit access flag;
+real test access, workflow declaration, deployment, and compute remain separate approvals.

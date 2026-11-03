@@ -51,7 +51,8 @@ rejected by the held-out boundary while the original validation behavior remains
 
 ## Next gate
 
-Implement a compact, read-only managed runner that calls the frozen scoring and alert adapters but
-returns only the aggregate metrics approved by the sealed-test contract. Do not add a Databricks
-workflow or access real July data in that increment; declaration, deployment, and the single test
-read remain separate reviews.
+The [sealed-test managed runner](sealed_test_managed_runner.md) now calls the frozen scoring and alert
+adapters only after an explicit access flag and returns the contract's exact aggregate metric set.
+Wheel inspection now confirms the runner module and console entry point. The next increment is an
+unscheduled workflow declaration. Do not deploy or execute that declaration; deployment and the
+single test read remain separate reviews.

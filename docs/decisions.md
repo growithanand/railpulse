@@ -611,3 +611,32 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   warning plus fail-closed altered identity, changed counts, rejected events, and missing events. A
   pure boundary test confirms June evidence cannot enter held-out evaluation. Real July data remains
   unread.
+
+## ADR-043 — Require explicit access and serialize aggregate evidence only
+
+- **Status:** Accepted
+- **Decision:** Add a read-only managed runner that fails before table access unless the sealed-test
+  flag is present, then returns only the exact aggregate metric allowlist from the frozen adapters.
+- **Why:** The final execution needs a package entry point, but accidental invocation and detailed
+  output must fail closed before a workflow is declared or test data is read.
+- **Guardrail:** Resolve only the two existing allowlisted tables; add no writer, registry action,
+  MLflow run, retry loop, workflow, or deployment; exclude scores, episodes, coefficients, event IDs,
+  timestamps, and platform run metadata from serialized output.
+- **Evidence boundary:** Four fake-based tests prove zero reads without approval, exact read and
+  operation order with approval, metric allowlist mapping, compact output, and wrapped adapter
+  failures. A dependency-free wheel build and direct archive inspection confirm the runner module
+  and console entry point. No Databricks call or real test access occurs.
+
+## ADR-044 — Declare the final evaluation as an unscheduled zero-retry workflow
+
+- **Status:** Accepted
+- **Decision:** Declare a bundle-managed two-task workflow that refreshes the governed modelling
+  view first and invokes the aggregate sealed-test evaluator only after that dependency succeeds.
+- **Why:** Keeping the final read unscheduled and reviewable separates configuration from deployment
+  and execution while preserving the exact managed input path used during development.
+- **Guardrail:** Set zero retries on both tasks, one-run concurrency, queueing, no schedule, and no
+  trigger. Pass the explicit access flag only to the evaluator. Declaration does not authorize
+  deployment, compute, or a held-out read.
+- **Evidence boundary:** The resource uses the packaged wheel entry point and existing modelling-view
+  job reference. Local schema inspection verifies the supported positional-parameter and retry
+  fields. Strict authenticated bundle validation and plan review remain the next gate.
