@@ -64,6 +64,13 @@ after that dependency succeeds can the aggregate evaluator start. It has one-run
 queueing, zero retries on both tasks, no schedule, and no trigger. The access flag is supplied only
 to the evaluator task.
 
-The resource remains bundle-managed and has not been deployed. Its next gate is a strict bundle
-validation and resource-scoped deployment-plan review. Deployment and the single serverless test
-read remain separate explicit approvals.
+## Validation and plan evidence
+
+Authenticated strict bundle validation passes. The resource-scoped plan proposes one addition for
+this job, five upstream updates caused only by the newly built shared wheel, zero deletions, and nine
+unrelated resources left unselected. The five planned updates are the existing Bronze, Silver,
+loaded-cycle, feature-snapshot-v2, and modelling-view-v2 jobs in the dependency chain.
+
+The resource remains bundle-managed and has not been deployed. Its next gate is deploying only the
+reviewed selection without execution. The single serverless test read remains a separate explicit
+approval after remote configuration is verified.

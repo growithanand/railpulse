@@ -128,7 +128,7 @@ workflow is declared locally but has not been deployed or run.
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | Aggregate-only runner, wheel entry point, and unscheduled workflow verified locally | Review deployment plan without execution |
+| Modelling | Aggregate-only runner and unscheduled workflow pass strict validation and plan review | Deploy workflow without execution |
 | Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
@@ -385,8 +385,9 @@ and next modelling gate.
     implemented without reading July. The selected policy is now also constructed label-blind and
     evaluated against synthetic events. The compact runner and explicit access flag are implemented
     locally, wheel inspection confirms its module and console entry point, and an unscheduled,
-    zero-retry workflow is declared. Next, review the resource-scoped deployment plan without
-    executing the workflow.
+    zero-retry workflow is declared. Strict bundle validation and the resource-scoped plan pass with
+    one addition, five shared-wheel upstream updates, zero deletions, and nine unrelated resources
+    unselected. Next, deploy only the reviewed workflow without executing it.
 11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
 12. Add a short reproducible demo path and evidence-based résumé bullets.
 

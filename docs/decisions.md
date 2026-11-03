@@ -638,5 +638,6 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
   trigger. Pass the explicit access flag only to the evaluator. Declaration does not authorize
   deployment, compute, or a held-out read.
 - **Evidence boundary:** The resource uses the packaged wheel entry point and existing modelling-view
-  job reference. Local schema inspection verifies the supported positional-parameter and retry
-  fields. Strict authenticated bundle validation and plan review remain the next gate.
+  job reference. Strict authenticated bundle validation passes. The selected plan reports one job
+  addition, five shared-wheel-only dependency updates, zero deletions, and nine unrelated resources
+  unselected. Deployment and execution remain separate gates.
