@@ -49,10 +49,10 @@ counts, rejected test events, and absence of the required test event.
 The shared pure evaluator also has a separate sealed-period test proving that June evidence is
 rejected by the held-out boundary while the original validation behavior remains unchanged.
 
-## Next gate
+## Managed outcome
 
-The [sealed-test managed runner](sealed_test_managed_runner.md) now calls the frozen scoring and alert
+The [sealed-test managed runner](sealed_test_managed_runner.md) calls the frozen scoring and alert
 adapters only after an explicit access flag and returns the contract's exact aggregate metric set.
-Wheel inspection now confirms the runner module and console entry point. The next increment is an
-unscheduled workflow declaration. Do not deploy or execute that declaration; deployment and the
-single test read remain separate reviews.
+The later [single managed evaluation](managed_sealed_test_evaluation_result.md) completed without a
+retry, missed the accepted held-out event, and classified all 73 episodes as false alerts. That
+outcome is report-only and does not reopen policy selection.

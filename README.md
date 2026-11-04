@@ -13,9 +13,10 @@ The project asks a practical question:
 > intervention—ideally at least two hours before a recorded failure—without creating an
 > unacceptable false-alarm burden?
 
-The first managed development-only model comparison is complete, but no sealed-test or
-maintenance-impact claim is made yet. The emphasis remains reproducible evidence and a leakage-safe
-evaluation design.
+The final one-time held-out evaluation is complete. It honestly rejects the current
+motor-current-only candidate as an operational maintenance model: the workflow succeeded, but the
+frozen policy missed the single accepted test failure. The project emphasizes reproducible evidence
+and leakage-safe evaluation rather than turning a weak result into an inflated performance claim.
 
 ## Current status
 
@@ -73,7 +74,7 @@ fitting either candidate, and MLflow recorded one parent run plus two nested can
 same 6,325 training rows and 4,730 validation rows, the five-input motor-current candidate achieved
 validation AUPRC `0.011954`; adding three cycle-context inputs reduced it to `0.008632`. The simpler
 candidate is therefore the provisional development leader, but the validation set contains only
-five positive labels and the sealed July test period remains untouched.
+five positive labels. At that development checkpoint, the July test period remained untouched.
 
 A compact validation-score profiler is now implemented and tested. A read-only local full-source
 attempt stopped before fitting because its reconstructed train/validation populations differed from
@@ -115,10 +116,13 @@ fit, validation-derived threshold, selected policy, aggregate-only output, and n
 rules. A guarded Spark adapter now fits the frozen training population and scores only held-out rows
 in memory; its tests use synthetic data and prove validation-row isolation. A second adapter removes
 targets, constructs only the selected policy's episodes, and introduces synthetic failure evidence
-after construction. None of these layers authorizes execution or reads the real July data, which
-remains sealed. A compact runner now requires an explicit access flag, reads only the two allowlisted
-managed sources, and returns the contract's exact aggregate metric set. Its unscheduled, zero-retry
-workflow is declared locally but has not been deployed or run.
+after construction. These layers were completed before access to the real July data. A compact
+runner requires an explicit access flag, reads only the two allowlisted managed sources, and returns
+the contract's exact aggregate metric set. Its unscheduled, zero-retry workflow was deployed and
+executed once after separate approval. The run completed successfully over 4,217 test rows and 62
+operating days, but detected zero of one accepted failure event and classified all 73 alert episodes
+as false. Test AUPRC was `0.001671`. The result is frozen as report-only evidence; July will not be
+rerun or used for retuning.
 
 | Area | Verified state | Next boundary |
 | --- | --- | --- |
@@ -128,8 +132,8 @@ workflow is declared locally but has not been deployed or run.
 | Managed Bronze | First load and zero-insert rerun reconciled both source-aligned tables | Complete |
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
-| Modelling | Aggregate-only workflow deployed, UI-locked, unscheduled, and remotely verified with no runs | Execute once with explicit compute approval |
-| Decision support | Maintenance use case and KPI goals identified | Build KPI tables and SQL dashboard |
+| Modelling | One-time held-out run completed; 0/1 event detected and 73 false episodes | Complete—report honestly without retuning |
+| Decision support | Maintenance use case and KPI goals identified | Build result and KPI views plus SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
 [project plan](docs/project_plan.md) for the delivery sequence.
@@ -381,15 +385,11 @@ and next modelling gate.
    28 operating days, and one accepted June event. A versioned development-only contract selects
    p95 two-consecutive cycles as the lowest-burden full-detection policy. The sealed test period
    remains closed.
-10. **In progress:** the one-time sealed-test contract and synthetic Spark scoring adapter are
-    implemented without reading July. The selected policy is now also constructed label-blind and
-    evaluated against synthetic events. The compact runner and explicit access flag are implemented
-    locally, wheel inspection confirms its module and console entry point, and an unscheduled,
-    zero-retry workflow is declared. Strict bundle validation and the resource-scoped plan pass with
-    one addition, five shared-wheel upstream updates, zero deletions, and nine unrelated resources
-    unselected. The selected deployment then created the UI-locked workflow without starting it;
-    remote inspection confirms the reviewed two-task graph, no schedule or trigger, and empty run
-    history. Next, approve and execute the single aggregate-only held-out evaluation.
+10. **Completed:** the one-time sealed-test contract, guarded adapters, compact runner, and
+    unscheduled zero-retry workflow were reviewed before access. The workflow then ran exactly once.
+    It reconciled 4,217 test rows across 62 operating days, missed the one accepted test failure,
+    produced 73 false alert episodes, and recorded test AUPRC `0.001671`. The result is report-only;
+    no retuning or rerun is permitted.
 11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
 12. Add a short reproducible demo path and evidence-based résumé bullets.
 
@@ -508,5 +508,6 @@ rather than precise estimates of generalization or maintenance impact.
 - [Sealed-test scoring adapter](docs/sealed_test_scoring_adapter.md)
 - [Sealed-test alert evaluation adapter](docs/sealed_test_alert_evaluation_adapter.md)
 - [Sealed-test managed runner](docs/sealed_test_managed_runner.md)
+- [Managed sealed-test evaluation result](docs/managed_sealed_test_evaluation_result.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)
 - [Directional baseline evidence](docs/directional_baseline_profile.md)

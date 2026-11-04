@@ -6,18 +6,17 @@
 the frozen final evaluation. It connects the managed modelling view and accepted-failure table to
 the guarded scoring and selected-policy adapters, then returns only approved aggregate evidence.
 
-The runner is implemented and packaged locally. An unscheduled Databricks workflow is declared with
-zero retries on both tasks, but it has not been deployed or run. No real test row has been read by
-this checkpoint.
+The runner is implemented, packaged, deployed through an unscheduled Databricks workflow, and has
+completed its single approved execution. Both tasks were declared with zero retries.
 
 ## Explicit access gate
 
 The runner requires `--allow_sealed_test_read`. Without that flag it fails before resolving or
 reading either managed table. This makes an accidental invocation fail closed.
 
-The flag is an execution gate, not proof that a test read has never occurred. The future workflow
-review must still confirm empty run history, no schedule or trigger, zero automatic retries, and a
-separate human approval before the single managed execution.
+The flag was an execution gate, not proof by itself that the test had remained unread. Before the
+single managed execution, remote review confirmed empty run history, no schedule or trigger, zero
+automatic retries, and separate human approval.
 
 ## Read and evaluation order
 
@@ -79,5 +78,17 @@ has no trigger, queues requests, permits one concurrent run, and contains exactl
 tasks. The evaluator alone receives the explicit access flag. Its run history is empty.
 
 The bundle declaration fixes both tasks at zero retries; Databricks omits these default-valued fields
-from the returned job JSON. No compute started and no real test row was read. The next gate is a
-separate explicit approval for the single serverless execution.
+from the returned job JSON.
+
+## Managed result
+
+After explicit approval for held-out access and serverless charges, the workflow ran exactly once.
+Both tasks succeeded on attempt zero. The aggregate output reconciled 4,217 test rows, 13 positives,
+4,204 negatives, 62 operating days, and one accepted failure event. The selected policy detected no
+event, missed the accepted failure, and classified all 73 alert episodes as false alerts. Test AUPRC
+was `0.0016708466`.
+
+The result is frozen and report-only. The workflow will not be rerun, and its outcome will not be
+used to retune the model or alert policy. See the
+[managed sealed-test evaluation result](managed_sealed_test_evaluation_result.md) for the complete
+aggregate evidence and interpretation.

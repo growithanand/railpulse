@@ -655,3 +655,18 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Evidence boundary:** The selected deployment created the job and applied only the five planned
   shared-wheel dependency updates. Remote inspection confirms the reviewed two-task graph and empty
   run history. No compute or sealed-test access occurred.
+
+## ADR-046 — Accept the held-out result without retuning or rerunning
+
+- **Status:** Accepted
+- **Decision:** Treat the single approved held-out result as final report-only evidence, including
+  its missed event and false-alert burden. Do not change the model or policy from July feedback.
+- **Why:** The purpose of a sealed test is to measure generalization after development decisions are
+  frozen. Tuning or rerunning after an unfavorable result would convert the test period into another
+  validation set and invalidate the claim.
+- **Guardrail:** Permit exactly one job run, require both tasks to finish on attempt zero, persist no
+  row-level scores or episodes, and record only the approved aggregate metrics. Any future model must
+  use a new versioned experiment and a newly defined future evaluation boundary.
+- **Evidence boundary:** The one-time run completed successfully over 4,217 held-out rows and 62
+  operating days. It detected zero of one accepted event, produced 73 false episodes, and measured
+  test AUPRC `0.0016708466`. Job history confirms exactly one run and no retry attempt.

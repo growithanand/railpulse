@@ -2,13 +2,19 @@
 
 ## Current phase
 
-**Sealed-test preparation — aggregate-only runner and wheel verified, no real test read**
+**Sealed-test evaluation complete — managed pipeline succeeded, frozen model missed held-out event**
+
+The single approved held-out workflow run completed successfully on 2026-11-04. Both tasks finished
+on attempt zero, and job history confirms exactly one run. The aggregate result reconciled 4,217
+test rows and 62 operating days. It detected zero of one accepted failure event, classified all 73
+alert episodes as false, and measured test AUPRC `0.0016708466`. This result is final and report-only;
+July will not be rerun or used for retuning.
 
 The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
 separately approved managed run refreshed the governed modelling view, fitted both fixed
 development-only candidates, and recorded one parent plus two nested candidate runs. The original
-five-input motor-current candidate leads the eight-input cycle-context extension on validation
-AUPRC, but the test period remains sealed and only five validation positives were available.
+five-input motor-current candidate led the eight-input cycle-context extension on validation AUPRC,
+but only five validation positives were available. The test period was still sealed at that stage.
 
 A pure-Python selection contract now retains `motor-current-only` for development-only alert-policy
 work. It freezes both managed-run metrics and population counts, requires the complete reviewed
@@ -30,10 +36,10 @@ and the single accepted June event. Four policies detected the event; p99 single
 A versioned development-only selection contract now requires full event detection and then the
 lowest false-alert burden. It freezes p95 two-consecutive cycles for the next evaluation stage.
 
-A one-time sealed-test contract now freezes the selected split, training-only model fit,
+A one-time sealed-test contract froze the selected split, training-only model fit,
 validation-derived threshold, selected alert policy, aggregate metrics, report-only result use, and
-no-automatic-retry rule. The contract explicitly does not authorize execution and contains no test
-result or run identity. July remains unread by this increment.
+no-automatic-retry rule before execution. The contract itself contained no test result or run
+identity and did not authorize access.
 
 A guarded Spark adapter now enforces the exact frozen 6,325-row training population, ignores the
 validation period, and scores held-out rows in memory using the selected five-feature model. Three
@@ -56,8 +62,9 @@ aggregate evaluator, with zero retries on both tasks, one-run concurrency, queue
 Strict authenticated bundle validation passes. Its resource-scoped plan proposes one new job, five
 shared-wheel-only upstream updates, zero deletions, and nine unrelated resources left unselected.
 The selected deployment created the UI-locked, unscheduled job and applied the five planned updates.
-Remote inspection confirms the reviewed two-task graph, one-run concurrency, queueing, no trigger,
-and empty run history. No Databricks run, compute use, or real test read exists.
+Remote inspection confirmed the reviewed two-task graph, one-run concurrency, queueing, no trigger,
+and empty run history before approval. The later single execution completed both tasks on attempt
+zero and returned only the frozen aggregate metric set.
 
 A read-only managed runner now resolves the allowlisted Gold modelling view and Silver accepted-
 failure table, rebuilds the guarded validation path, and emits compact profile plus policy evidence.
@@ -972,18 +979,18 @@ interval checks. The validation warehouse was stopped immediately after the read
 
 ## Not implemented
 
-- Additional sensor features and later Gold transformations. The unchanged failure-horizon rerun
-  also remains pending.
-- Sealed-test evaluation, dashboard, streaming, and policy simulation.
+- Additional sensor features and later Gold transformations.
+- Dashboard, streaming, and policy simulation.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and the current Gold-table workflows now exist and have verified managed runs. The latest
   modelling-view write has also passed its independent SQL audit; later Gold products remain
   pending.
 
 Validation AUPRC has been measured for the two fixed candidates. The first managed policy comparison
-has measured June event detection, warning lead, and false-alert burden for all five candidates, but
-only one accepted validation failure was available. No sealed-test performance, generalized event
-performance, maintenance-impact, or cost result has been measured.
+measured June event detection, warning lead, and false-alert burden for all five candidates, but only
+one accepted validation failure was available. The single held-out evaluation is now complete: the
+selected model missed the one accepted test failure and produced 73 false episodes. No generalized
+event-performance, maintenance-impact, or cost claim is supported.
 
 ## Known constraints and next phase
 
@@ -1009,19 +1016,15 @@ first managed run. The run evaluated 4,730 validation cycles, 28 operating days,
 June failure event. Four candidates detected it. Among those, p95 two-consecutive-cycle produced the
 lowest false-alert burden at 33 false episodes, or 1.18 per day, but its warning lead was only 27
 minutes 41 seconds. The versioned development-only selection now freezes that policy using the rule
-"full event detection, then lowest false-alert burden." The one-time sealed-test contract now freezes
-the final evaluation identities, partition roles, aggregate-only output, and rerun guardrails without
-reading July or authorizing execution. The Spark scoring adapter now verifies the frozen training fit
-and held-out scoring path using synthetic rows only. A second adapter now strips labels, constructs
-only the selected policy, and evaluates synthetic held-out failure evidence after construction. The
-compact read-only runner now returns only approved aggregate metrics and fails before table access
-without its explicit flag. The wheel and console entry point are verified. An unscheduled workflow
-now declares the governed modelling-view refresh followed by the evaluator, with zero retries and no
-trigger. Strict authenticated bundle validation and the resource-scoped plan now pass. The plan
-contains one addition, five shared-wheel-only upstream updates, zero deletions, and nine unrelated
-resources left unselected. The selected deployment then created the UI-locked workflow and applied
-only the planned updates. Remote inspection confirms the two-task graph, no schedule or trigger, and
-empty run history. The next boundary is the separately approved single serverless execution and
-aggregate-result capture. The unchanged failure-horizon rerun also remains useful but requires
-compute approval. Do not commit credentials, local paths, deployment state, account identifiers, or
-ignored source data.
+"full event detection, then lowest false-alert burden." The one-time sealed-test contract froze the
+final evaluation identities, partition roles, aggregate-only output, and rerun guardrails before
+July access. The Spark scoring and alert-evaluation adapters were first verified using synthetic
+held-out rows. The compact runner fails before table access without its explicit flag and returns
+only approved aggregate metrics. Strict validation, zero-deletion plan review, selected deployment,
+and remote configuration checks all passed before execution. The later separately approved run
+completed both tasks on attempt zero and reconciled 4,217 test rows, 13 positives, 4,204 negatives,
+62 operating days, and one accepted failure event. It detected no event, missed the accepted failure,
+classified all 73 episodes as false alerts, and measured test AUPRC `0.0016708466`. Job history
+confirms exactly one run. This result will not be used for retuning or rerunning July. The next
+milestone is honest dashboard presentation and final demonstration material. Do not commit
+credentials, local paths, deployment state, account identifiers, or ignored source data.

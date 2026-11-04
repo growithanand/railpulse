@@ -45,13 +45,14 @@ Row-level probabilities, episode lists, feature values, identifiers, workspace m
 identifiers are not approved outputs. No result table, model registration, or policy update is part
 of this contract.
 
-## Next gate
+## Managed outcome
 
 The [sealed-test scoring adapter](sealed_test_scoring_adapter.md) now proves the frozen identities,
 train-only fit, held-out-only scoring, and in-memory score reconciliation with synthetic fixtures.
 The [sealed-test alert evaluation adapter](sealed_test_alert_evaluation_adapter.md) now strips labels,
 applies only the frozen alert policy, and introduces synthetic failure events after construction.
-The [sealed-test managed runner](sealed_test_managed_runner.md) now requires explicit access approval
-and returns only the exact aggregate allowlist. Its wheel module and console entry point are now
-verified. The next increment is an unscheduled workflow declaration. Declaration, deployment, and
-the single managed test read remain separately reviewed boundaries.
+The [sealed-test managed runner](sealed_test_managed_runner.md) requires explicit access approval
+and returns only the exact aggregate allowlist. Its declaration, deployment, and execution were
+reviewed separately. The [single managed result](managed_sealed_test_evaluation_result.md) missed the
+accepted held-out event and is frozen as report-only evidence; the contract prohibits retuning or a
+second July run.

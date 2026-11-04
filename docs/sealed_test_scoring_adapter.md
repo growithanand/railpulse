@@ -48,10 +48,10 @@ path, isolation from invalid validation rows, fixed metadata, bounded probabilit
 reconciliation, and fail-closed handling of altered training counts, duplicate cross-partition keys,
 invalid test features, and missing columns.
 
-## Next gate
+## Managed outcome
 
-The [sealed-test alert evaluation adapter](sealed_test_alert_evaluation_adapter.md) now strips targets
+The [sealed-test alert evaluation adapter](sealed_test_alert_evaluation_adapter.md) strips targets
 from these in-memory scores, applies only the frozen p95 two-consecutive-cycle policy, and evaluates
-episodes against synthetic failure events only after construction. The next gate is a compact
-aggregate-only managed runner. That runner is now implemented locally with an explicit access flag;
-real test access, workflow declaration, deployment, and compute remain separate approvals.
+episodes against failure events only after construction. The guarded runner and workflow later
+completed their [single managed evaluation](managed_sealed_test_evaluation_result.md). The held-out
+result is final and will not be used to modify this adapter or refit against July feedback.
