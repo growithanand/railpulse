@@ -10,6 +10,11 @@ test rows and 62 operating days. It detected zero of one accepted failure event,
 alert episodes as false, and measured test AUPRC `0.0016708466`. This result is final and report-only;
 July will not be rerun or used for retuning.
 
+A read-only six-query dashboard pack and presentation contract are now implemented locally. They
+expose the frozen result, validation/test comparison, managed product counts, Silver quality, daily
+cycle operations, and monthly accepted-failure summaries without row-level scores or a new test
+evaluation. Databricks SQL validation and dashboard creation remain separate steps.
+
 The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
 separately approved managed run refreshed the governed modelling view, fitted both fixed
 development-only candidates, and recorded one parent plus two nested candidate runs. The original
@@ -1026,5 +1031,6 @@ completed both tasks on attempt zero and reconciled 4,217 test rows, 13 positive
 62 operating days, and one accepted failure event. It detected no event, missed the accepted failure,
 classified all 73 episodes as false alerts, and measured test AUPRC `0.0016708466`. Job history
 confirms exactly one run. This result will not be used for retuning or rerunning July. The next
-milestone is honest dashboard presentation and final demonstration material. Do not commit
-credentials, local paths, deployment state, account identifiers, or ignored source data.
+milestone is validating the read-only dashboard datasets, building the Databricks SQL presentation,
+and preparing final demonstration material. Do not commit credentials, local paths, deployment
+state, account identifiers, or ignored source data.

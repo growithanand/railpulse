@@ -133,7 +133,7 @@ rerun or used for retuning.
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
 | Modelling | One-time held-out run completed; 0/1 event detected and 73 false episodes | Complete—report honestly without retuning |
-| Decision support | Maintenance use case and KPI goals identified | Build result and KPI views plus SQL dashboard |
+| Decision support | Read-only KPI query pack and dashboard contract implemented locally | Validate datasets and build SQL dashboard |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
 [project plan](docs/project_plan.md) for the delivery sequence.
@@ -390,7 +390,8 @@ and next modelling gate.
     It reconciled 4,217 test rows across 62 operating days, missed the one accepted test failure,
     produced 73 false alert episodes, and recorded test AUPRC `0.001671`. The result is report-only;
     no retuning or rerun is permitted.
-11. Publish dashboard-ready reliability KPIs and a Databricks SQL dashboard for maintenance users.
+11. **In progress:** the read-only dashboard KPI query pack and presentation contract are implemented
+    locally. Next, validate the six datasets in Databricks SQL and build the maintenance dashboard.
 12. Add a short reproducible demo path and evidence-based résumé bullets.
 
 ## Technology
@@ -509,5 +510,6 @@ rather than precise estimates of generalization or maintenance impact.
 - [Sealed-test alert evaluation adapter](docs/sealed_test_alert_evaluation_adapter.md)
 - [Sealed-test managed runner](docs/sealed_test_managed_runner.md)
 - [Managed sealed-test evaluation result](docs/managed_sealed_test_evaluation_result.md)
+- [Maintenance dashboard contract](docs/maintenance_dashboard_contract.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)
 - [Directional baseline evidence](docs/directional_baseline_profile.md)

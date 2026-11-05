@@ -670,3 +670,18 @@ This log records durable choices. Statuses are **accepted**, **provisional**, or
 - **Evidence boundary:** The one-time run completed successfully over 4,217 held-out rows and 62
   operating days. It detected zero of one accepted event, produced 73 false episodes, and measured
   test AUPRC `0.0016708466`. Job history confirms exactly one run and no retry attempt.
+
+## ADR-047 — Build the dashboard from aggregate evidence and operational summaries
+
+- **Status:** Accepted
+- **Decision:** Define six read-only Databricks SQL datasets for the frozen model outcome,
+  validation/test comparison, governed product counts, Silver quality, daily cycle operations, and
+  monthly accepted-failure summaries.
+- **Why:** A useful portfolio dashboard should demonstrate the end-to-end platform and expose the
+  failed generalization result without persisting predictions or turning July into a live query.
+- **Guardrail:** Hard-code only the reviewed aggregate model evidence; read live tables only for
+  counts, quality summaries, cycle operations, and aggregated failure history. Expose no row-level
+  scores, labels, episodes, record IDs, or free-text reports, and label the model not production-ready.
+- **Evidence boundary:** The version-controlled query pack contains no DDL or write statement and
+  does not create a warehouse, view, table, dashboard, or compute run. Remote query validation and
+  dashboard construction remain separate checkpoints.
