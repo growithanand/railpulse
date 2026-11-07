@@ -2,7 +2,7 @@
 
 ## Current phase
 
-**Sealed-test evaluation complete — managed pipeline succeeded, frozen model missed held-out event**
+**Dashboard draft complete — governed pipeline evidence presented with an honest model rejection**
 
 The single approved held-out workflow run completed successfully on 2026-11-04. Both tasks finished
 on attempt zero, and job history confirms exactly one run. The aggregate result reconciled 4,217
@@ -10,10 +10,13 @@ test rows and 62 operating days. It detected zero of one accepted failure event,
 alert episodes as false, and measured test AUPRC `0.0016708466`. This result is final and report-only;
 July will not be rerun or used for retuning.
 
-A read-only six-query dashboard pack and presentation contract are now implemented locally. They
-expose the frozen result, validation/test comparison, managed product counts, Silver quality, daily
-cycle operations, and monthly accepted-failure summaries without row-level scores or a new test
-evaluation. Databricks SQL validation and dashboard creation remain separate steps.
+A read-only six-query dashboard pack and presentation contract are implemented. All six statements
+completed successfully on the Serverless Starter Warehouse, returning the frozen result,
+validation/test comparison, managed product counts, Silver quality, 210 daily-cycle rows, and four
+monthly accepted-failure rows. The warehouse was stopped immediately afterward. A source-controlled
+Databricks AI/BI definition was then created as one active, unpublished draft with six datasets,
+one page, thirteen widgets, no schedule, and no published version. It exposes no row-level scores
+and does not rerun the sealed evaluation.
 
 The unscheduled comparison workflow and bundle-managed MLflow experiment are deployed. Their first
 separately approved managed run refreshed the governed modelling view, fitted both fixed
@@ -985,7 +988,8 @@ interval checks. The validation warehouse was stopped immediately after the read
 ## Not implemented
 
 - Additional sensor features and later Gold transformations.
-- Dashboard, streaming, and policy simulation.
+- Published dashboard, streaming, and policy simulation. The AI/BI dashboard currently remains an
+  unpublished, unscheduled draft.
 - CI workflow and production Databricks table-processing resources. Development managed Bronze,
   Silver, and the current Gold-table workflows now exist and have verified managed runs. The latest
   modelling-view write has also passed its independent SQL audit; later Gold products remain
@@ -1030,7 +1034,8 @@ and remote configuration checks all passed before execution. The later separatel
 completed both tasks on attempt zero and reconciled 4,217 test rows, 13 positives, 4,204 negatives,
 62 operating days, and one accepted failure event. It detected no event, missed the accepted failure,
 classified all 73 episodes as false alerts, and measured test AUPRC `0.0016708466`. Job history
-confirms exactly one run. This result will not be used for retuning or rerunning July. The next
-milestone is validating the read-only dashboard datasets, building the Databricks SQL presentation,
-and preparing final demonstration material. Do not commit credentials, local paths, deployment
-state, account identifiers, or ignored source data.
+confirms exactly one run. This result will not be used for retuning or rerunning July. The six
+read-only dashboard datasets have now passed remote SQL validation and the Databricks AI/BI draft
+has been created without publishing or scheduling it. The next milestone is visual review of the
+draft and preparation of final demonstration material. Do not commit credentials, local paths,
+deployment identifiers, account identifiers, or ignored source data.

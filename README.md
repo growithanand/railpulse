@@ -133,7 +133,7 @@ rerun or used for retuning.
 | Managed Silver | First managed run and independent table, quality, and identifier checks passed | Complete |
 | Managed Gold | Modelling-view first write, independent audit, and zero-insert rerun passed | Complete |
 | Modelling | One-time held-out run completed; 0/1 event detected and 73 false episodes | Complete—report honestly without retuning |
-| Decision support | Read-only KPI query pack and dashboard contract implemented locally | Validate datasets and build SQL dashboard |
+| Decision support | Six queries validated; source-controlled AI/BI draft created with no schedule or publication | Visually review and prepare final demo material |
 
 See [project status](docs/project_status.md) for the detailed implementation record and
 [project plan](docs/project_plan.md) for the delivery sequence.
@@ -390,9 +390,12 @@ and next modelling gate.
     It reconciled 4,217 test rows across 62 operating days, missed the one accepted test failure,
     produced 73 false alert episodes, and recorded test AUPRC `0.001671`. The result is report-only;
     no retuning or rerun is permitted.
-11. **In progress:** the read-only dashboard KPI query pack and presentation contract are implemented
-    locally. Next, validate the six datasets in Databricks SQL and build the maintenance dashboard.
-12. Add a short reproducible demo path and evidence-based résumé bullets.
+11. **Completed:** all six read-only dashboard datasets succeeded in Databricks SQL, and the
+    source-controlled AI/BI definition was created as an unpublished, unscheduled draft. It leads
+    with the `NOT_PRODUCTION_READY` result and keeps data-platform evidence separate from model
+    performance.
+12. **Next:** visually review the draft, then add a short reproducible demo path and evidence-based
+    résumé bullets. Publication remains a separate explicit decision.
 
 ## Technology
 

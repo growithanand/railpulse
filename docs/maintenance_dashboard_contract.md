@@ -8,8 +8,21 @@ motor-current model without implying that maintenance teams should act on its al
 
 The read-only datasets are defined in
 [`sql/maintenance_dashboard_queries.sql`](../sql/maintenance_dashboard_queries.sql). Each numbered
-statement is an independent Databricks SQL dataset. This checkpoint defines and reviews the queries
-only; it does not create a dashboard, SQL warehouse, table, or view.
+statement is an independent Databricks SQL dataset. The source-controlled AI/BI definition is
+[`dashboards/railpulse_maintenance_dashboard.lvdash.json`](../dashboards/railpulse_maintenance_dashboard.lvdash.json).
+It creates no table or view.
+
+## Databricks validation and draft state
+
+On 2026-11-05, all six statements completed successfully on the Serverless Starter Warehouse. They
+returned, in order, one frozen-evidence row, two comparison rows, eight managed-product counts, one
+Silver quality row, 210 daily-cycle rows, and four monthly-failure rows. The warehouse was stopped
+immediately after this bounded validation.
+
+The validated definition was then created as one active, unpublished Databricks AI/BI draft. Remote
+readback confirmed six datasets, one canvas page, thirteen widgets, no schedule, and no published
+version. Draft creation did not rerun the datasets or restart the stopped warehouse. Publication,
+sharing, and any scheduled refresh remain separate review points.
 
 ## Required dashboard sections
 
@@ -59,6 +72,7 @@ counts and total failure duration without record IDs, free-text reports, or mode
 
 ## Acceptance criteria
 
-The dashboard is ready for demonstration only when every query returns the expected schema, the
-frozen metrics reconcile with the managed result document, all live counts reconcile with the
+The unpublished draft satisfies the data and narrative checks: every query returned its expected
+schema, the frozen metrics reconcile with the managed result document, the live aggregates read the
 governed tables, and the visible narrative states that the current model is not production-ready.
+Publishing is intentionally not part of this acceptance checkpoint.

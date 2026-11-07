@@ -1,0 +1,374 @@
+{
+  "datasets": [
+    {
+      "name": "ds_final_evaluation",
+      "displayName": "Final held-out evaluation",
+      "queryLines": [
+        "SELECT 'railpulse-final-evaluation-v1' AS evidence_version, DATE '2026-11-04' AS evaluation_date, 'NOT_PRODUCTION_READY' AS readiness_status, 'motor-current-only' AS model_candidate_id, 'p95-two-consecutive-cycles' AS alert_policy_candidate_id, 4217 AS test_row_count, 13 AS test_positive_count, 4204 AS test_negative_count, CAST(0.0016708466249376135 AS DOUBLE) AS test_auprc, 62 AS operating_day_count, 1 AS accepted_failure_event_count, 0 AS detected_failure_event_count, 1 AS missed_failure_event_count, CAST(0.0 AS DOUBLE) AS event_detection_rate, 73 AS false_alert_episode_count, CAST(1.1774193548387097 AS DOUBLE) AS false_alerts_per_operating_day, 'Report only: do not retune or rerun July' AS result_use"
+      ]
+    },
+    {
+      "name": "ds_evaluation_comparison",
+      "displayName": "Validation versus held-out test",
+      "queryLines": [
+        "SELECT evaluation_order, evaluation_partition, row_count, positive_count, negative_count, auprc, operating_day_count, accepted_failure_event_count, detected_failure_event_count, missed_failure_event_count, event_detection_rate, warning_lead_time_seconds, false_alert_episode_count, false_alerts_per_operating_day FROM VALUES (1, 'validation', 4730, 5, 4725, CAST(0.011954 AS DOUBLE), 28, 1, 1, 0, CAST(1.0 AS DOUBLE), 1661, 33, CAST(1.1785714285714286 AS DOUBLE)), (2, 'test', 4217, 13, 4204, CAST(0.0016708466249376135 AS DOUBLE), 62, 1, 0, 1, CAST(0.0 AS DOUBLE), NULL, 73, CAST(1.1774193548387097 AS DOUBLE)) AS evidence(evaluation_order, evaluation_partition, row_count, positive_count, negative_count, auprc, operating_day_count, accepted_failure_event_count, detected_failure_event_count, missed_failure_event_count, event_detection_rate, warning_lead_time_seconds, false_alert_episode_count, false_alerts_per_operating_day) ORDER BY evaluation_order"
+      ]
+    },
+    {
+      "name": "ds_product_counts",
+      "displayName": "Managed data-product row counts",
+      "queryLines": [
+        "WITH product_counts AS (SELECT 1 AS display_order, 'Silver' AS layer, 'Accepted telemetry' AS data_product, COUNT(*) AS row_count FROM workspace.railpulse_silver.telemetry_accepted UNION ALL SELECT 2, 'Silver', 'Quarantined telemetry', COUNT(*) FROM workspace.railpulse_silver.telemetry_quarantine UNION ALL SELECT 3, 'Silver', 'Accepted failure events', COUNT(*) FROM workspace.railpulse_silver.failure_events_accepted UNION ALL SELECT 4, 'Silver', 'Quarantined failure events', COUNT(*) FROM workspace.railpulse_silver.failure_events_quarantine UNION ALL SELECT 5, 'Gold', 'Loaded cycles', COUNT(*) FROM workspace.railpulse_gold.loaded_cycles UNION ALL SELECT 6, 'Gold', 'Feature snapshots v2', COUNT(*) FROM workspace.railpulse_gold.feature_snapshots_v2 UNION ALL SELECT 7, 'Gold', 'Failure horizons', COUNT(*) FROM workspace.railpulse_gold.failure_horizons UNION ALL SELECT 8, 'Gold', 'Modelling view v2', COUNT(*) FROM workspace.railpulse_gold.modeling_view_v2) SELECT layer, data_product, row_count FROM product_counts ORDER BY display_order"
+      ]
+    },
+    {
+      "name": "ds_telemetry_quality",
+      "displayName": "Silver telemetry quality",
+      "queryLines": [
+        "SELECT validation_version, total_record_count, accepted_record_count, quarantined_record_count, forward_gap_count, rejection_reason_counts FROM workspace.railpulse_silver.telemetry_quality_metrics"
+      ]
+    },
+    {
+      "name": "ds_daily_cycles",
+      "displayName": "Daily compressor-cycle activity",
+      "queryLines": [
+        "SELECT CAST(loaded_cycle_start_timestamp AS DATE) AS operating_date, COUNT(*) AS loaded_cycle_count, SUM(loaded_observation_count) AS loaded_observation_count, COUNT_IF(is_right_censored) AS right_censored_cycle_count, AVG(observed_duration_seconds) AS mean_observed_duration_seconds, PERCENTILE_APPROX(observed_duration_seconds, 0.5, 10000) AS median_observed_duration_seconds, PERCENTILE_APPROX(observed_duration_seconds, 0.95, 10000) AS p95_observed_duration_seconds FROM workspace.railpulse_gold.loaded_cycles GROUP BY CAST(loaded_cycle_start_timestamp AS DATE) ORDER BY operating_date"
+      ]
+    },
+    {
+      "name": "ds_monthly_failures",
+      "displayName": "Monthly accepted-failure summary",
+      "queryLines": [
+        "SELECT CAST(DATE_TRUNC('MONTH', failure_start) AS DATE) AS failure_month, COUNT(*) AS accepted_failure_event_count, SUM(TIMESTAMPDIFF(MINUTE, failure_start, failure_end)) AS failure_duration_minutes FROM workspace.railpulse_silver.failure_events_accepted GROUP BY CAST(DATE_TRUNC('MONTH', failure_start) AS DATE) ORDER BY failure_month"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "executive_overview",
+      "displayName": "Maintenance decision support",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "decision-banner",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# RailPulse Maintenance Decision Support",
+                "**Final decision: NOT PRODUCTION READY.** The governed data platform is working, but the selected motor-current model detected **0 of 1** held-out failures. This dashboard is portfolio and decision-support evidence only; it is not a live maintenance alerting system."
+              ]
+            }
+          },
+          "position": {"x": 0, "y": 0, "width": 12, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi-detected-failures",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_final_evaluation",
+                  "fields": [
+                    {"name": "detected_failure_event_count", "expression": "`detected_failure_event_count`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {"fieldName": "detected_failure_event_count", "displayName": "Detected failures"}
+              },
+              "frame": {"showTitle": true, "title": "Held-out failures detected"}
+            }
+          },
+          "position": {"x": 0, "y": 3, "width": 3, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi-missed-failures",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_final_evaluation",
+                  "fields": [
+                    {"name": "missed_failure_event_count", "expression": "`missed_failure_event_count`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {"fieldName": "missed_failure_event_count", "displayName": "Missed failures"}
+              },
+              "frame": {"showTitle": true, "title": "Held-out failures missed"}
+            }
+          },
+          "position": {"x": 3, "y": 3, "width": 3, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi-false-alert-burden",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_final_evaluation",
+                  "fields": [
+                    {"name": "false_alerts_per_operating_day", "expression": "`false_alerts_per_operating_day`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {"fieldName": "false_alerts_per_operating_day", "displayName": "False alerts per day"}
+              },
+              "frame": {"showTitle": true, "title": "False alerts per operating day"}
+            }
+          },
+          "position": {"x": 6, "y": 3, "width": 3, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi-test-auprc",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_final_evaluation",
+                  "fields": [
+                    {"name": "test_auprc", "expression": "`test_auprc`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {"fieldName": "test_auprc", "displayName": "Test AUPRC"}
+              },
+              "frame": {"showTitle": true, "title": "Held-out test AUPRC"}
+            }
+          },
+          "position": {"x": 9, "y": 3, "width": 3, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "validation-test-comparison",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_evaluation_comparison",
+                  "fields": [
+                    {"name": "evaluation_partition", "expression": "`evaluation_partition`"},
+                    {"name": "row_count", "expression": "`row_count`"},
+                    {"name": "positive_count", "expression": "`positive_count`"},
+                    {"name": "auprc", "expression": "`auprc`"},
+                    {"name": "detected_failure_event_count", "expression": "`detected_failure_event_count`"},
+                    {"name": "missed_failure_event_count", "expression": "`missed_failure_event_count`"},
+                    {"name": "warning_lead_time_seconds", "expression": "`warning_lead_time_seconds`"},
+                    {"name": "false_alert_episode_count", "expression": "`false_alert_episode_count`"},
+                    {"name": "false_alerts_per_operating_day", "expression": "`false_alerts_per_operating_day`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {"fieldName": "evaluation_partition", "displayName": "Partition"},
+                  {"fieldName": "row_count", "displayName": "Rows"},
+                  {"fieldName": "positive_count", "displayName": "Positive rows"},
+                  {"fieldName": "auprc", "displayName": "AUPRC"},
+                  {"fieldName": "detected_failure_event_count", "displayName": "Failures detected"},
+                  {"fieldName": "missed_failure_event_count", "displayName": "Failures missed"},
+                  {"fieldName": "warning_lead_time_seconds", "displayName": "Warning lead (s)"},
+                  {"fieldName": "false_alert_episode_count", "displayName": "False episodes"},
+                  {"fieldName": "false_alerts_per_operating_day", "displayName": "False alerts/day"}
+                ]
+              },
+              "frame": {"showTitle": true, "title": "Validation versus held-out test"}
+            }
+          },
+          "position": {"x": 0, "y": 6, "width": 12, "height": 5}
+        },
+        {
+          "widget": {
+            "name": "platform-section",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Governed data-platform evidence",
+                "The Silver and Gold products reconcile the operational source data. This engineering success is deliberately separated from the weak predictive result above."
+              ]
+            }
+          },
+          "position": {"x": 0, "y": 11, "width": 12, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "managed-product-counts",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_product_counts",
+                  "fields": [
+                    {"name": "data_product", "expression": "`data_product`"},
+                    {"name": "row_count", "expression": "`row_count`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "data_product", "displayName": "Data product", "scale": {"type": "categorical"}},
+                "y": {"fieldName": "row_count", "displayName": "Rows", "scale": {"type": "quantitative"}},
+                "label": {"show": true}
+              },
+              "frame": {"showTitle": true, "title": "Managed Silver and Gold products"}
+            }
+          },
+          "position": {"x": 0, "y": 13, "width": 7, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "telemetry-quality-summary",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_telemetry_quality",
+                  "fields": [
+                    {"name": "validation_version", "expression": "`validation_version`"},
+                    {"name": "total_record_count", "expression": "`total_record_count`"},
+                    {"name": "accepted_record_count", "expression": "`accepted_record_count`"},
+                    {"name": "quarantined_record_count", "expression": "`quarantined_record_count`"},
+                    {"name": "forward_gap_count", "expression": "`forward_gap_count`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {"fieldName": "validation_version", "displayName": "Validation"},
+                  {"fieldName": "total_record_count", "displayName": "Total"},
+                  {"fieldName": "accepted_record_count", "displayName": "Accepted"},
+                  {"fieldName": "quarantined_record_count", "displayName": "Quarantined"},
+                  {"fieldName": "forward_gap_count", "displayName": "Forward gaps"}
+                ]
+              },
+              "frame": {"showTitle": true, "title": "Silver telemetry quality"}
+            }
+          },
+          "position": {"x": 7, "y": 13, "width": 5, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "operations-section",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Compressor operations",
+                "Aggregate operational context only—no row-level model scores, record identifiers, or maintenance recommendations."
+              ]
+            }
+          },
+          "position": {"x": 0, "y": 19, "width": 12, "height": 2}
+        },
+        {
+          "widget": {
+            "name": "daily-loaded-cycles",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_daily_cycles",
+                  "fields": [
+                    {"name": "operating_date", "expression": "`operating_date`"},
+                    {"name": "loaded_cycle_count", "expression": "`loaded_cycle_count`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {"fieldName": "operating_date", "displayName": "Operating date", "scale": {"type": "temporal"}},
+                "y": {"fieldName": "loaded_cycle_count", "displayName": "Loaded cycles", "scale": {"type": "quantitative"}}
+              },
+              "frame": {"showTitle": true, "title": "Daily loaded-cycle volume"}
+            }
+          },
+          "position": {"x": 0, "y": 21, "width": 8, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "monthly-accepted-failures",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_monthly_failures",
+                  "fields": [
+                    {"name": "failure_month", "expression": "`failure_month`"},
+                    {"name": "accepted_failure_event_count", "expression": "`accepted_failure_event_count`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "failure_month", "displayName": "Failure month", "scale": {"type": "temporal"}},
+                "y": {"fieldName": "accepted_failure_event_count", "displayName": "Accepted failures", "scale": {"type": "quantitative"}},
+                "label": {"show": true}
+              },
+              "frame": {"showTitle": true, "title": "Monthly accepted failures"}
+            }
+          },
+          "position": {"x": 8, "y": 21, "width": 4, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "report-only-footer",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### Interpretation guardrail",
+                "The one-time July test is sealed: **0/1 failures detected, 1/1 missed, 73 false alert episodes across 62 operating days**. Do not rerun, retune, or use this candidate for production maintenance decisions."
+              ]
+            }
+          },
+          "position": {"x": 0, "y": 27, "width": 12, "height": 3}
+        }
+      ]
+    }
+  ]
+}
