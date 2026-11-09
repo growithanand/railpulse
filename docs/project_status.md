@@ -1036,6 +1036,8 @@ completed both tasks on attempt zero and reconciled 4,217 test rows, 13 positive
 classified all 73 episodes as false alerts, and measured test AUPRC `0.0016708466`. Job history
 confirms exactly one run. This result will not be used for retuning or rerunning July. The six
 read-only dashboard datasets have now passed remote SQL validation and the Databricks AI/BI draft
-has been created without publishing or scheduling it. The next milestone is visual review of the
-draft and preparation of final demonstration material. Do not commit credentials, local paths,
-deployment identifiers, account identifiers, or ignored source data.
+has been created without publishing or scheduling it. A reproducible portfolio walkthrough now
+maps the verified evidence to a short live demonstration, interview answers, and evidence-based
+résumé bullets. The remaining milestone is visual review of the unpublished dashboard. Do not
+commit credentials, local paths, deployment identifiers, account identifiers, or ignored source
+data.

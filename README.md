@@ -394,8 +394,9 @@ and next modelling gate.
     source-controlled AI/BI definition was created as an unpublished, unscheduled draft. It leads
     with the `NOT_PRODUCTION_READY` result and keeps data-platform evidence separate from model
     performance.
-12. **Next:** visually review the draft, then add a short reproducible demo path and evidence-based
-    résumé bullets. Publication remains a separate explicit decision.
+12. **In progress:** the reproducible portfolio walkthrough and evidence-based résumé bullets are
+    documented. The remaining gate is a visual review of the unpublished dashboard. Publication
+    remains a separate explicit decision.
 
 ## Technology
 
@@ -514,5 +515,6 @@ rather than precise estimates of generalization or maintenance impact.
 - [Sealed-test managed runner](docs/sealed_test_managed_runner.md)
 - [Managed sealed-test evaluation result](docs/managed_sealed_test_evaluation_result.md)
 - [Maintenance dashboard contract](docs/maintenance_dashboard_contract.md)
+- [Portfolio demonstration guide](docs/portfolio_demo.md)
 - [Engineering baseline evidence](docs/engineering_baseline_profile.md)
 - [Directional baseline evidence](docs/directional_baseline_profile.md)
