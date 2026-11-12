@@ -4,7 +4,6 @@ import json
 import re
 from pathlib import Path
 
-
 DASHBOARD_PATH = (
     Path(__file__).resolve().parents[2]
     / "dashboards"
@@ -59,9 +58,7 @@ def test_dashboard_layout_references_known_datasets_and_fields() -> None:
                 for encoding in encodings.values()
                 if isinstance(encoding, dict) and "fieldName" in encoding
             }
-            encoded_names.update(
-                column["fieldName"] for column in encodings.get("columns", [])
-            )
+            encoded_names.update(column["fieldName"] for column in encodings.get("columns", []))
             assert encoded_names <= field_names
 
     assert len(widget_names) == len(pages[0]["layout"])
@@ -79,3 +76,25 @@ def test_dashboard_keeps_the_final_result_and_deployment_guardrails_visible() ->
     assert "dashboard_id" not in dashboard_text.lower()
     assert "schedule" not in dashboard_text.lower()
     assert "@" not in dashboard_text
+
+
+def test_dashboard_formats_the_small_test_metric_and_keeps_the_banner_compact() -> None:
+    dashboard = _dashboard()
+    layout = dashboard["pages"][0]["layout"]
+    widgets = {item["widget"]["name"]: item for item in layout}
+
+    banner = widgets["decision-banner"]
+    assert banner["position"] == {"x": 0, "y": 0, "width": 12, "height": 3}
+    assert banner["widget"]["multilineTextboxSpec"]["lines"] == [
+        "## RailPulse Maintenance Decision Support\n",
+        "\n",
+        "**NOT PRODUCTION READY:** the governed platform worked, but the held-out evaluation "
+        "detected **0 of 1** accepted failures. Portfolio evidence only—not a live maintenance "
+        "alert.",
+    ]
+
+    auprc_value = widgets["kpi-test-auprc"]["widget"]["spec"]["encodings"]["value"]
+    assert auprc_value["format"] == {
+        "type": "number-plain",
+        "decimalPlaces": {"type": "max", "places": 6},
+    }

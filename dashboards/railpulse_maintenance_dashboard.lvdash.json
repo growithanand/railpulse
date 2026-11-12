@@ -55,8 +55,9 @@
             "name": "decision-banner",
             "multilineTextboxSpec": {
               "lines": [
-                "# RailPulse Maintenance Decision Support",
-                "**Final decision: NOT PRODUCTION READY.** The governed data platform is working, but the selected motor-current model detected **0 of 1** held-out failures. This dashboard is portfolio and decision-support evidence only; it is not a live maintenance alerting system."
+                "## RailPulse Maintenance Decision Support\n",
+                "\n",
+                "**NOT PRODUCTION READY:** the governed platform worked, but the held-out evaluation detected **0 of 1** accepted failures. Portfolio evidence only—not a live maintenance alert."
               ]
             }
           },
@@ -159,7 +160,14 @@
               "version": 2,
               "widgetType": "counter",
               "encodings": {
-                "value": {"fieldName": "test_auprc", "displayName": "Test AUPRC"}
+                "value": {
+                  "fieldName": "test_auprc",
+                  "displayName": "Test AUPRC",
+                  "format": {
+                    "type": "number-plain",
+                    "decimalPlaces": {"type": "max", "places": 6}
+                  }
+                }
               },
               "frame": {"showTitle": true, "title": "Held-out test AUPRC"}
             }

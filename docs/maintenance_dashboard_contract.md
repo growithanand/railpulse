@@ -24,6 +24,15 @@ readback confirmed six datasets, one canvas page, thirteen widgets, no schedule,
 version. Draft creation did not rerun the datasets or restart the stopped warehouse. Publication,
 sharing, and any scheduled refresh remain separate review points.
 
+The first live render exposed two presentation issues without changing the evidence: the decision
+banner fragments lacked explicit Markdown line breaks, and the small test AUPRC rounded to `0` in
+its counter. On 2026-11-12, the source-controlled definition and existing draft were updated in
+place. The banner now uses a compact level-two heading with explicit line breaks, and the AUPRC
+counter uses a plain-number format with up to six decimal places. API readback confirmed both
+settings while the draft remained unpublished and unscheduled and the SQL warehouse remained
+stopped. Final visual acceptance remains a manual review because the Databricks console reports that
+it does not support automated browser control.
+
 ## Required dashboard sections
 
 ### 1. Executive outcome
