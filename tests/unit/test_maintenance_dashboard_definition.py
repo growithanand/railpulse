@@ -98,3 +98,20 @@ def test_dashboard_formats_the_small_test_metric_and_keeps_the_banner_compact() 
         "type": "number-plain",
         "decimalPlaces": {"type": "max", "places": 6},
     }
+
+
+def test_dashboard_text_widgets_separate_headings_from_body_copy() -> None:
+    dashboard = _dashboard()
+    layout = dashboard["pages"][0]["layout"]
+    widgets = {item["widget"]["name"]: item["widget"] for item in layout}
+
+    for widget_name in (
+        "decision-banner",
+        "platform-section",
+        "operations-section",
+        "report-only-footer",
+    ):
+        lines = widgets[widget_name]["multilineTextboxSpec"]["lines"]
+        assert lines[0].endswith("\n")
+        assert lines[1] == "\n"
+        assert "\n\n" in "".join(lines)

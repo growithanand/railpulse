@@ -223,7 +223,8 @@
             "name": "platform-section",
             "multilineTextboxSpec": {
               "lines": [
-                "## Governed data-platform evidence",
+                "## Governed data-platform evidence\n",
+                "\n",
                 "The Silver and Gold products reconcile the operational source data. This engineering success is deliberately separated from the weak predictive result above."
               ]
             }
@@ -300,7 +301,8 @@
             "name": "operations-section",
             "multilineTextboxSpec": {
               "lines": [
-                "## Compressor operations",
+                "## Compressor operations\n",
+                "\n",
                 "Aggregate operational context only—no row-level model scores, record identifiers, or maintenance recommendations."
               ]
             }
@@ -369,7 +371,8 @@
             "name": "report-only-footer",
             "multilineTextboxSpec": {
               "lines": [
-                "### Interpretation guardrail",
+                "### Interpretation guardrail\n",
+                "\n",
                 "The one-time July test is sealed: **0/1 failures detected, 1/1 missed, 73 false alert episodes across 62 operating days**. Do not rerun, retune, or use this candidate for production maintenance decisions."
               ]
             }
